@@ -3,6 +3,6 @@ Title: Package for the Standard R-Parallel-Computation API
 Version: 0.0.0.9000
 Authors@R: person("First", "Last", , "first.last@example.com", role = c("aut", "cre"))
 Description: This package contains the classes and code for creating and computing with distributed objects in R.
-Depends: R (>= 3.1.2)
+Depends: assertthat, R (>= 3.1.2)
 License: What license is it under?
 LazyData: true

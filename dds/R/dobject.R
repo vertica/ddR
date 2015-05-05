@@ -1,6 +1,12 @@
 # Defines the base class for a distributed object, as well as their methods
 # DList, DArray, and DFrame inherit from class DObject
 
+#' @export
+# dispatches on Backend
+setGeneric("parts",function(dobj){
+  standardGeneric("parts")
+})
+
 # TODO: finish definitions, slots
 setClass("DObject",
   representation(nparts = "integer", psize = "integer",
