@@ -1,0 +1,403 @@
+API for Distributed Computing in R
+----------------------------------------
+API draft 4.0
+Indrajit Roy and Michael Lawrence (Dt. 03/16/2015)
+---------------
+
+The aim of this document is to brainstorm on functions to express distributed computations. Many of these functions are inspired from snow, parallel, foreach, and distributedR package.
+Architecture: The APIs below assume the following
+1) There is one master R process with which the user is interacting
+2) There are multiple worker R processes on which most of the processing occurs. The workers may reside on different physical machines. As an example scenario, two 12-core servers may have 1 R master and 24 R workers.
+Distributed data structures
+We will provide distributed version of R?s traditional data-structures. Let?s call them darray, dframe, and dlist corresponding to array, data.frame, and list in R. 
+1) dlist: distributed list
+
+a. dlist(A,B,C,?, nparts, psize): construct a dlist from elements. Similar to list() convention
+i. A,B,C are dlists or regular R lists
+ii. ?nparts? indicates how many partitions should be created from the input data.  Default is equal to the number of workers. 
+iii. ?psize? indicates number of elements in each partition. It is optional. Default sets psize to 1/#workers of the total length of the list
+
+b. as.dlist(input, nparts, psize): convert an R list into a distributed list
+i. ?input? is an ordinary R object
+ii. ?nparts? indicates how many partitions should be created from the input data.  Default is equal to the number of workers. 
+iii. ?psize? indicates number of elements in each partition. It is optional. Default sets psize to 1/#workers of the total length of the list
+
+2) darray: distributed array
+
+a. darray(dim, data, sparse, nparts, psize): creates distributed array. 
+i. ?dim? is the dimension of the array
+ii. ?data? is the initial value of all elements in the array. Default is 0.
+iii. ?sparse?  logical. Indicates if array is stored as a sparse matrix. Default is false.
+iv. ?nparts? indicates how many partitions should be created from the input data.  If used data is row partitioned. Default is equal to the number of workers. 
+ 
+v. ?psize? size of each partition as a vector specifying the number of rows and columns. If missing, the array is row divided into #partitions=#workers, i.e., each partition has dim[1]/#worker rows and dim[2] columns.
+
+b. as.darray(input, nparts, psize): convert an R array into a distributed array
+i. ?input? is an ordinary R array
+ii. ?nparts? indicates how many partitions should be created from the input data.  If used data is row partitioned. Default is equal to the number of workers. 
+iii. ?psize? size of each partition as a vector specifying the number of rows and columns. If missing, the array is row partitioned with #partitions=#workers, i.e., each partition has dim(input)[1]/#worker rows and dim(input)[2] columns.
+
+3) dframe: distributed data-frame
+
+a. dframe(dim, nparts, psize): creates distributed data frame. 
+i. ?dim? is the dimension of the data frame. If missing, results in an empty dframe
+ii. ?nparts? indicates how many partitions should be created from the input data.  If used data is row partitioned. Default is equal to the number of workers. 
+iii. ?psize? size of each partition as a vector specifying the number of rows and columns. If missing, the array is row divided into #partitions=#workers, i.e., each partition has dim[1]/#worker rows and dim[2] columns.
+
+b. as.dframe(input, nparts, psize): convert an R data.frame into a distributed data.frame
+i. ?input? is an ordinary R object
+ii. ?nparts? indicates how many partitions should be created from the input data.  If used data is row partitioned. Default is equal to the number of workers. 
+iii. ?psize? size of each partition as a vector specifying the number of rows and columns. If missing, the array is row partitioned with #partitions=#workers, i.e., each partition has dim(input)[1]/#worker rows and dim(input)[2] columns.
+
+4) split(A, f): split an existing distributed object. Same syntax as R?s split(), except the return type is a dlist, dframe, or darray
+
+5) Y=parts(A): return the set of partitions as a list of distributed objects
+a. ?A? is a dlist, dframe or darray
+b. ?Y? is a list. Each element in a list points to a distributed object (in some sense a filtered view of the distributed object). E.g., Y[[1]] refers to the first partition of A.
+
+6) collect(A): return the data-structure A at the master
+a. ?A? is a dlist, dframe or darray 
+b. E.g., collect(parts(A)[[1]]) will return the first partition, collect(A) will return the whole data-structure
+
+Q1) I don?t want to handle how data is partitioned. Should I care about arguments such as ?nparts? and ?psize??
+Ans.) The API does not require you to specify details of the partitions. We expect most users to simply use default values wherein the runtime takes care of partitioning details. For example, users will typically create a darray by just stating the array dimensions and the content: darray(dim=c(100,100), data=22). The runtime will figure out the number of partitions and their sizes. Similarly, when data is loaded from an external source, partitioning may be implicit and dependent on the external source. Partition specific arguments are only for those users who want low-level control over their data to optimize their applications.
+Q2) What is the difference between dlist(x) and as.dlist(x)? Both can take a list as an argument.
+Ans.) dlist(x) makes 'x' the first element of the list, regardless of whether 'x' is a list or not, i.e., there is nesting of lists. as.dlist() behaves analogously to as.list(), so as.dlist(x) would satisfy length(x)==length(as.dlist(x)) if 'x' is a list.? Calling as.dlist() on a matrix/array would make each cell of the matrix an element in the list. The partitioning would be carried over directly.
+
+Distributed processing
+
+Our goal is to provide easy to use functions to express distributed computations. 
+Proposed syntax for mapply on dlists, darrays, and dframes:
+1) A<-mapply(FUN,X,Y, MoreArgs=?, SIMPLIFY): apply the function FUN on each element of X and Y.
+a. ?X? and ?Y? are the input distributed objects
+b. ?A? is the output returned as a distributed object
+c. ?FUN? is a function which acts on partitions of X
+d. ?MoreArgs? are arguments made available to each invocation of FUN
+e. ?SIMPLIFY? attempts to reduce the result to a darray or dframe. Default is TRUE. 
+
+Q1) How do I pass all the contents of dlist to the lapply function? How do I pass inputs that are just normal R objects, i.e., not distributed? 
+Ans.) Use ?MoreArgs?. Here is an example:
+#X,Y,Z are dlists
+A<-mapply(FUN(x,y,z1,z2), X,Y,MoreArgs=list(z1=Z,z2=c(10,10)))
+In the above case, FUN will be applied to each element of X and Y. Additionally, each invocation of FUN will receive the full dlist Z and the vector c(10,10).
+
+Q2) How do I return more than one data-structure from mapply?
+Ans.) You will need to combine multiple results into a single list. Example code:
+#X, Y are dlists
+A<-mapply(FUN(x,y,z){return list(x,y,z)}, X,Y, MoreArgs=list(z=22))
+
+Q3) How do I apply a function on partitions of a distributed data structure?
+Ans.) Use mapply on parts(X), where X is the dlist. Example code:
+#X is a dlist
+A<-mapply(FUN(x){}, parts(X))
+
+Q4) How do I pass partition ids when working with partitions of a distributed data-structure?
+Ans.) Use mapply on parts(X) and pass an index counter. Example code:
+#X is a dlist
+A<-mapply(FUN(id, x){}, 1:length(parts(X)), parts(X))
+Q5) What if I have to pass arbitrary dlist partitions to lapply? For example, I want to write a function that takes first partition of X and second partition of Y.
+Ans.) Use the corresponding partitions of dlist with mapply.
+#X, Y are dlists
+A<-mapply(FUN(x,y){}, parts(X)[[1]], parts(Y)[[2]])
+Q6) Can I use lapply instead of mapply?
+Ans.) Yes. Lapply will internally call mapply that backends implement. Therefore, a backend only needs to support mapply.
+Q7) The input to mapply are a mix of distributed arrays and list. Will the output be a dlist?
+Ans.) It depends. The mapply function has an argument called ?SIMPLIFY? which tries to reduce the output into a darray or dframe. However, this reduction is successful only if each partition of the output is well formed and can be combined into a meaningful darray or dframe. For example, it there are unequal number of rows in each output partition, the result cannot be reduced to a darray or dframe. By default mapply binds output by columns, i.e. there will be a column for each input element of X. 
+Q8) How do I load data from files in local and distributed filesystems?
+Ans.) File loaders can be implemented using distributed data-structures and mapply as specified in the API. We expect contributors to write packages for loading data from different sources.
+
+--------------------------------------------------------------
+API draft 3.0
+Indrajit Roy and Michael Lawrence (Dt. 03/16/2015)
+The aim of this document is to brainstorm on functions to express distributed computations. Many of these functions are inspired from snow, parallel, foreach, and distributedR package.
+Architecture: The APIs below assume the following
+3) There is one master R process with which the user is interacting
+4) There are multiple worker R processes on which most of the processing occurs. The workers may reside on different physical machines. As an example scenario, two 12-core servers may have 1 R master and 24 R workers.
+Distributed data structures
+We will provide distributed version of R?s traditional data-structures. Let?s call them darray, dframe, and dlist that correspond to array, data.frame, and list in R. 
+7) dlist: distributed list
+a. dlist(nparts) : creates an empty dlist. 
+i. ?nparts? is optional. It indicates how many partitions should be created for the empty list. By default it will create #partitions = #workers
+
+b. dlist(A,B,C,?): construct a dlist from elements. Similar to list() convention
+i. A,B,C are dlists or regular R lists
+
+c. as.dlist(input, nparts): convert an R list into a distributed list
+i. ?input? is an ordinary R list
+ii. ?nparts? is optional. Default is equal to the number of workers. It indicates how many partitions should be created from the input data. 
+
+8) darray: distributed array
+a. darray(nparts) : creates a darray with NAs
+i. ?nparts? is optional. It indicates how many partitions should be created for the empty distributed array. By default it will create #partitions = #workers
+
+b. darray(dim, data, sparse, psize): creates distributed array. 
+i. ?dim? is the dimension of the array
+ii. ?data? is the initial value of all elements in the array. Default is 0.
+iii. ?sparse?  logical. Indicates if array is stored as a sparse matrix. Default is false.
+iv. ?psize? size of each partition as a vector specifying the number of rows and columns. If missing, the array is row divided into #partitions=#workers, i.e., each partition has dim[1]/#worker rows and dim[2] columns.
+
+c. as.darray(input, psize): convert an R array into a distributed array
+i. ?input? is an ordinary R array
+ii. ?psize? size of each partition as a vector specifying the number of rows and columns. If missing, the array is row divided into #partitions=#workers, i.e., each partition has dim(input)[1]/#worker rows and dim(input)[2] columns.
+
+9) dframe: distributed data-frame
+a. dframe(nparts) : creates an empty dframe 
+i. ?nparts? is optional. It indicates how many partitions should be created for the empty data frame. By default it will create #partitions = #workers
+
+b. dframe(dim, psize): creates distributed data frame. 
+i. ?dim? is the dimension of the data frame
+ii. ?psize? size of each partition as a vector specifying the number of rows and columns. If missing, the array is row divided into #partitions=#workers, i.e., each partition has dim[1]/#worker rows and dim[2] columns.
+
+c. as.dframe(input, psize): convert an R data.frame into a distributed data.frame
+i. ?input? is an ordinary R data.frame
+ii. ?psize? size of each partition as a vector specifying the number of rows and columns. If missing, the array is row divided into #partitions=#workers, i.e., each partition has dim(input)[1]/#worker rows and dim(input)[2] columns.
+
+10) split(A, f): split an existing distributed object. Same syntax as R?s split(), except the return type is a dlist, dframe, or darray
+
+11) Y=parts(A): return the set of partitions as a list of distributed objects
+a. ?A? is a dlist, dframe or darray
+b. ?Y? is a list. Each element in a list points to a distributed object (in some sense a filtered view of the distributed object). E.g., Y[[1]] refers to the first partition of A.
+
+12) collect(A): return the data-structure A at the master
+a. ?A? is a dlist, dframe or darray 
+b. E.g., collect(parts(A)[[1]]) will return the first partition, collect(A) will return the whole data-structure
+Distributed processing
+
+Our goal is to provide easy to use functions to express distributed computations. 
+Proposed syntax for mapply on dlists:
+2) A<-mapply(FUN,X,Y, MoreArgs=?, SIMPLIFY): apply the function FUN on each element of X and Y.
+a. ?X? and ?Y? are the input distributed objects
+b. ?A? is the output returned as a distributed object
+c. ?FUN? is a function which acts on partitions of X
+d. ?MoreArgs? are arguments made available to each invocation of FUN
+e. ?SIMPLIFY? attempts to reduce the result to a darray or dframe. Default is TRUE. 
+
+Q1) How do I pass all the contents of dlist to the lapply function? How do I pass inputs that are just normal R objects, i.e., not distributed? 
+Ans.) Use ?MoreArgs?. Here is an example:
+#X,Y,Z are dlists
+A<-mapply(FUN(x,y,z1,z2), X,Y,MoreArgs=list(z1=Z,z2=c(10,10)))
+In the above case, FUN will be applied to each element of X and Y. Additionally, each invocation of FUN will receive the full dlist Z and the vector c(10,10).
+
+Q2) How do I return more than one  from mapply?
+Ans.) You will need to combine multiple results into a single list. Example code:
+#X, Y are dlists
+A<-mapply(FUN(x,y,z){return list(x,y,z)}, X,Y, MoreArgs=list(z=22))
+
+Q3) How do I apply a function on partitions of a distributed data structure?
+Ans.) Use mapply on parts(X), where X is the dlist. Example code:
+#X is a dlist
+A<-mapply(FUN(x){}, parts(X))
+
+Q4) How do I pass partition ids when working with partitions of a distributed data-structure?
+Ans.) Use mapply on parts(X) and pass an index counter. Example code:
+#X is a dlist
+A<-mapply(FUN(id, x){}, 1:length(parts(X), parts(X))
+Q5) What if I have to pass arbitrary dlist partitions to lapply? For example, I want to write a function that takes first partition of X and second partition of Y.
+Ans.) Use the corresponding partitions of dlist with mapply.
+#X, Y are dlists
+A<-mapply(FUN(x,y){}, parts(X)[[1]], parts(Y)[[2]])
+Q6) Can I use lapply instead of mapply?
+Ans.) Yes. Lapply will internally call mapply that backends implement. Therefore, a backend only needs to support mapply.
+Q7) The input to mapply are a mix of distributed arrays and list. Will the output be a dlist?
+Ans.) It depends. The mapply function has an argument called ?SIMPLIFY? which tries to reduce the output into a darray or dframe. However, this reduction is successful only if each partition of the output is well formed and can be combined into a meaningful darray or dframe. For example, it there are unequal number of rows in each output partition, the result cannot be reduced to a darray or dframe. By default mapply binds output by columns, i.e. there will be a column for each input element of X. 
+Q8) How do I load data from files in local and distributed filesystems?
+Ans.) File loaders can be implemented using distributed data-structures and mapply as specified in the API. We expect contributors to write packages for loading data from different sources.
+
+-----------------------------------------------------------
+API draft 2.0
+Indrajit Roy and Michael Lawrence (Dt. 03/11/2015)
+The aim of this document is to brainstorm on functions to express distributed computations. Many of these functions are inspired from experiences with the distributedR package.
+Architecture: The APIs below assume the following
+5) There is one master R process with which the user is interacting
+6) There are multiple worker R processes on which most of the processing occurs. The workers may reside on different physical machines.
+Distributed data structures
+We will provide distributed version of R?s traditional data-structures. Let?s call them darray, dframe, and dlist that correspond to array, data.frame, and list in R. We will focus on dlist for now.
+Syntax for creating and initializing dlist
+13) dlist(nparts) : creates an empty dlist. 
+a. ?nparts? is optional. It indicates how many partitions should be created for the empty list. By default it will create #partitions = #workers
+
+14) dlist(A,B,C,?): construct a dlist from elements. Similar to list() convention
+
+a. A,B,C are dlists or regular R lists
+
+15) as.dlist(input, nparts): convert an R list into a distributed list
+a. ?input? is an ordinary R list
+b. ?nparts? is optional. Default is equal to the number of workers. It indicates how many partitions should be created from the input data. 
+
+16) split(A, f): split an existing dlist. Same syntax as R?s split(), except the return type is a dlist
+
+17) Y=parts(A): return the set of partitions as a list of dlists
+a. ?A? is a dlist
+b. ?Y? is a list. Each element in a list points to a dlist (in some sense a filtered view of the dlist A). E.g., Y[[1]] refers to the first partition of A.
+
+18) collect(A): return the dlist A at the master
+a. ?A? is a dlist 
+b. E.g., collect(parts(A)[[1]]) will return the first partition, collect(A) will return the whole dlist
+Distributed processing
+
+Our goal is to provide easy to use functions to express distributed computations. 
+Proposed syntax for mapply on dlists:
+3) A<-mapply(FUN,X,Y, MoreArgs=?): apply the function FUN on each element of X and Y.
+a. ?X? and ?Y? are the input dlist
+b. ?A? is the output returned as a dlist
+c. ?FUN? is a function which acts on partitions of X
+d. ?MoreArgs? are arguments made available to each invocation of FUN
+
+Q1) How do I pass all the contents of dlist to the lapply function? How do I pass inputs that are just normal R objects, i.e., not distributed? 
+Ans.) Use ?MoreArgs?. Here is an example:
+#X,Y,Z are dlists
+A<-mapply(FUN(x,y,z1,z2), X,Y,MoreArgs=list(z1=Z,z2=c(10,10)))
+In the above case, FUN will be applied to each element of X and Y. Additionally, each invocation of FUN will receive the full dlist Z and the vector c(10,10).
+
+Q2) How do I return more than one dlist from mapply?
+Ans.) You will need to combine multiple results into a single list. Example code:
+#X, Y are dlists
+A<-mapply(FUN(x,y,z){return list(x,y,z)}, X,Y, MoreArgs=list(z=22))
+
+Q3) How do I apply a function on partitions of the dlist?
+Ans.) Use mapply on parts(X), where X is the dlist. Example code:
+#X is a dlist
+A<-mapply(FUN(x){}, parts(X))
+
+Q4) How do I pass partition ids when working with partitions of the dlist?
+Ans.) Use mapply on parts(X) and pass an index counter. Example code:
+#X is a dlist
+A<-mapply(FUN(id, x){}, 1:length(parts(X), parts(X))
+Q5) What if I have to pass arbitrary dlist partitions to lapply? For example, I want to write a function that takes first partition of X and second partition of Y.
+Ans.) Use the corresponding partitions of dlist with mapply.
+#X, Y are dlists
+A<-mapply(FUN(x,y){}, parts(X)[[1]], parts(Y)[[2]])
+Q6) Can I use lapply instead of mapply?
+Ans.) Yes. Lapply will internally call mapply that backends implement. Therefore, a backend only needs to support mapply.
+Q7) How do I load data from files in local and distributed filesystems?
+Ans.) File loaders can be implemented using distributed data-structures and mapply as specified in the API. We expect contributors to write packages for loading data from different sources.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+API draft 1.0
+Indrajit Roy (Dt. 02/27/2015)
+The aim of this document is to brainstorm on functions to express distributed computations. Many of these functions are inspired from experiences with the distributedR package.
+Architecture: The APIs below assume the following
+7) There is one master R process with which the user is interacting
+8) There are multiple worker R processes on which most of the processing occurs. The workers may reside on different physical machines.
+Distributed data structures
+We will provide distributed version of R?s traditional data-structures. Let?s call them darray, dframe, and dlist that correspond to array, data.frame, and list in R. We will focus on dlist for now.
+Syntax for creating and initializing dlist
+19) dlist(nparts) : creates an empty dlist. 
+a. ?nparts? is optional. It indicates how many partitions should be created for the empty list. By default it will create #partitions = #workers
+
+20) dlist(connection, nparts): create and store data in a dlist 
+a. ?connection? is a R connection such as a file which is accessible to all workers. An example is a file on the network file system which is accessible to processes on different machines
+b. ?nparts? is optional. Default is equal to the number of workers. It indicates how many partitions should be created from the data in ?connection?. For example, nparts=5 will mean read the file and break it into approximately 5 partitions.
+
+21) as.dlist(input, nparts): convert an R list into a distributed list
+a. ?input? is an ordinary R list
+b. ?nparts? is optional. Default is equal to the number of workers. It indicates how many partitions should be created from the input data. 
+
+22) getpartition(A,i): return certain partitions (or the whole list) at the master
+a. ?A? is a dlist
+b. ?i? is optional. It is the index of the partition that we want to return. If missing, the whole list is returned.
+Comparison with APIs in other systems:
+1) R?s snow/snowfall: These packages don?t have a concept of distributed data-structures. However, ?as.dlist? is similar to the ?clusterSplit? functionality in snow. In snow ?clusterSplit? takes a list as input and splits it equally across workers. The difference is that snow does not return a reference to the distributed data. With as.dlist() we can get the same functionality however we return a dlist object that can be reused in later commands. 
+
+2) Spark RDD: One can consider Spark?s RDD as a distributed ?superobject? which can store different types of objects. A dlist is similar expect we specify the type upfront, which in this case is a list. 
+
+3) Spark sc.textFile/sc.hadoopFile: Spark provides similar functionality as dlist(connection,nparts). For example, Spark?s textFile() assumes that the file is accessible to all Spark workers and will be split into a default or user defined number of partitions.
+
+4) Fetching data at the master using getpartition():  Spark provides a similar feature under the name ?collect()?.
+Link to Spark functions: http://spark.apache.org/docs/1.2.1/programming-guide.html#working-with-key-value-pairs
+Distributed processing
+
+Our goal is to provide easy to use functions to express distributed computations. The distributedR package provides a ?foreach? construct for running functions on the cluster. This ?foreach? construct is powerful enough to efficiently express a wide variety of tasks and algorithms. We would like to simplify the usage by adopting something similar to ?lapply()?, assuming it is as feature rich as the ?foreach? in distributedR. 
+Proposed syntax for lapply on dlists:
+4) A<-lapply(X, FUN,?): apply the function FUN on each element of X.
+a. ?X? is the input dlist
+b. ?A? is the output returned as a dlist
+c. ?FUN? is a function which acts on each element of X
+
+5) A<-lapplyOnparts(X, FUN,?): apply the function FUN on each partition of X.
+a. ?X? is the input dlist
+b. ?A? is the output returned as a dlist
+c. ?FUN? is a function which acts on partitions of X
+
+Q1) Do we need both lapply and lapplyOnparts?
+Ans.) We need to investigate. Lapply-on-each-element is more general, because if FUN can run on each element we can always feed a partition to FUN. In comparison, distributedR?s foreach acts only on partitions. Spark similarly provides map() and mapPartitions() to differentiate between running map on each element versus each partition. The question is whether lapplyOnparts() makes it easier to express algorithms and is more efficient. With lapplyOnparts, the user would receive psize of data in the function FUN, and there will be one output per input block instead of one output per line. In terms of syntax we can also add a flag to lapply() to toggle between lapply and lapplyOnparts.
+Q2) In some algorithms FUN may need input from more than one distributed data-structure.How should I pass two dlists to lapply? 
+Ans.) Ideally what we want to express is something like FUN(X,Y), i.e., the function FUN takes corresponding partitions of X and Y---first partition of X and Y, second partition of X and Y, and applies FUN on these partitions. Instead of partitions one can also think of them as applying FUN on corresponding rows. 
+As an example, distributedR?s foreach will express this as: 
+foreach(k, 1:n, function(Xk=splits(X,k), Yk=splits(Y,k)){#function body})
+Possible options with lapply:
+1) Pass dlists as extra arguments. E.g.: A<-lapplyOnparts(X, FUN, Y, Z). The runtime notices that Y and Z are type dlist and will feed partitions of X, Y, and Z to FUN(x,y,z). This issue with this syntax is that it is at odds with R?s normal lapply syntax which would send the full Y and Z objects to the function as it operated on each element/partition of X. As an example lapply(X, FUN, c(20,22)) will send c(20,22) as input to FUN each time a element of X was operated on by FUN.
+
+2) A variant of the above option is to enforce that all dlists that have to be iterated via partitions are passed before function FUN, followed by any remaining arguments to FUN. E.g, A<-lapplyOnparts(X,Y,Z, FUN, s=c(20,22)). In this example, each partition of X, Y, and Z will be passed to FUN, and c(20,22) will be an argument to FUN every time it is invoked.
+
+3) Combine X, Y, and Z first and then call apply. Note that we want to combine corresponding partitions. Something like cbind may work in this case. E.g., lapplyOnparts(cbind(X,Y,Z), FUN).  This syntax is probably better that the previous ones. There are some issue though. First, cbind can do quirky things if you bind together different object types (e.g., bind a list with a matrix). Second, we need to ensure that cbind does not suffer from poor performance due to deep copies. We want to avoid copying data in cbind(X,Y) when X and Y are multi-gigabyte dlists. Internally cbind should be a simple pointer change.
+
+Note that Spark provides a function called ?zip? to combine RDDs. 
+Q3) How do I pass all the contents of dlist to the lapply function? How do I pass inputs that are just normal R objects, i.e., not distributed? 
+Ans.) We can leverage the current syntax of lapply() to pass optional arguments to FUN. Here is an example: A<-lapplyOnparts(X, FUN(x,y,z),y=Y, z=22). In this case FUN is applied to each partition x of X, all the contents of the dlist Y is made available to FUN as y, and the constant 22 is also an input to FUN. In some sense, y=Y is equal to y=getpartition(Y), i.e, all the contents of y are passed to the function.
+The other option is to introduce a?function to explicitly show that the full dlist has to be gathered and passed to FUN. Let's say we introduce the function "collect" which will gather a dlist and make it available at each worker. E.g., A<-lapplyOnparts(X, FUN(x,y,z), y=collect(Y), z=22).
+Q4) How do I return more than one dlist from lapply?
+Ans.) We will need to combine multiple results into a single list. Example code:
+#X, Y are dlists
+A<-cbind(x=X,y=Y)
+B<-lapply(A, FUN(a,z){return list(a,z)}, z=22)
+Q5) What if I have to pass arbitrary dlist partitions to lapply? For example, I want to write a function that takes first partition of X and second partition of Y.
+Ans) As an example, in distributedR?s foreach world, we can express such a program by: 
+foreach(k, 1:1, function(x=splits(X,1), y=splits(Y,2)){#function body})
+However, in the API specified in this document there is no easy way to achieve this.
+A possible solution is to first create a dlist which combines the partitions that you want, and then call lapply() on this new dlist. The issue here is that we will need to find a way to refer to particular partitions. In distributedR one can refer to partitions as ?split(A,i)?. 
+In the API that we have described up until now, we can achieve the following by: 
+A<-cbind(getpartition(X,1),getpartition(Y,2))
+lapply(A,FUN)
+However the problem with this syntax is that ?getpartition()? fetches the data at the master node. So the data movement makes distributed computing ineffective and useless.
+We need to determine if this kind of flexibility is needed in the general case.  And if it is important, how do we support it.
+Q6) How do I pass the partition id to functions in lapply?
+Ans.) The proposed API does not have a way to pass partition ids. We will need to investigate whether this is an important feature requirement.
+However, both distributedR and Spark allow one to associate indexes with partitions. Spark provides mapPartitionsWithIndex(func) where index is available to the function.
+In distributedR the partition id is available through the loop counter. Example:
+foreach(k, 1:N, function(x=splits(X,k), partId=k){#function body})
+
+API draft 2.0
+Indrajit Roy and Michael Lawrence (03/07/2015)
+1) dlist(nparts) : creates an empty dlist. 
+
+2) dlist(A,B,C,?): construct a dlist from elements. Similar to list() convention
+
+a. A,B,C are dlists()
+
+3) dlist(connection, nparts): create and store data in a dlist 
+
+4) as.dlist(input, nparts): convert an R list into a distributed list
+
+5) split(A, f): split an existing dlist. Same syntax as R?s split(), except the return type is a dlist
+
+Q1) Should we replace lapplyOnparts with lapply but on parts(x)?
+   Yes. In terms of syntax lapply(part(x) looks much better. The unanswered question is the content of ?parts(A)?. Should parts(A)[[1]] be a ?reference? to the remote object or should it be the actual contents? I am leaning towards making it a reference and then use a separate keyword such as ?collect? explicitly trigger data movement from remote node to local node.
+   parts(A): returns a list containing reference to each partition of the dlist A 
+
+
+1) 
+2) collect(x): return certain partitions (or the whole list) at the master
+
+a. x is list of references to partitions or reference to an individual partition
+b. E.g., collect(parts(A)[[1]]) will return the first partition, collect(parts(A)) will return the whole dlist
+
+
+
