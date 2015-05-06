@@ -10,25 +10,33 @@ useBackend <- function(driver, init=TRUE) {
   if(init) init(driver)
 }
 
+#' @export
 setClass("DDSDriver")
 
+#' @export
 setClass("Backend")
 
 #' @export
-setGeneric("init", function(x) {
+setGeneric("init", function(x,...) {
   standardGeneric("init")
 }) 
 
 #' @export 
 # dispatches on DDSDriver
-setGeneric("create.dobj", function(x,type) {
+setGeneric("create.dobj", function(x,type,nparts=NULL,psize=NULL) {
   standardGeneric("create.dobj")
 })
 
 #' @export
 # dispatches on DDSDriver
-setGeneric("do_mapply", function(driver) {
+setGeneric("do_mapply", function(driver,func,...,MoreArgs) {
   standardGeneric("do_mapply")
+})
+
+#' @export
+# dispatches on backend
+setGeneric("get_parts", function(x,index,...) {
+  standardGeneric("get_parts")
 })
 
 #' @export

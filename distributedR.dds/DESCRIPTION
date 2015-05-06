@@ -1,0 +1,8 @@
+Package: distributedR.dds
+Title: What the Package Does (one line, title case)
+Version: 0.0.0.9000
+Authors@R: person("First", "Last", , "first.last@example.com", role = c("aut", "cre"))
+Description: Distributed R dds implementation 
+Depends: distributedR, dds, R (>= 3.1.2)
+License: What license is it under?
+LazyData: true

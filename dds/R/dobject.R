@@ -1,11 +1,36 @@
 # Defines the base class for a distributed object, as well as their methods
 # DList, DArray, and DFrame inherit from class DObject
 
-#' @export
-# dispatches on Backend
-setGeneric("parts",function(dobj){
-  standardGeneric("parts")
+#' @export 
+parts <- function(dobj, index=NULL) {
+  if(is.null(index)) index = 1:nparts(dobj) 
+  index <- unlist(index)
+  assert_that(is.numeric(index))
+  index <- as.integer(index)
+
+  type = class(dobj)[[1]]
+
+  if(max(index) > dobj@nparts)
+    stop("Partition index must be smaller than total number of partitions.")
+ 
+  if(min(index) < 1)
+    stop("Partition index must be a positive value")
+
+  partitions <- get_parts(dobj@backend, index)
+
+  partitions <- lapply(partitions, function(backend) {
+    # TODO: set psize and dim accordingly
+    new(type,nparts=1L,backend=backend)
 })
+
+  assert_that(length(partitions) == length(index))
+  partitions
+}
+
+#' @export
+nparts <- function(dobj) {
+  dobj@nparts
+}
 
 # TODO: finish definitions, slots
 setClass("DObject",
@@ -35,7 +60,9 @@ setClass("DFrame",
 
 #' @export
 dlist <- function(...,nparts = 1L, psize=c(1L,1L)){
-  new("DList",backend=create.dobj(dds.env$driver,"DList"),nparts = as.integer(nparts), psize = as.integer(psize))
+  nparts = as.integer(nparts)
+  psize = as.integer(psize)
+  new("DList",backend=create.dobj(dds.env$driver,"DList",nparts=nparts,psize=psize),nparts = nparts, psize = psize)
 }
 
 #' @export
@@ -46,7 +73,9 @@ DLIST <- dlist
 
 #' @export
 darray <- function(...,nparts = 1L, psize=c(1L,1L)){
-  new("DArray",backend=create.dobj(dds.env$driver,"DArray"),nparts = as.integer(nparts), psize = as.integer(psize))
+  nparts = as.integer(nparts)
+  psize = as.integer(psize)
+  new("DArray",backend=create.dobj(dds.env$driver,"DArray",nparts=nparts,psize=psize),nparts = nparts, psize = psize)
 }
 
 #' @export
@@ -56,7 +85,9 @@ DARRAY <- darray
 
 #' @export
 dframe <- function(...,nparts = 1L, psize=c(1L,1L)){
-  new("DFrame",backend=create.dobj(dds.env$driver,"DFrame"),nparts = as.integer(nparts), psize = as.integer(psize))
+  nparts = as.integer(nparts)
+  psize = as.integer(psize)
+  new("DFrame",backend=create.dobj(dds.env$driver,"DFrame",nparts=nparts,psize=psize),nparts = nparts, psize = psize)
 }
 
 #' @export
