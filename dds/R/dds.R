@@ -29,7 +29,7 @@ setGeneric("create.dobj", function(x,type,nparts=NULL,psize=NULL) {
 
 #' @export
 # dispatches on DDSDriver
-setGeneric("do_mapply", function(driver,func,...,MoreArgs) {
+setGeneric("do_mapply", function(driver,func,...,MoreArgs=list()) {
   standardGeneric("do_mapply")
 })
 
@@ -40,15 +40,17 @@ setGeneric("get_parts", function(x,index,...) {
 })
 
 #' @export
-mapply <- function(FUN,...,MoreArgs,simplify=FALSE) {
+mapply <- function(FUN,...,MoreArgs=list(),simplify=FALSE) {
   assert_that(is.function(FUN))
   assert_that(length(args) > 0)
 
   dargs <- list(...)
   # Ensure that ... arguments are of equal length
   tryCatch({
-    lens <- lapply(dargs,function(x) length(x))
-    assert_that(max(lens) == min(lens))}, error = 
+    lens <- lapply(dargs,function(x){
+     length(x)
+    })
+    assert_that(max(unlist(lens)) == min(unlist(lens)))}, error = 
     function(e){
       stop("Arguments to mapply function must be of equal length (have the 
         same number of elements)")
@@ -61,8 +63,9 @@ mapply <- function(FUN,...,MoreArgs,simplify=FALSE) {
     type = "DList"
   }
 
-  newobj <- new(type, backend = create.dobj(dds.env$driver, type), 
-        nparts = as.integer(nparts), psize = as.integer(psize))
+
+  newobj <- new(type, backend = create.dobj(dds.env$driver, type, nparts=lens[[1]]), 
+        nparts = lens[[1]], psize = 1L)
 
   newobj@backend <- do_mapply(dds.env$driver, func=FUN, ..., MoreArgs=MoreArgs)
   newobj
