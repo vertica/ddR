@@ -8,8 +8,6 @@ collect <- function(dobj, index=NULL) {
   }
 
   index <- as.integer(unlist(index))
-    
-
   assert_that(max(index) <= nparts(dobj) && min(index) > 0)
 
   # Try to get data from backend all at once
@@ -20,16 +18,16 @@ collect <- function(dobj, index=NULL) {
     assert_that(length(partitions) == length(index))
     partitions
     },error = function(e){
-      lapply(index,do_collect,backend=dobj@backend)        
+      unlist(lapply(index,do_collect,x=dobj@backend),recursive=FALSE)
   }) 
 }
 
 #' @export
-setGeneric("do_collect", function(x,parts=NULL) {
+setGeneric("do_collect", function(x,parts) {
   standardGeneric("do_collect")
-}
+})
 
-#' @export 
+#' @export
 parts <- function(dobj, index=NULL) {
   if(is.null(index)) index = 1:nparts(dobj) 
   index <- unlist(index)

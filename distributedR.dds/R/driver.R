@@ -70,8 +70,6 @@ setMethod("do_mapply",signature(driver="distributedRDDS",func="function",MoreArg
       formals(func)[[other]] <- MoreArgs[[other]]
     }
 
-    print(formals(func))
-    print(func)
     foreach(index,1:length(margs[[1]]),func) 
 
     new("distributedRBackend",DRObj = .outObj, splits = 1:npartitions(.outObj))
