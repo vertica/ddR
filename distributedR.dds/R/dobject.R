@@ -22,3 +22,16 @@ setMethod("get_parts",signature("distributedRBackend","integer"),
     } )
   }
 )
+
+#' @export
+setMethod("do_collect",signature("distributedRBackend","integer"),
+  function(x, index, ...) {
+    if(are_equal(1:npartitions(x@DRObj),index)) {
+       getpartition(x)
+    } else if(length(index) > 1) {
+      stop("Cannot getpartition on more than one index at a time")
+    }
+   else {
+      getpartition(x,index)
+   }
+})
