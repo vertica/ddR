@@ -6,3 +6,5 @@ Description: Distributed R dds implementation
 Depends: distributedR, dds, R (>= 3.1.2)
 License: What license is it under?
 LazyData: true
+Suggests: knitr
+VignetteBuilder: knitr
