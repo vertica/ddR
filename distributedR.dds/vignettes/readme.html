@@ -206,7 +206,27 @@ hr {
 <p>Starting it up:</p>
 
 <pre><code class="r">library(distributedR.dds)
-useBackend(distributedR)
+</code></pre>
+
+<pre><code>## Loading required package: distributedR
+## Loading required package: Rcpp
+## Loading required package: RInside
+## Loading required package: XML
+## Loading required package: dds
+## Loading required package: assertthat
+## 
+## Attaching package: &#39;dds&#39;
+## 
+## The following objects are masked from &#39;package:distributedR&#39;:
+## 
+##     darray, dframe, dlist
+## 
+## The following object is masked from &#39;package:base&#39;:
+## 
+##     mapply
+</code></pre>
+
+<pre><code class="r">useBackend(distributedR)
 </code></pre>
 
 <pre><code>## Master address:port - 127.0.0.1:50002
@@ -284,6 +304,19 @@ collect(c)
 ## 
 ## [[5]]
 ## [1] 6
+</code></pre>
+
+<p>Pulling only two parts from each <code>a</code> and <code>b</code>, and one part from <code>c</code> and using them together:</p>
+
+<pre><code class="r">d &lt;- mapply(addThenSubtract,parts(a,1:2),parts(b,c(2,4)),MoreArgs=list(z=collect(c,1)[[1]]))
+collect(d)
+</code></pre>
+
+<pre><code>## [[1]]
+## [1] 6
+## 
+## [[2]]
+## [1] 8
 </code></pre>
 
 </body>

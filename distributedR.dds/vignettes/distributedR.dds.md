@@ -15,6 +15,28 @@ Starting it up:
 
 ```r
 library(distributedR.dds)
+```
+
+```
+## Loading required package: distributedR
+## Loading required package: Rcpp
+## Loading required package: RInside
+## Loading required package: XML
+## Loading required package: dds
+## Loading required package: assertthat
+## 
+## Attaching package: 'dds'
+## 
+## The following objects are masked from 'package:distributedR':
+## 
+##     darray, dframe, dlist
+## 
+## The following object is masked from 'package:base':
+## 
+##     mapply
+```
+
+```r
 useBackend(distributedR)
 ```
 
@@ -100,4 +122,19 @@ collect(c)
 ## 
 ## [[5]]
 ## [1] 6
+```
+
+Pulling only two parts from each `a` and `b`, and one part from `c` and using them together:
+
+```r
+d <- mapply(addThenSubtract,parts(a,1:2),parts(b,c(2,4)),MoreArgs=list(z=collect(c,1)[[1]]))
+collect(d)
+```
+
+```
+## [[1]]
+## [1] 6
+## 
+## [[2]]
+## [1] 8
 ```

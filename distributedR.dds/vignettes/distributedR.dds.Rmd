@@ -42,3 +42,9 @@ addThenSubtract <- function(x,y,z) {
 c <- mapply(addThenSubtract,parts(a),parts(b),MoreArgs=list(z=5))
 collect(c)
 ```
+
+Pulling only two parts from each `a` and `b`, and one part from `c` and using them together:
+```{r}
+d <- mapply(addThenSubtract,parts(a,1:2),parts(b,c(2,4)),MoreArgs=list(z=collect(c,1)[[1]]))
+collect(d)
+```
