@@ -14,6 +14,9 @@ Quick examples using distributedR.dds with the API
 Starting it up:
 
 ```r
+R CMD INSTALL dds
+R CMD INSTALL distributedR.dds
+R
 library(distributedR.dds)
 ```
 
