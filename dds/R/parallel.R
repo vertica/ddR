@@ -3,9 +3,18 @@
 # Using default "Parallel" as dummy backend for now.
 setClass("ParallelDriver", contains = "DDSDriver")
 
-setClass("ParallelDList", contains = "Backend")
-setClass("ParallelDArray", contains = "Backend")
-setClass("ParallelDFrame", contains = "Backend")
+setClass("ParallelDList", contains = "Backend", 
+      prototype = prototype(nparts = 1L, psize = matrix(1,1),
+      dim = c(1L,1L)
+))
+setClass("ParallelDArray", contains = "Backend",
+prototype = prototype(nparts = 1L, psize = matrix(1,1),
+      dim = c(1L,1L))
+)
+setClass("ParallelDFrame", contains = "Backend",
+prototype = prototype(nparts = 1L, psize = matrix(1,1),
+      dim = c(1L,1L)
+))
 
 setMethod("init",c(x = "ParallelDriver"),
       function(x) print("Init'ing ParallelDriver"))

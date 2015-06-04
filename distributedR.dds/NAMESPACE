@@ -3,6 +3,6 @@
 export(distributedR)
 exportMethods(create.dobj)
 exportMethods(do_collect)
-exportMethods(do_mapply)
+exportMethods(do_dmapply)
 exportMethods(get_parts)
 exportMethods(init)

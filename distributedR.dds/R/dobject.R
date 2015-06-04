@@ -2,8 +2,10 @@
 setClassUnion("distributedRObj", c("dlist","darray","dframe"))
 
 setClass("distributedRBackend",contains="Backend",
-  slots=list(DRObj = "distributedRObj", splits = "numeric")
-)
+    slots=list(DRObj = "distributedRObj", splits = "numeric"),
+    prototype = prototype(nparts = 1L, psize = matrix(1,1), 
+      dim = c(1L,1L)
+))
 
 #' @export
 setMethod("get_parts",signature("distributedRBackend","missing"),

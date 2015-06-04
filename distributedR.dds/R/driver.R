@@ -27,10 +27,13 @@ setMethod("init","distributedRDDS",
 )
 
 #' @export
-setMethod("do_mapply",signature(driver="distributedRDDS",func="function",MoreArgs="list"), 
+setMethod("do_dmapply",signature(driver="distributedRDDS",func="function",MoreArgs="list"), 
   function(driver,func,...,MoreArgs=list()){
     margs <- list(...)
+    # to store the output of the foreach
     .outObj <- distributedR::dlist(npartitions=length(margs[[1]]))
+    # to store the dimensions (or length if dlist) of each partition
+    .dimsObj <- distributedR::dlist(npartitions=length(margs[[1]]))
     ids <- list()
 
     dobjects <- lapply(margs,function(x) class(x[[1]])[[1]] == "DList")
@@ -59,19 +62,32 @@ setMethod("do_mapply",signature(driver="distributedRDDS",func="function",MoreArg
 
       nLines <- length(body(func))
       formals(func)[[".newDObj"]] <- substitute(splits(.outObj,index),env=parent.frame())
+      formals(func)[[".dimObj"]] <- substitute(splits(.dimsObj,index),env=parent.frame())
       modLine <- deparse(body(func)[[nLines]])
       modLine <- paste0(".newDObj <- ", modLine)
       body(func)[[nLines]] <- eval(parse(
         text=paste0("substitute(",modLine,")")))
       body(func)[[nLines+1]] <- substitute(update(.newDObj))
+     
+      modLine <- ".dimObj <- list(ifelse(is.list(.newDObj),
+        length(.newDObj), dim(.newDObj)))"
+      body(func)[[nLines+2]] <- eval(parse(
+        text=paste0("substitute(",modLine,")")))
+      body(func)[[nLines+3]] <- substitute(update(.dimObj))
 
     # Take care of MoreArgs
     for(other in names(MoreArgs)){
       formals(func)[[other]] <- MoreArgs[[other]]
     }
 
-    foreach(index,1:length(margs[[1]]),func) 
+    foreach(index,1:length(margs[[1]]),func,progress=FALSE) 
 
-    new("distributedRBackend",DRObj = .outObj, splits = 1:npartitions(.outObj))
+    dimensions <- getpartition(.dimsObj)
+
+    psizes <- matrix(unlist(dimensions), ncol=length(dimensions[[1]]),byrow=TRUE)
+    dims <- ifelse(distributedR::is.dlist(.outObj),Reduce("+",psizes),dim(.outObj))
+
+    new("distributedRBackend",DRObj = .outObj, splits = 1:npartitions(.outObj),
+         psize = psizes, dim = dims)
 }
 )

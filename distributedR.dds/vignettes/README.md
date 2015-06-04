@@ -1,7 +1,7 @@
 ---
 title: "distributedR.dds examples"
 author: "Edward Ma"
-date: "2015-05-12"
+date: "2015-06-04"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Vignette Title}
@@ -30,10 +30,6 @@ library(distributedR.dds)
 ## The following objects are masked from 'package:distributedR':
 ## 
 ##     darray, dframe, dlist
-## 
-## The following object is masked from 'package:base':
-## 
-##     mapply
 ```
 
 ```r
@@ -41,14 +37,14 @@ useBackend(distributedR)
 ```
 
 ```
-## Master address:port - 127.0.0.1:50002
+## Master address:port - 192.168.139.128:50000
 ```
 
 Init'ing a DList:
 
 ```r
 a <- dlist(nparts=5)
-a <- mapply(function(x) { list(3) }, parts(a))
+a <- dmapply(function(x) { list(3) }, parts(a))
 collect(a)
 ```
 
@@ -69,14 +65,14 @@ collect(a)
 ## [1] 3
 ```
 
-Note that we had to use `parts(a)` instead of just `a` for now. Also, we needed to do an `mapply` to initialize data inside of a. Since this is distributed R, which has strict type safety, we had to make sure each dlist partitition got a list, so we couldn't just return `3`, but `list(3)`.
+Note that we had to use `parts(a)` instead of just `a` for now. Also, we needed to do an `dmapply` to initialize data inside of a. Since this is distributed R, which has strict type safety, we had to make sure each dlist partitition got a list, so we couldn't just return `3`, but `list(3)`.
 
 Some other operations:
 
 Adding 1 to first partition of `a`, 2 to the second, etc.
 
 ```r
-b <- mapply(function(x,y) { list(x[[1]] + y ) }, parts(a), y = as.list(1:5))
+b <- dmapply(function(x,y) { list(x[[1]] + y ) }, parts(a), y = as.list(1:5))
 collect(b)
 ```
 
@@ -103,7 +99,7 @@ Adding `a` to `b`, then subtracting a constant value
 addThenSubtract <- function(x,y,z) {
   list(x[[1]] + y[[1]] - z)
 }
-c <- mapply(addThenSubtract,parts(a),parts(b),MoreArgs=list(z=5))
+c <- dmapply(addThenSubtract,parts(a),parts(b),MoreArgs=list(z=5))
 collect(c)
 ```
 
@@ -127,7 +123,7 @@ collect(c)
 Pulling only two parts from each `a` and `b`, and one part from `c` and using them together:
 
 ```r
-d <- mapply(addThenSubtract,parts(a,1:2),parts(b,c(2,4)),MoreArgs=list(z=collect(c,1)[[1]]))
+d <- dmapply(addThenSubtract,parts(a,1:2),parts(b,c(2,4)),MoreArgs=list(z=collect(c,1)[[1]]))
 collect(d)
 ```
 

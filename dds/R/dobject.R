@@ -44,10 +44,14 @@ parts <- function(dobj, index=NULL) {
 
   partitions <- get_parts(dobj@backend, index)
 
-  partitions <- lapply(partitions, function(backend) {
-    # TODO: set psize and dim accordingly
-    new(type,nparts=1L,backend=backend)
-})
+  psize <- lapply(1:nrow(dobj@psize),function(i) dobj@psize[i,])[index]
+
+  partitions <- base::mapply(FUN=function(backend,psize) {
+    obj <- new(type,nparts=1L,backend=backend)
+    obj@psize <- matrix(psize,nrow=1,ncol=length(psize))
+    obj@dim <- psize
+    obj
+}, partitions, psize)
 
   assert_that(length(partitions) == length(index))
   partitions
@@ -60,34 +64,34 @@ nparts <- function(dobj) {
 
 # TODO: finish definitions, slots
 setClass("DObject",
-  representation(nparts = "integer", psize = "integer",
+  representation(nparts = "integer", psize = "matrix",
           dim = "integer", dim.names = "list", backend = "Backend"))
 
 # TODO: finish definitions, slots
 setClass("DList",
   slots = list(),
-  prototype = prototype(nparts = 1L,psize = c(1L,1L),
-              dim = c(1L,1L), dim.names = list()),
+  prototype = prototype(nparts = 1L,psize = matrix(1,1),
+              dim = c(1L), dim.names = list()),
   contains = "DObject")
 
 # TODO: finish definitions, slots
 setClass("DArray",
   slots = list(),
-  prototype = prototype(nparts = 1L,psize = c(1L,1L),
+  prototype = prototype(nparts = 1L,psize = matrix(1,1,1),
               dim = c(1L,1L), dim.names = list()),
   contains = "DObject")
 
 # TODO: finish definitions, slots
 setClass("DFrame",
   slots = list(),
-  prototype = prototype(nparts = 1L,psize = c(1L,1L),
+  prototype = prototype(nparts = 1L,psize = matrix(1,1,1),
               dim = c(1L,1L), dim.names = list()),
   contains = "DObject")
 
 #' @export
-dlist <- function(...,nparts = 1L, psize=c(1L,1L)){
+dlist <- function(...,nparts = 1L, psize=matrix(1,1)){
   nparts = as.integer(nparts)
-  psize = as.integer(psize)
+  psize = matrix(1L,nparts)
   new("DList",backend=create.dobj(dds.env$driver,"DList",nparts=nparts,psize=psize),nparts = nparts, psize = psize)
 }
 
@@ -95,28 +99,39 @@ dlist <- function(...,nparts = 1L, psize=c(1L,1L)){
 DList <- dlist
 
 #' @export
-DLIST <- dlist
-
-#' @export
-darray <- function(...,nparts = 1L, psize=c(1L,1L)){
+darray <- function(...,nparts = 1L, psize=matrix(1,1,1)){
   nparts = as.integer(nparts)
-  psize = as.integer(psize)
   new("DArray",backend=create.dobj(dds.env$driver,"DArray",nparts=nparts,psize=psize),nparts = nparts, psize = psize)
 }
 
 #' @export
 DArray <- darray
-#' @export
-DARRAY <- darray
 
 #' @export
-dframe <- function(...,nparts = 1L, psize=c(1L,1L)){
+dframe <- function(...,nparts = 1L, psize=matrix(1,1,1)){
   nparts = as.integer(nparts)
-  psize = as.integer(psize)
   new("DFrame",backend=create.dobj(dds.env$driver,"DFrame",nparts=nparts,psize=psize),nparts = nparts, psize = psize)
 }
 
 #' @export
 DFrame <- dframe
+
 #' @export
-DFRAME <- dframe
+setMethod("show",signature("DObject"),function(object) {
+
+  partsStr = ""
+
+  limit <- min(10,dim(object@psize)[[1]])
+
+  for(i in 1:limit) {
+    if(i>1) partsStr = (paste0(partsStr,", "))
+    partsStr = paste0(partsStr,"[",object@psize[i,],"]")
+  }
+
+  if(limit < dim(object@psize)[[1]]){
+    partsStr = paste0(partsStr,", ...")
+  }
+
+  printStr <- paste0("\nType: ", class(object)[[1]],"\nnparts: ", nparts(object),"\npsize: ", partsStr, "\ndim: ", object@dim, "\nBackend Type: ", class(object@backend)[[1]],"\n")
+ cat(printStr) 
+})

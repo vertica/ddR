@@ -14,7 +14,8 @@ useBackend <- function(driver, init=TRUE) {
 setClass("DDSDriver")
 
 #' @export
-setClass("Backend")
+setClass("Backend",
+  representation(nparts = "integer", psize = "matrix", dim = "integer"))
 
 #' @export
 setGeneric("init", function(x,...) {
@@ -29,8 +30,8 @@ setGeneric("create.dobj", function(x,type,nparts=NULL,psize=NULL) {
 
 #' @export
 # dispatches on DDSDriver
-setGeneric("do_mapply", function(driver,func,...,MoreArgs=list()) {
-  standardGeneric("do_mapply")
+setGeneric("do_dmapply", function(driver,func,...,MoreArgs=list()) {
+  standardGeneric("do_dmapply")
 })
 
 #' @export
@@ -40,7 +41,7 @@ setGeneric("get_parts", function(x,index,...) {
 })
 
 #' @export
-mapply <- function(FUN,...,MoreArgs=list(),simplify=FALSE) {
+dmapply <- function(FUN,...,MoreArgs=list(),simplify=FALSE) {
   assert_that(is.function(FUN))
   assert_that(length(args) > 0)
 
@@ -52,7 +53,7 @@ mapply <- function(FUN,...,MoreArgs=list(),simplify=FALSE) {
     })
     assert_that(max(unlist(lens)) == min(unlist(lens)))}, error = 
     function(e){
-      stop("Arguments to mapply function must be of equal length (have the 
+      stop("Arguments to dmapply function must be of equal length (have the 
         same number of elements)")
     })
 
@@ -65,8 +66,13 @@ mapply <- function(FUN,...,MoreArgs=list(),simplify=FALSE) {
 
 
   newobj <- new(type, backend = create.dobj(dds.env$driver, type, nparts=lens[[1]]), 
-        nparts = lens[[1]], psize = 1L)
+        nparts = lens[[1]])
 
-  newobj@backend <- do_mapply(dds.env$driver, func=FUN, ..., MoreArgs=MoreArgs)
+  newobj@backend <- do_dmapply(dds.env$driver, func=FUN, ..., MoreArgs=MoreArgs)
+  
+  # TODO: Validate dimensions
+  newobj@dim <- newobj@backend@dim
+  newobj@psize <- newobj@backend@psize  
+
   newobj
 }
