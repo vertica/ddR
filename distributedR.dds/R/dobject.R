@@ -34,6 +34,6 @@ setMethod("do_collect",signature("distributedRBackend","integer"),
       stop("Cannot getpartition on more than one index at a time")
     }
    else {
-      getpartition(x@DRObj,parts)
+      getpartition(x@DRObj,x@splits[[parts]])
    }
 })
