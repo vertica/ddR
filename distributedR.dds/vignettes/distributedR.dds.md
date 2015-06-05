@@ -45,27 +45,6 @@ Init'ing a DList:
 ```r
 a <- dlist(nparts=5)
 a <- dmapply(function(x) { list(3) }, parts(a))
-```
-
-```
-## function (x = splits(.tempVar1, ids[[1]][[index]]), .funct = function (x) 
-## {
-##     list(3)
-## }, .newDObj = splits(.outObj, index), .dimObj = splits(.dimsObj, 
-##     index)) 
-## {
-##     .newDObj <- .funct(x)
-##     update(.newDObj)
-##     .dimObj <- list(ifelse(is.list(.newDObj), length(.newDObj), 
-##         dim(.newDObj)))
-##     update(.dimObj)
-## }
-## <environment: 0x7c9a098>
-## [1] ".newDObj <- .funct(x)"
-## function(x) { list(3) }
-```
-
-```r
 collect(a)
 ```
 
@@ -94,28 +73,6 @@ Adding 1 to first partition of `a`, 2 to the second, etc.
 
 ```r
 b <- dmapply(function(x,y) { list(x[[1]] + y ) }, parts(a), y = as.list(1:5))
-```
-
-```
-## function (x = splits(.tempVar1, ids[[1]][[index]]), y = ids[[2]][[index]], 
-##     .funct = function (x, y) 
-##     {
-##         list(x[[1]] + y)
-##     }, .newDObj = splits(.outObj, index), .dimObj = splits(.dimsObj, 
-##         index)) 
-## {
-##     .newDObj <- .funct(x, y)
-##     update(.newDObj)
-##     .dimObj <- list(ifelse(is.list(.newDObj), length(.newDObj), 
-##         dim(.newDObj)))
-##     update(.dimObj)
-## }
-## <environment: 0x78ca608>
-## [1] ".newDObj <- .funct(x, y)"
-## function(x,y) { list(x[[1]] + y ) }
-```
-
-```r
 collect(b)
 ```
 
@@ -143,30 +100,6 @@ addThenSubtract <- function(x,y,z) {
   list(x[[1]] + y[[1]] - z)
 }
 c <- dmapply(addThenSubtract,parts(a),parts(b),MoreArgs=list(z=5))
-```
-
-```
-## function (x = splits(.tempVar1, ids[[1]][[index]]), y = splits(.tempVar2, 
-##     ids[[2]][[index]]), z = 5, .funct = function (x, y, z) 
-## {
-##     list(x[[1]] + y[[1]] - z)
-## }, .newDObj = splits(.outObj, index), .dimObj = splits(.dimsObj, 
-##     index)) 
-## {
-##     .newDObj <- .funct(x, y, z = 2L)
-##     update(.newDObj)
-##     .dimObj <- list(ifelse(is.list(.newDObj), length(.newDObj), 
-##         dim(.newDObj)))
-##     update(.dimObj)
-## }
-## <environment: 0x6ec23d0>
-## [1] ".newDObj <- .funct(x, y, z=z)"
-## function(x,y,z) {
-##   list(x[[1]] + y[[1]] - z)
-## }
-```
-
-```r
 collect(c)
 ```
 
@@ -191,30 +124,6 @@ Pulling only two parts from each `a` and `b`, and one part from `c` and using th
 
 ```r
 d <- dmapply(addThenSubtract,parts(a,1:2),parts(b,c(2,4)),MoreArgs=list(z=collect(c,1)[[1]]))
-```
-
-```
-## function (x = splits(.tempVar1, ids[[1]][[index]]), y = splits(.tempVar2, 
-##     ids[[2]][[index]]), z = 5, .funct = function (x, y, z) 
-## {
-##     list(x[[1]] + y[[1]] - z)
-## }, .newDObj = splits(.outObj, index), .dimObj = splits(.dimsObj, 
-##     index)) 
-## {
-##     .newDObj <- .funct(x, y, z = 2L)
-##     update(.newDObj)
-##     .dimObj <- list(ifelse(is.list(.newDObj), length(.newDObj), 
-##         dim(.newDObj)))
-##     update(.dimObj)
-## }
-## <environment: 0x78f9f98>
-## [1] ".newDObj <- .funct(x, y, z=z)"
-## function(x,y,z) {
-##   list(x[[1]] + y[[1]] - z)
-## }
-```
-
-```r
 collect(d)
 ```
 
@@ -225,3 +134,5 @@ collect(d)
 ## [[2]]
 ## [1] 8
 ```
+
+For a more detailed example, you may view (and run) example_mat_mul.R (matrix multiplication) in the top-level directory.

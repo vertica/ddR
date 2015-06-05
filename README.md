@@ -1,7 +1,7 @@
 ---
 title: "distributedR.dds examples"
 author: "Edward Ma"
-date: "2015-06-04"
+date: "2015-06-05"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Vignette Title}
@@ -105,19 +105,19 @@ collect(c)
 
 ```
 ## [[1]]
-## [1] 2
-## 
-## [[2]]
-## [1] 3
-## 
-## [[3]]
-## [1] 4
-## 
-## [[4]]
 ## [1] 5
 ## 
-## [[5]]
+## [[2]]
 ## [1] 6
+## 
+## [[3]]
+## [1] 7
+## 
+## [[4]]
+## [1] 8
+## 
+## [[5]]
+## [1] 9
 ```
 
 Pulling only two parts from each `a` and `b`, and one part from `c` and using them together:
@@ -134,3 +134,5 @@ collect(d)
 ## [[2]]
 ## [1] 8
 ```
+
+For a more detailed example, you may view (and run) example_mat_mul.R (matrix multiplication) in the top-level directory.

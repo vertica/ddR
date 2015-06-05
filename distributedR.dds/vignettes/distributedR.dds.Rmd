@@ -48,3 +48,5 @@ Pulling only two parts from each `a` and `b`, and one part from `c` and using th
 d <- dmapply(addThenSubtract,parts(a,1:2),parts(b,c(2,4)),MoreArgs=list(z=collect(c,1)[[1]]))
 collect(d)
 ```
+
+For a more detailed example, you may view (and run) example_mat_mul.R (matrix multiplication) in the top-level directory.

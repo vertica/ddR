@@ -96,10 +96,6 @@ setMethod("do_dmapply",signature(driver="distributedRDDS",func="function",MoreAr
         text=paste0("substitute(",modLine,")")))
       body(exec_func)[[nLines+3]] <- substitute(update(.dimObj))
 
-    print(exec_func)
-    print(execLine)
-    print(func)
-
     foreach(index,1:length(margs[[1]]),exec_func,progress=FALSE) 
 
     dimensions <- getpartition(.dimsObj)
