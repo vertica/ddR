@@ -39,6 +39,12 @@ setMethod("do_dmapply",signature(driver="distributedRDDS",func="function",MoreAr
     dobjects <- lapply(margs,function(x) class(x[[1]])[[1]] == "DList")
 
     nDobjs = 0
+
+    # Create wrapper executor function
+    exec_func <- function(){}
+
+    formals(exec_func) <- formals(func)
+
     # get the splits ids for each dobject in the list
     for(num in 1:length(margs)){
       ids[[num]] <- lapply(margs[[num]],function(argument){
@@ -57,30 +63,44 @@ setMethod("do_dmapply",signature(driver="distributedRDDS",func="function",MoreAr
         tempStr <- "substitute(ids[[num]][[index]],env=parent.frame())" 
       }
         tempStr <- gsub("num",as.character(num),tempStr)
-        formals(func)[[num]] <- eval(parse(text=tempStr))
+        formals(exec_func)[[num]] <- eval(parse(text=tempStr))
     }
 
-      nLines <- length(body(func))
-      formals(func)[[".newDObj"]] <- substitute(splits(.outObj,index),env=parent.frame())
-      formals(func)[[".dimObj"]] <- substitute(splits(.dimsObj,index),env=parent.frame())
-      modLine <- deparse(body(func)[[nLines]])
-      modLine <- paste0(".newDObj <- ", modLine)
-      body(func)[[nLines]] <- eval(parse(
-        text=paste0("substitute(",modLine,")")))
-      body(func)[[nLines+1]] <- substitute(update(.newDObj))
-     
-      modLine <- ".dimObj <- list(ifelse(is.list(.newDObj),
-        length(.newDObj), dim(.newDObj)))"
-      body(func)[[nLines+2]] <- eval(parse(
-        text=paste0("substitute(",modLine,")")))
-      body(func)[[nLines+3]] <- substitute(update(.dimObj))
+    formals(exec_func)[[".funct"]] <- func
+
+    argsStr <- ""
+
+    for(z in 1:length(margs)){
+      if(z > 1) argsStr <- paste0(argsStr,", ")
+      argsStr <- paste0(argsStr,names(formals(func))[[z]])
+    }
 
     # Take care of MoreArgs
     for(other in names(MoreArgs)){
-      formals(func)[[other]] <- MoreArgs[[other]]
+      formals(exec_func)[[other]] <- MoreArgs[[other]]
+      argsStr <- paste0(argsStr,", ",other,"=",other)
     }
 
-    foreach(index,1:length(margs[[1]]),func,progress=FALSE) 
+      execLine <- paste0(".newDObj <- .funct(",argsStr,")")
+
+      body(exec_func)[[2]] <- eval(parse(text=paste0("substitute(",execLine,")")))
+
+      nLines <- length(body(exec_func))
+      formals(exec_func)[[".newDObj"]] <- substitute(splits(.outObj,index),env=parent.frame())
+      formals(exec_func)[[".dimObj"]] <- substitute(splits(.dimsObj,index),env=parent.frame())
+      body(exec_func)[[nLines+1]] <- substitute(update(.newDObj))
+     
+      modLine <- ".dimObj <- list(ifelse(is.list(.newDObj),
+        length(.newDObj), dim(.newDObj)))"
+      body(exec_func)[[nLines+2]] <- eval(parse(
+        text=paste0("substitute(",modLine,")")))
+      body(exec_func)[[nLines+3]] <- substitute(update(.dimObj))
+
+    print(exec_func)
+    print(execLine)
+    print(func)
+
+    foreach(index,1:length(margs[[1]]),exec_func,progress=FALSE) 
 
     dimensions <- getpartition(.dimsObj)
 

@@ -119,17 +119,17 @@ DFrame <- dframe
 #' @export
 setMethod("show",signature("DObject"),function(object) {
 
-  partsStr = ""
+  partsStr <- ""
 
   limit <- min(10,dim(object@psize)[[1]])
 
   for(i in 1:limit) {
-    if(i>1) partsStr = (paste0(partsStr,", "))
-    partsStr = paste0(partsStr,"[",object@psize[i,],"]")
+    if(i>1) partsStr <- paste0(partsStr,", ")
+    partsStr <- paste0(partsStr,"[",object@psize[i,],"]")
   }
 
   if(limit < dim(object@psize)[[1]]){
-    partsStr = paste0(partsStr,", ...")
+    partsStr <- paste0(partsStr,", ...")
   }
 
   printStr <- paste0("\nType: ", class(object)[[1]],"\nnparts: ", nparts(object),"\npsize: ", partsStr, "\ndim: ", object@dim, "\nBackend Type: ", class(object@backend)[[1]],"\n")
