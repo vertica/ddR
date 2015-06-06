@@ -10,17 +10,18 @@ setClass("distributedRBackend",contains="Backend",
 #' @export
 setMethod("get_parts",signature("distributedRBackend","missing"),
   function(x, ...){
-   lapply(x@splits,function(b) {
-      new("distributedRBackend",DRObj = x@DRObj, splits = b)
-    } )
-  }
+  index = 1:length(x@splits)
+ lapply(index,function(b) {
+      new("distributedRBackend",DRObj = x@DRObj, splits = x@splits[b],dim = x@psize[b,],psize=matrix(x@psize[b,],nrow=1,ncol=length(x@psize[b,])))
+    })
+}
 )
 
 #' @export
 setMethod("get_parts",signature("distributedRBackend","integer"),
   function(x, index, ...){
    lapply(index,function(b) {
-      new("distributedRBackend",DRObj = x@DRObj, splits = x@splits[b])
+      new("distributedRBackend",DRObj = x@DRObj, splits = x@splits[b],dim = x@psize[b,],psize=matrix(x@psize[b,],nrow=1,ncol=length(x@psize[b,])))
     } )
   }
 )
@@ -28,7 +29,7 @@ setMethod("get_parts",signature("distributedRBackend","integer"),
 #' @export
 setMethod("do_collect",signature("distributedRBackend","integer"),
   function(x, parts) {
-    if(are_equal(1:npartitions(x@DRObj),parts)) {
+    if(are_equal(1:npartitions(x@DRObj),parts && x@splits == parts)) {
        getpartition(x@DRObj)
     } else if(length(parts) > 1) {
       stop("Cannot getpartition on more than one index at a time")

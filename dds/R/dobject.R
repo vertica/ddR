@@ -89,14 +89,52 @@ setClass("DFrame",
   contains = "DObject")
 
 #' @export
-dlist <- function(...,nparts = 1L, psize=matrix(1,1)){
+dlist <- function(initialize=NULL,nparts = 1L, psize=matrix(1,1)){
   nparts = as.integer(nparts)
   psize = matrix(1L,nparts)
-  new("DList",backend=create.dobj(dds.env$driver,"DList",nparts=nparts,psize=psize),nparts = nparts, psize = psize)
+  if(is.null(initialize)) {
+    new("DList",backend=create.dobj(dds.env$driver,"DList",nparts=nparts,psize=psize),nparts = nparts, psize = psize)
+  } else{
+    dmapply(function(x){ list(x) }, list(initialize))
+  }
 }
 
 #' @export
 DList <- dlist
+
+#' @export
+as.dlist <- function(items) {
+  items <- as.list(items)
+
+  # Currently, if this is used on a list of dobjects (i.e., with parts()), they must all belong to the same dobject. 
+  # TODO: allow reconstituting of multiple dobject partitions into a new one.
+
+  if(is.dobject(items[[1]])) {
+    backend <- combine(dds.env$driver,items)
+    return(new("DList",backend=backend,nparts=length(items),psize=backend@psize,dim=backend@dim))
+    }
+
+   dmapply(function(x) { list(x) }, items)
+}
+
+#' @export
+is.dlist <- function(x) {
+  class(x) == "DList"
+}
+
+#' @export
+is.dobject <- function(x) {
+  is(x,"DObject")
+}
+
+#' @export 
+is.DObject <- is.dobject
+
+#' @export
+is.DList <- is.dlist
+
+#' @export
+as.DList <- as.dlist
 
 #' @export
 darray <- function(...,nparts = 1L, psize=matrix(1,1,1)){

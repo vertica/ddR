@@ -26,6 +26,27 @@ setMethod("init","distributedRDDS",
     distributedR_start(...)
 )
 
+setMethod("combine",signature(driver="distributedRDDS",items="list"),
+  function(driver,items){
+    split_indices <- lapply(items,function(x) {
+      x@backend@splits
+    })
+    dims <- lapply(items,function(x) {
+      x@backend@dim
+    })
+
+    psizes <- lapply(items,function(x) {
+      x@backend@psize
+    })
+
+    dims <- Reduce("+",dims) 
+    psizes <- Reduce("rbind",psizes)
+    rownames(psizes) <- NULL
+
+    new("distributedRBackend",DRObj=items[[1]]@backend@DRObj,splits = unlist(split_indices), dim = dims, psize = psizes)
+  }
+)
+
 #' @export
 setMethod("do_dmapply",signature(driver="distributedRDDS",func="function",MoreArgs="list"), 
   function(driver,func,...,MoreArgs=list()){

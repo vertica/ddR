@@ -35,6 +35,12 @@ setGeneric("do_dmapply", function(driver,func,...,MoreArgs=list()) {
 })
 
 #' @export
+# dispatches on DDSDriver
+setGeneric("combine", function(driver,items) {
+  standardGeneric("combine")
+})
+
+#' @export
 # dispatches on backend
 setGeneric("get_parts", function(x,index,...) {
   standardGeneric("get_parts")
