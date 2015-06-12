@@ -12,7 +12,7 @@ setMethod("get_parts",signature("distributedRBackend","missing"),
   function(x, ...){
   index = 1:length(x@splits)
  lapply(index,function(b) {
-      new("distributedRBackend",DRObj = x@DRObj, splits = x@splits[b],dim = x@psize[b,],psize=matrix(x@psize[b,],nrow=1,ncol=length(x@psize[b,])))
+      new("distributedRBackend",DRObj = x@DRObj, splits = x@splits[b],dim = as.integer(x@psize[b,]),psize=matrix(x@psize[b,],nrow=1,ncol=length(x@psize[b,])))
     })
 }
 )
@@ -21,7 +21,7 @@ setMethod("get_parts",signature("distributedRBackend","missing"),
 setMethod("get_parts",signature("distributedRBackend","integer"),
   function(x, index, ...){
    lapply(index,function(b) {
-      new("distributedRBackend",DRObj = x@DRObj, splits = x@splits[b],dim = x@psize[b,],psize=matrix(x@psize[b,],nrow=1,ncol=length(x@psize[b,])))
+      new("distributedRBackend",DRObj = x@DRObj, splits = x@splits[b],dim = as.integer(x@psize[b,]),psize=matrix(x@psize[b,],nrow=1,ncol=length(x@psize[b,])))
     } )
   }
 )

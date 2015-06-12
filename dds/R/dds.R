@@ -53,11 +53,12 @@ dmapply <- function(FUN,...,MoreArgs=list(),simplify=FALSE) {
 
   dargs <- list(...)
   # Ensure that ... arguments are of equal length
-  tryCatch({
+  lens <- tryCatch({
     lens <- lapply(dargs,function(x){
      length(x)
     })
-    assert_that(max(unlist(lens)) == min(unlist(lens)))}, error = 
+    assert_that(max(unlist(lens)) == min(unlist(lens)))
+     lens}, error = 
     function(e){
       stop("Arguments to dmapply function must be of equal length (have the 
         same number of elements)")
@@ -70,8 +71,7 @@ dmapply <- function(FUN,...,MoreArgs=list(),simplify=FALSE) {
     type = "DList"
   }
 
-
-  newobj <- new(type, backend = create.dobj(dds.env$driver, type, nparts=lens[[1]]), 
+  newobj <- new(type, backend = create.dobj(dds.env$driver, type, nparts=lens[[1]],psize=matrix(1L,lens[[1]])), 
         nparts = lens[[1]])
 
   newobj@backend <- do_dmapply(dds.env$driver, func=FUN, ..., MoreArgs=MoreArgs)

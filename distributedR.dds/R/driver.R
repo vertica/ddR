@@ -16,7 +16,7 @@ setMethod("create.dobj",c(x = "distributedRDDS"),
     else
        dobj <- distributedR::dframe(npartitions=nparts)
   
-    new("distributedRBackend",DRObj = dobj, splits = 1:npartitions(dobj))
+    new("distributedRBackend",DRObj = dobj, splits = 1:npartitions(dobj),psize=psize)
   }
 )
 
