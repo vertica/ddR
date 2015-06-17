@@ -29,7 +29,7 @@ setMethod("get_parts",signature("distributedRBackend","integer"),
 #' @export
 setMethod("do_collect",signature("distributedRBackend","integer"),
   function(x, parts) {
-    if(are_equal(1:npartitions(x@DRObj),parts && x@splits == parts)) {
+    if(identical(x@splits, parts)) {
        getpartition(x@DRObj)
     } else if(length(parts) > 1) {
       stop("Cannot getpartition on more than one index at a time")

@@ -48,8 +48,8 @@ setGeneric("get_parts", function(x,index,...) {
 
 #' @export
 dmapply <- function(FUN,...,MoreArgs=list(),simplify=FALSE) {
-  assert_that(is.function(FUN))
-  assert_that(length(args) > 0)
+  stopifnot(is.function(FUN))
+  stopifnot(length(args) > 0)
 
   dargs <- list(...)
   # Ensure that ... arguments are of equal length
@@ -57,7 +57,7 @@ dmapply <- function(FUN,...,MoreArgs=list(),simplify=FALSE) {
     lens <- lapply(dargs,function(x){
      length(x)
     })
-    assert_that(max(unlist(lens)) == min(unlist(lens)))
+    stopifnot(max(unlist(lens)) == min(unlist(lens)))
      lens}, error = 
     function(e){
       stop("Arguments to dmapply function must be of equal length (have the 

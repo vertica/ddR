@@ -8,14 +8,14 @@ collect <- function(dobj, index=NULL) {
   }
 
   index <- as.integer(unlist(index))
-  assert_that(max(index) <= nparts(dobj) && min(index) > 0)
+  stopifnot(max(index) <= nparts(dobj) && min(index) > 0)
 
   # Try to get data from backend all at once
   # If the backend does not support this, we'll have to stitch it together by ourselves
   # TODO: support DArrays and DFrames as well as DLists
   tryCatch({
     partitions <- do_collect(dobj@backend, index)
-    assert_that(length(partitions) == length(index))
+    stopifnot(length(partitions) == length(index))
     partitions
     },error = function(e){
       unlist(lapply(index,do_collect,x=dobj@backend),recursive=FALSE)
@@ -31,7 +31,7 @@ setGeneric("do_collect", function(x,parts) {
 parts <- function(dobj, index=NULL) {
   if(is.null(index)) index = 1:nparts(dobj) 
   index <- unlist(index)
-  assert_that(is.numeric(index))
+  stopifnot(is.numeric(index))
   index <- as.integer(index)
 
   type = class(dobj)[[1]]
@@ -53,7 +53,7 @@ parts <- function(dobj, index=NULL) {
     obj
 }, partitions, psize)
 
-  assert_that(length(partitions) == length(index))
+  stopifnot(length(partitions) == length(index))
   partitions
 }
 
