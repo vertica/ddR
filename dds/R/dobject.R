@@ -15,9 +15,9 @@ collect <- function(dobj, index=NULL) {
   # TODO: support DArrays and DFrames as well as DLists
   tryCatch({
     partitions <- do_collect(dobj@backend, index)
-    stopifnot(length(partitions) == length(index))
     partitions
     },error = function(e){
+      print(e)
       unlist(lapply(index,do_collect,x=dobj@backend),recursive=FALSE)
   }) 
 }
