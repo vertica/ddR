@@ -2,6 +2,11 @@
 # DList, DArray, and DFrame inherit from class DObject
 
 #' @export
+unlist.DList <- function(x, recursive, use.names) {
+  unlist(collect(x),recursive,use.names)
+}
+
+#' @export
 collect <- function(dobj, index=NULL) { 
   if(is.null(index)) {
     index <- 1:nparts(dobj)

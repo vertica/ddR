@@ -47,6 +47,12 @@ setGeneric("get_parts", function(x,index,...) {
 })
 
 #' @export
+dlapply <- function(dobj,FUN,...) {
+   if(!is.list(dobj)) dobj <- parts(dobj)
+   dmapply(FUN,dobj,MoreArgs=list(...))
+}
+
+#' @export
 dmapply <- function(FUN,...,MoreArgs=list(),simplify=FALSE) {
   stopifnot(is.function(FUN))
   stopifnot(length(args) > 0)
