@@ -2,42 +2,6 @@
 # DList, DArray, and DFrame inherit from class DObject
 
 #' @export
-length.DList <- function(x) {
-  x@dim
-}
-
-#' @export
-names.DObject <- function(x) {
-   nobj <- dlapply(x,function(x) { as.list(names(x)) })
-   unlist(collect(nobj))
-}
-
-#' @export
-setReplaceMethod("names", signature(x = "DObject", value = "ANY"), definition = function(x,value) {
-  stopifnot(length(value) == length(x))
-
-  lens <- mapply(function(x) { prod(x) }, data.frame(t(x@psize)),SIMPLIFY=FALSE)
-
-  limits <- cumsum(unlist(lens)) 
-  limits <- c(0,limits) + 1
-  limits <- limits[1:(length(limits)-1)]
-
-  
-  namesList <- mapply(function(x,y) {
-      value[x:(x+y-1)]
-   },
-  limits,lens,SIMPLIFY=FALSE)
-
-
-  dmapply(function(x,y) { names(x) <- y; x }, parts(x), namesList) 
-})
-
-#' @export
-unlist.DList <- function(x, recursive, use.names) {
-  unlist(collect(x),recursive,use.names)
-}
-
-#' @export
 collect <- function(dobj, index=NULL) { 
   if(is.null(index)) {
     index <- 1:nparts(dobj)
@@ -209,3 +173,39 @@ setMethod("show",signature("DObject"),function(object) {
   printStr <- paste0("\nType: ", class(object)[[1]],"\nnparts: ", nparts(object),"\npsize: ", partsStr, "\ndim: ", object@dim, "\nBackend Type: ", class(object@backend)[[1]],"\n")
  cat(printStr) 
 })
+
+#' @export
+length.DList <- function(x) {
+  x@dim
+}
+
+#' @export
+names.DObject <- function(x) {
+   nobj <- dlapply(x,function(x) { as.list(names(x)) })
+   unlist(collect(nobj))
+}
+
+#' @export
+setReplaceMethod("names", signature(x = "DObject", value = "ANY"), definition = function(x,value) {
+  stopifnot(length(value) == length(x))
+
+  lens <- mapply(function(x) { prod(x) }, data.frame(t(x@psize)),SIMPLIFY=FALSE)
+
+  limits <- cumsum(unlist(lens)) 
+  limits <- c(0,limits) + 1
+  limits <- limits[1:(length(limits)-1)]
+
+  
+  namesList <- mapply(function(x,y) {
+      value[x:(x+y-1)]
+   },
+  limits,lens,SIMPLIFY=FALSE)
+
+
+  dmapply(function(x,y) { names(x) <- y; x }, parts(x), namesList) 
+})
+
+#' @export
+unlist.DList <- function(x, recursive, use.names) {
+  unlist(collect(x),recursive,use.names)
+}

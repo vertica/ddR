@@ -2,6 +2,7 @@
 
 S3method(length,DList)
 S3method(names,DObject)
+S3method(unique,DObject)
 export(DArray)
 export(DFrame)
 export(DList)

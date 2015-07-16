@@ -1,4 +1,10 @@
 #' @export
+unique.DObject <- function(x, ...) {
+  unique.per.partition <- dlapply(x,function(x) { unique(x) })
+  unique(collect(unique.per.partition))
+}
+
+#' @export
 setMethod("[", c("DList", "numeric", "missing","ANY"), 
   function(x, i, j, ..., drop=TRUE) {
     stopifnot(max(i) <= length(x) && min(i) > 0)
@@ -44,7 +50,7 @@ setMethod("[[", c("DList", "numeric", "ANY"),
   function(x, i, j, ...) {
   stopifnot(length(i) < 2)
 
-  unlist(x[i],recursive=FALSE)
+  unlist(unname(x[i]),recursive=FALSE)
 })
 
 # Internal helper function
