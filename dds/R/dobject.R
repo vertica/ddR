@@ -17,7 +17,6 @@ collect <- function(dobj, index=NULL) {
     partitions <- do_collect(dobj, index)
     partitions
     },error = function(e){
-      print(e)
       unlist(lapply(index,do_collect,x=dobj),recursive=FALSE)
   }) 
 }
@@ -87,6 +86,7 @@ DList <- dlist
 
 #' @export
 as.dlist <- function(items) {
+  if(!is.list(items))
   items <- as.list(items)
 
   # Currently, if this is used on a list of dobjects (i.e., with parts()), they must all belong to the same dobject. 
@@ -97,6 +97,7 @@ as.dlist <- function(items) {
     newobj@nparts <- length(items)
     newobj@backend <- dds.env$driver@backendName
     newobj@type <- "DListClass"
+    return(newobj)
     }
 
    dmapply(function(x) { list(x) }, items)
