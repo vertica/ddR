@@ -213,29 +213,24 @@ hr {
 ## Loading required package: RInside
 ## Loading required package: XML
 ## Loading required package: dds
-## Loading required package: assertthat
 ## 
 ## Attaching package: &#39;dds&#39;
 ## 
 ## The following objects are masked from &#39;package:distributedR&#39;:
 ## 
-##     darray, dframe, dlist
-## 
-## The following object is masked from &#39;package:base&#39;:
-## 
-##     mapply
+##     darray, dframe, dlist, is.dlist
 </code></pre>
 
 <pre><code class="r">useBackend(distributedR)
 </code></pre>
 
-<pre><code>## Master address:port - 127.0.0.1:50002
+<pre><code>## Master address:port - 127.0.0.1:50000
 </code></pre>
 
 <p>Init&#39;ing a DList:</p>
 
 <pre><code class="r">a &lt;- dlist(nparts=5)
-a &lt;- mapply(function(x) { list(3) }, parts(a))
+a &lt;- dmapply(function(x) { list(3) }, parts(a))
 collect(a)
 </code></pre>
 
@@ -255,13 +250,13 @@ collect(a)
 ## [1] 3
 </code></pre>
 
-<p>Note that we had to use <code>parts(a)</code> instead of just <code>a</code> for now. Also, we needed to do an <code>mapply</code> to initialize data inside of a. Since this is distributed R, which has strict type safety, we had to make sure each dlist partitition got a list, so we couldn&#39;t just return <code>3</code>, but <code>list(3)</code>.</p>
+<p>Note that we had to use <code>parts(a)</code> instead of just <code>a</code> for now. Also, we needed to do an <code>dmapply</code> to initialize data inside of a. Since this is distributed R, which has strict type safety, we had to make sure each dlist partitition got a list, so we couldn&#39;t just return <code>3</code>, but <code>list(3)</code>.</p>
 
 <p>Some other operations:</p>
 
 <p>Adding 1 to first partition of <code>a</code>, 2 to the second, etc.</p>
 
-<pre><code class="r">b &lt;- mapply(function(x,y) { list(x[[1]] + y ) }, parts(a), y = as.list(1:5))
+<pre><code class="r">b &lt;- dmapply(function(x,y) { list(x[[1]] + y ) }, parts(a), y = as.list(1:5))
 collect(b)
 </code></pre>
 
@@ -286,7 +281,7 @@ collect(b)
 <pre><code class="r">addThenSubtract &lt;- function(x,y,z) {
   list(x[[1]] + y[[1]] - z)
 }
-c &lt;- mapply(addThenSubtract,parts(a),parts(b),MoreArgs=list(z=5))
+c &lt;- dmapply(addThenSubtract,parts(a),parts(b),MoreArgs=list(z=5))
 collect(c)
 </code></pre>
 
@@ -308,7 +303,7 @@ collect(c)
 
 <p>Pulling only two parts from each <code>a</code> and <code>b</code>, and one part from <code>c</code> and using them together:</p>
 
-<pre><code class="r">d &lt;- mapply(addThenSubtract,parts(a,1:2),parts(b,c(2,4)),MoreArgs=list(z=collect(c,1)[[1]]))
+<pre><code class="r">d &lt;- dmapply(addThenSubtract,parts(a,1:2),parts(b,c(2,4)),MoreArgs=list(z=collect(c,1)[[1]]))
 collect(d)
 </code></pre>
 
@@ -318,6 +313,8 @@ collect(d)
 ## [[2]]
 ## [1] 8
 </code></pre>
+
+<p>For a more detailed example, you may view (and run) example_mat_mul.R (matrix multiplication) in the top-level directory.</p>
 
 </body>
 

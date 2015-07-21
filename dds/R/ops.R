@@ -5,8 +5,9 @@ unique.DObject <- function(x, ...) {
 }
 
 #' @export
-setMethod("[", c("DList", "numeric", "missing","ANY"), 
+setMethod("[", c("DObject", "numeric", "missing","ANY"), 
   function(x, i, j, ..., drop=TRUE) {
+  if(is.dlist(x)){
     stopifnot(max(i) <= length(x) && min(i) > 0)
     indicesAndOffsets <- mapply(findPartitionByIndex,i,MoreArgs=list(cumRowIndex=cumsum(x@psize[,1])))
 
@@ -23,7 +24,7 @@ setMethod("[", c("DList", "numeric", "missing","ANY"),
    temp,sequences$lengths,SIMPLIFY=FALSE)
 
    values <- dmapply(function(x,y) { x[y] }, parts(x, partitionIndices), valueOffsets)
-
+}
    collect(values)
 })
 
@@ -46,11 +47,13 @@ collect(matching)[[name]]
 })
 
 #' @export
-setMethod("[[", c("DList", "numeric", "ANY"),
+setMethod("[[", c("DObject", "numeric", "ANY"),
   function(x, i, j, ...) {
+  if(is.dlist(x)) {
   stopifnot(length(i) < 2)
 
   unlist(unname(x[i]),recursive=FALSE)
+ }
 })
 
 # Internal helper function

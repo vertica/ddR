@@ -1,7 +1,7 @@
 ---
 title: "distributedR.dds examples"
 author: "Edward Ma"
-date: "2015-06-04"
+date: "2015-07-20"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Vignette Title}
@@ -23,13 +23,12 @@ library(distributedR.dds)
 ## Loading required package: RInside
 ## Loading required package: XML
 ## Loading required package: dds
-## Loading required package: assertthat
 ## 
 ## Attaching package: 'dds'
 ## 
 ## The following objects are masked from 'package:distributedR':
 ## 
-##     darray, dframe, dlist
+##     darray, dframe, dlist, is.dlist
 ```
 
 ```r
@@ -37,7 +36,7 @@ useBackend(distributedR)
 ```
 
 ```
-## Master address:port - 192.168.139.128:50000
+## Master address:port - 127.0.0.1:50000
 ```
 
 Init'ing a DList:
@@ -134,3 +133,5 @@ collect(d)
 ## [[2]]
 ## [1] 8
 ```
+
+For a more detailed example, you may view (and run) example_mat_mul.R (matrix multiplication) in the top-level directory.

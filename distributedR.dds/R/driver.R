@@ -1,54 +1,58 @@
 # Create distributedR DDSDriver
 
-setClass("distributedRDDS", contains="DDSDriver")
+setClass("DistributedRDDS", contains="DDSDriver")
 
 #' @export 
 # Exported Driver
-distributedR <- new("distributedRDDS")
+distributedR <- new("DistributedRDDS",DListClass = "DistributedRObj",DFrameClass = "DistributedRObj",DArrayClass = "DistributedRObj",backendName = "Distributed R")
 
-#' @export
-setMethod("create.dobj",c(x = "distributedRDDS"),
-  function(x, type, nparts, psize){
-    if(type == "DList")
-       dobj <- distributedR::dlist(npartitions=nparts)
-    else if(type == "Darray")
-       dobj <- distributedR::darray(npartitions=nparts)
+setMethod("initialize", "DistributedRObj", function(.Object, ...) {
+   .Object <- callNextMethod(.Object, ...)
+
+  if(is.null(.Object@DRObj@dobject_ptr)) {
+   if(.Object@type == "DListClass")
+       .Object@DRObj <- distributedR::dlist(npartitions=.Object@nparts)
+    else if(.Object@type == "DArrayClass")
+       .Object@DRObj <- distributedR::darray(npartitions=.Object@nparts)
     else
-       dobj <- distributedR::dframe(npartitions=nparts)
+       .Object@DRObj  <- distributedR::dframe(npartitions=.Object@nparts)
   
-    new("distributedRBackend",DRObj = dobj, splits = 1:npartitions(dobj),psize=psize)
-  }
-)
+   .Object@splits <- 1:npartitions(.Object@DRObj)
+
+   }
+
+   .Object
+})
 
 #' @export
-setMethod("init","distributedRDDS",
+setMethod("init","DistributedRDDS",
   function(x,...)
     distributedR_start(...)
 )
 
-setMethod("combine",signature(driver="distributedRDDS",items="list"),
+setMethod("combine",signature(driver="DistributedRDDS",items="list"),
   function(driver,items){
     split_indices <- lapply(items,function(x) {
-      x@backend@splits
+      x@splits
     })
     dims <- lapply(items,function(x) {
-      x@backend@dim
+      x@dim
     })
 
     psizes <- lapply(items,function(x) {
-      x@backend@psize
+      x@psize
     })
 
     dims <- Reduce("+",dims) 
     psizes <- Reduce("rbind",psizes)
     rownames(psizes) <- NULL
 
-    new("distributedRBackend",DRObj=items[[1]]@backend@DRObj,splits = unlist(split_indices), dim = dims, psize = psizes)
+    new("DistributedRObj",DRObj=items[[1]]@DRObj,splits = unlist(split_indices), dim = dims, psize = psizes)
   }
 )
 
 #' @export
-setMethod("do_dmapply",signature(driver="distributedRDDS",func="function",MoreArgs="list"), 
+setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreArgs="list"), 
   function(driver,func,...,MoreArgs=list()){
     margs <- list(...)
     # to store the output of the foreach
@@ -57,7 +61,7 @@ setMethod("do_dmapply",signature(driver="distributedRDDS",func="function",MoreAr
     .dimsObj <- distributedR::dlist(npartitions=length(margs[[1]]))
     ids <- list()
 
-    dobjects <- lapply(margs,function(x) class(x[[1]])[[1]] == "DList")
+    dobjects <- lapply(margs,function(x) is(x[[1]],"DObject"))
 
     nDobjs = 0
 
@@ -69,15 +73,15 @@ setMethod("do_dmapply",signature(driver="distributedRDDS",func="function",MoreAr
     # get the splits ids for each dobject in the list
     for(num in 1:length(margs)){
       ids[[num]] <- lapply(margs[[num]],function(argument){
-        if(class(argument)[[1]] == "DList")
-         return(argument@backend@splits)
+        if(is(argument,"DObject"))
+         return(argument@splits)
         else return(argument)
       })
 
       if(dobjects[[num]]) {
         nDobjs <- nDobjs + 1
         tempName <- paste0(".tempVar",nDobjs)
-        assign(tempName,margs[[num]][[1]]@backend@DRObj)
+        assign(tempName,margs[[num]][[1]]@DRObj)
         tempStr <- paste0("substitute(splits(",tempName,",ids[[num]][[index]]),env=parent.frame())")
    }
       else{
@@ -104,7 +108,7 @@ setMethod("do_dmapply",signature(driver="distributedRDDS",func="function",MoreAr
 
       execLine <- paste0(".newDObj <- .funct(",argsStr,")")
 
-      body(exec_func)[[2]] <- eval(parse(text=paste0("substitute(",execLine,")")))
+      body(exec_func)[[2]] <- eval(parse(text=paste0("substitute(",execLine,")")),envir=new.env())
 
       nLines <- length(body(exec_func))
       formals(exec_func)[[".newDObj"]] <- substitute(splits(.outObj,index),env=parent.frame())
@@ -114,7 +118,7 @@ setMethod("do_dmapply",signature(driver="distributedRDDS",func="function",MoreAr
       modLine <- ".dimObj <- list(ifelse(is.list(.newDObj),
         length(.newDObj), dim(.newDObj)))"
       body(exec_func)[[nLines+2]] <- eval(parse(
-        text=paste0("substitute(",modLine,")")))
+        text=paste0("substitute(",modLine,")")),envir=new.env())
       body(exec_func)[[nLines+3]] <- substitute(update(.dimObj))
 
     foreach(index,1:length(margs[[1]]),exec_func,progress=FALSE) 
@@ -124,7 +128,7 @@ setMethod("do_dmapply",signature(driver="distributedRDDS",func="function",MoreAr
     psizes <- matrix(unlist(dimensions), ncol=length(dimensions[[1]]),byrow=TRUE)
     dims <- ifelse(distributedR::is.dlist(.outObj),Reduce("+",psizes),dim(.outObj))
 
-    new("distributedRBackend",DRObj = .outObj, splits = 1:npartitions(.outObj),
+    new("DistributedRObj",DRObj = .outObj, splits = 1:npartitions(.outObj),
          psize = psizes, dim = dims)
 }
 )

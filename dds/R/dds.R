@@ -4,29 +4,24 @@ dds.env <- new.env(emptyenv())
 # Set Driver 
 #' @export
 useBackend <- function(driver, init=TRUE) {
-  # TODO: add package checks, backend driver MUST be of type
-  # "DDSDriver"
+
+  if(!extends(class(driver)[[1]],"DDSDriver")) stop("Invalid driver object specified")
+
+  if(!extends(driver@DListClass,"DObject")) stop("The driver DList class does not extend DDS::Dobject")
+  if(!extends(driver@DFrameClass,"DObject")) stop("The driver DFrame class does not extend DDS::Dobject")
+  if(!extends(driver@DArrayClass,"DObject")) stop("The driver DArray class does not extend DDS::Dobject")
+
   dds.env$driver <- driver
   if(init) init(driver)
 }
 
 #' @export
-setClass("DDSDriver")
-
-#' @export
-setClass("Backend",
-  representation(nparts = "integer", psize = "matrix", dim = "integer"))
+setClass("DDSDriver", representation(DListClass = "character", DFrameClass = "character", DArrayClass = "character", backendName = "character"))
 
 #' @export
 setGeneric("init", function(x,...) {
   standardGeneric("init")
 }) 
-
-#' @export 
-# dispatches on DDSDriver
-setGeneric("create.dobj", function(x,type,nparts=NULL,psize=NULL) {
-  standardGeneric("create.dobj")
-})
 
 #' @export
 # dispatches on DDSDriver
@@ -72,19 +67,26 @@ dmapply <- function(FUN,...,MoreArgs=list(),simplify=FALSE) {
 
   if(simplify){
     #TODO: logic to determine the appropriate output class
-    type = "DList"
+    type = "DListClass"
   }else{
-    type = "DList"
+    type = "DListClass"
   }
 
-  newobj <- new(type, backend = create.dobj(dds.env$driver, type, nparts=lens[[1]],psize=matrix(1L,lens[[1]])), 
-        nparts = lens[[1]])
+  # newobj <- new(type, backend = create.dobj(dds.env$driver, type, nparts=lens[[1]],psize=matrix(1L,lens[[1]])), 
+   #     nparts = lens[[1]])
 
-  newobj@backend <- do_dmapply(dds.env$driver, func=FUN, ..., MoreArgs=MoreArgs)
+  newobj <- do_dmapply(dds.env$driver, func=FUN, ..., MoreArgs=MoreArgs)
   
+  newobj@backend <- dds.env$driver@backendName
+  newobj@type <- type
+  newobj@nparts <- lens[[1]]
+
+  # Verify that the output object is of the correct type
+  stopifnot(is(newobj,slot(dds.env$driver,type)))
+
   # TODO: Validate dimensions
-  newobj@dim <- newobj@backend@dim
-  newobj@psize <- newobj@backend@psize  
+#  newobj@dim <- newobj@backend@dim
+#  newobj@psize <- newobj@backend@psize  
 
   newobj
 }

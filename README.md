@@ -1,7 +1,7 @@
 ---
 title: "distributedR.dds examples"
 author: "Edward Ma"
-date: "2015-06-05"
+date: "2015-07-20"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Vignette Title}
@@ -23,13 +23,12 @@ library(distributedR.dds)
 ## Loading required package: RInside
 ## Loading required package: XML
 ## Loading required package: dds
-## Loading required package: assertthat
 ## 
 ## Attaching package: 'dds'
 ## 
 ## The following objects are masked from 'package:distributedR':
 ## 
-##     darray, dframe, dlist
+##     darray, dframe, dlist, is.dlist
 ```
 
 ```r
@@ -37,7 +36,7 @@ useBackend(distributedR)
 ```
 
 ```
-## Master address:port - 192.168.139.128:50000
+## Master address:port - 127.0.0.1:50000
 ```
 
 Init'ing a DList:
@@ -105,19 +104,19 @@ collect(c)
 
 ```
 ## [[1]]
-## [1] 5
+## [1] 2
 ## 
 ## [[2]]
-## [1] 6
+## [1] 3
 ## 
 ## [[3]]
-## [1] 7
+## [1] 4
 ## 
 ## [[4]]
-## [1] 8
+## [1] 5
 ## 
 ## [[5]]
-## [1] 9
+## [1] 6
 ```
 
 Pulling only two parts from each `a` and `b`, and one part from `c` and using them together:
