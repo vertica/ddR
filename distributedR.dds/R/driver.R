@@ -55,13 +55,35 @@ setMethod("combine",signature(driver="DistributedRDDS",items="list"),
 setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreArgs="list"), 
   function(driver,func,...,MoreArgs=list()){
     margs <- list(...)
-    # to store the output of the foreach
-    .outObj <- distributedR::dlist(npartitions=length(margs[[1]]))
-    # to store the dimensions (or length if dlist) of each partition
-    .dimsObj <- distributedR::dlist(npartitions=length(margs[[1]]))
     ids <- list()
+    elementWise <- list()
+    isElementWise <- FALSE
 
-    dobjects <- lapply(margs,function(x) is(x[[1]],"DObject"))
+    dobjects <- list()
+    for(num in 1:length(margs)) {
+
+      if(!is.list(margs[[num]]) && is(margs[[num]],"DObject")) {
+        elementWise[[num]] <- TRUE
+        isElementWise <- TRUE
+   
+        lens <- mapply(function(x) { prod(x) }, data.frame(t(margs[[num]]@psize)),SIMPLIFY=FALSE)
+        limits <- cumsum(unlist(lens))
+        limits <- c(0,limits) + 1
+        limits <- limits[1:(length(limits)-1)]
+
+        margs[[num]] <- parts(margs[[num]])
+      } else {
+        elementWise[[num]] <- FALSE
+      }
+      dobjects[[num]] <- is(margs[[num]][[1]],"DObject")
+     }
+
+    np <- ifelse(isElementWise,length(lens),length(margs[[1]]))   
+
+    # to store the output of the foreach
+    .outObj <- distributedR::dlist(npartitions=np)
+    # to store the dimensions (or length if dlist) of each partition
+    .dimsObj <- distributedR::dlist(npartitions=np)
 
     nDobjs = 0
 
@@ -77,6 +99,10 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
          return(argument@splits)
         else return(argument)
       })
+
+      if(!elementWise[[num]] && isElementWise) {
+        ids[[num]] <- mapply(function(x,y) {ids[[num]][y:(y+x)-1] }, lens, limits, SIMPLIFY=FALSE)
+      } 
 
       if(dobjects[[num]]) {
         nDobjs <- nDobjs + 1
@@ -100,13 +126,23 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
       argsStr <- paste0(argsStr,names(formals(func))[[z]])
     }
 
-    # Take care of MoreArgs
-    for(other in names(MoreArgs)){
+  if(!isElementWise) {
+     # Take care of MoreArgs
+    for(other in names(MoreArgs)) {
       formals(exec_func)[[other]] <- MoreArgs[[other]]
       argsStr <- paste0(argsStr,", ",other,"=",other)
     }
-
-      execLine <- paste0(".newDObj <- .funct(",argsStr,")")
+  
+    execLine <- paste0(".newDObj <- .funct(",argsStr,")")
+  
+  } else {
+    for(other in names(MoreArgs)) {
+      formals(exec_func)[[other]] <- NULL
+    }
+  
+    formals(exec_func)[["MoreArgs"]] <- MoreArgs
+    execLine <- paste0(".newDObj <- mapply(.funct,",argsStr,",MoreArgs=MoreArgs,SIMPLIFY=FALSE)")
+  }
 
       body(exec_func)[[2]] <- eval(parse(text=paste0("substitute(",execLine,")")),envir=new.env())
 
@@ -120,6 +156,8 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
       body(exec_func)[[nLines+2]] <- eval(parse(
         text=paste0("substitute(",modLine,")")),envir=new.env())
       body(exec_func)[[nLines+3]] <- substitute(update(.dimObj))
+
+    print(exec_func)
 
     foreach(index,1:length(margs[[1]]),exec_func,progress=FALSE) 
 

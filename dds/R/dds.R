@@ -43,7 +43,6 @@ setGeneric("get_parts", function(x,index,...) {
 
 #' @export
 dlapply <- function(dobj,FUN,...) {
-   if(!is.list(dobj)) dobj <- parts(dobj)
    dmapply(FUN,dobj,MoreArgs=list(...))
 }
 
@@ -75,11 +74,19 @@ dmapply <- function(FUN,...,MoreArgs=list(),simplify=FALSE) {
   # newobj <- new(type, backend = create.dobj(dds.env$driver, type, nparts=lens[[1]],psize=matrix(1L,lens[[1]])), 
    #     nparts = lens[[1]])
 
+  margs <- list(...)
+  elementWise <- FALSE
+  for(i in 1:length(margs)) {
+    if(is(margs[[1]],"DObject")) { elementWise <- TRUE
+      newNparts <- nparts(margs[[1]])
+    }
+  }
+
   newobj <- do_dmapply(dds.env$driver, func=FUN, ..., MoreArgs=MoreArgs)
   
   newobj@backend <- dds.env$driver@backendName
   newobj@type <- type
-  newobj@nparts <- lens[[1]]
+  newobj@nparts <- ifelse(elementWise,newNparts,lens[[1]])
 
   # Verify that the output object is of the correct type
   stopifnot(is(newobj,slot(dds.env$driver,type)))
