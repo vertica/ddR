@@ -135,3 +135,37 @@ collect(d)
 ```
 
 For a more detailed example, you may view (and run) example_mat_mul.R (matrix multiplication) in the top-level directory.
+
+## How to Contribute
+
+You can help us in different ways:
+
+1. Reporting [issues](https://github.com/vertica/Standard-R-API/issues).
+2. Contributing code and sending a [Pull Request](https://github.com/vertica/Standard-R-API/pulls).
+
+In order to contribute the code base of this project, you must agree to the Developer Certificate of Origin (DCO) 1.1 for this project under GPLv2+:
+
+    By making a contribution to this project, I certify that:
+    
+    (a) The contribution was created in whole or in part by me and I have the 
+        right to submit it under the open source license indicated in the file; or
+    (b) The contribution is based upon previous work that, to the best of my 
+        knowledge, is covered under an appropriate open source license and I 
+        have the right under that license to submit that work with modifications, 
+        whether created in whole or in part by me, under the same open source 
+        license (unless I am permitted to submit under a different license), 
+        as indicated in the file; or
+    (c) The contribution was provided directly to me by some other person who 
+        certified (a), (b) or (c) and I have not modified it.
+    (d) I understand and agree that this project and the contribution are public and
+        that a record of the contribution (including all personal information I submit 
+        with it, including my sign-off) is maintained indefinitely and may be 
+        redistributed consistent with this project or the open source license(s) involved.
+
+To indicate acceptance of the DCO you need to add a `Signed-off-by` line to every commit. E.g.:
+
+    Signed-off-by: John Doe <john.doe@hisdomain.com>
+
+To automatically add that line use the `-s` switch when running `git commit`:
+
+    $ git commit -s
