@@ -92,6 +92,16 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
       } else {
         elementWise[[num]] <- FALSE
       }
+        if(isElementWise) {
+          if(is.list(margs[[num]])) {
+           curObj <-  margs[[num]][[1]]
+          } else {
+           curObj <- margs[[num]]
+          }
+
+          if(curObj@type != "DListClass") stop("Element-wise dmapply is not yet supported for operations involving DArrays or DFrames")
+        }
+
       dobjects[[num]] <- is(margs[[num]][[1]],"DObject")
      }
 
@@ -107,10 +117,14 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
     # Create wrapper executor function
     exec_func <- function(){}
 
-    formals(exec_func) <- formals(func)
-
+    nms <- names(margs)
     # get the splits ids for each dobject in the list
     for(num in 1:length(margs)){
+      if(nchar(nms[[num]]) == 0 || is.null(nms)){
+        nm <- paste0(".tmpVarName",num)
+      } else {
+        nm <- nms[[num]]
+      }
       ids[[num]] <- lapply(margs[[num]],function(argument){
         if(is(argument,"DObject"))
          return(argument@splits)
@@ -131,7 +145,7 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
         tempStr <- "substitute(ids[[num]][[index]],env=parent.frame())" 
       }
         tempStr <- gsub("num",as.character(num),tempStr)
-        formals(exec_func)[[num]] <- eval(parse(text=tempStr))
+        formals(exec_func)[[nm]] <- eval(parse(text=tempStr))
     }
 
     formals(exec_func)[[".funct"]] <- func
@@ -140,7 +154,14 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
 
     for(z in 1:length(margs)){
       if(z > 1) argsStr <- paste0(argsStr,", ")
-      argsStr <- paste0(argsStr,names(formals(func))[[z]])
+    
+      
+     
+      argsStr <- paste0(argsStr,names(formals(exec_func))[[z]])
+  
+     if(nchar(nms[[z]]) != 0 && !is.null(nms)){
+       argsStr <- paste0(argsStr,"=",names(formals(exec_func))[[z]])      
+     }
     }
 
   if(!isElementWise) {
@@ -173,8 +194,6 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
       body(exec_func)[[nLines+2]] <- eval(parse(
         text=paste0("substitute(",modLine,")")),envir=new.env())
       body(exec_func)[[nLines+3]] <- substitute(update(.dimObj))
-
-    print(exec_func)
 
     foreach(index,1:length(margs[[1]]),exec_func,progress=FALSE) 
 

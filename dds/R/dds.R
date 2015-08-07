@@ -64,7 +64,7 @@ dlapply <- function(dobj,FUN,...) {
 }
 
 #' @export
-dmapply <- function(FUN,...,MoreArgs=list(),simplify=FALSE) {
+dmapply <- function(FUN,...,MoreArgs=list(),SIMPLIFY=FALSE) {
   stopifnot(is.function(FUN))
   stopifnot(length(args) > 0)
 
@@ -81,7 +81,7 @@ dmapply <- function(FUN,...,MoreArgs=list(),simplify=FALSE) {
         same number of elements)")
     })
 
-  if(simplify){
+  if(SIMPLIFY){
     #TODO: logic to determine the appropriate output class
     type = "DListClass"
   }else{
@@ -93,9 +93,21 @@ dmapply <- function(FUN,...,MoreArgs=list(),simplify=FALSE) {
 
   margs <- list(...)
   elementWise <- FALSE
+  
+  uses_non_dlists <- FALSE  
+
   for(i in 1:length(margs)) {
-    if(is(margs[[1]],"DObject")) { elementWise <- TRUE
-      newNparts <- nparts(margs[[1]])
+    if(is(margs[[i]],"DObject")) { 
+      elementWise <- TRUE
+      newNparts <- nparts(margs[[i]])
+      if(margs[[i]]@type != "DListClass") {
+        uses_non_dlists <- TRUE
+      }
+    }
+    else {
+      if(is(margs[[i]][[1]],"DObject") && margs[[i]][[1]]@type != "DListClass") {
+        uses_non_dlists <- TRUE
+      }  
     }
   }
 
@@ -108,6 +120,9 @@ dmapply <- function(FUN,...,MoreArgs=list(),simplify=FALSE) {
   # Verify that the output object is of the correct type
   stopifnot(is(newobj,slot(dds.env$driver,type)))
 
+  # Currently, SIMPLIFY cannot work for any dmapplies involving any DArrays or DFrames
+  if(uses_non_dlists) SIMPLIFY <- FALSE
+ 
   # TODO: Validate dimensions
 #  newobj@dim <- newobj@backend@dim
 #  newobj@psize <- newobj@backend@psize  
