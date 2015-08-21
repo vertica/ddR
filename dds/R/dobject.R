@@ -68,14 +68,14 @@ parts <- function(dobj, index=NULL) {
 
   psize <- lapply(1:nrow(dobj@psize),function(i) dobj@psize[i,])[index]
 
-  partitions <- base::mapply(FUN=function(obj,psize) {
+  partitions <- mapply(FUN=function(obj,psize) {
     obj@nparts <- 1L
     obj@backend <- dds.env$driver@backendName
     obj@type <- dobj@type 
     obj@psize <- matrix(psize,nrow=1,ncol=length(psize))
     obj@dim <- psize
     obj
-}, partitions, psize)
+}, partitions, psize, SIMPLIFY=FALSE)
 
   stopifnot(length(partitions) == length(index))
   partitions
@@ -150,7 +150,7 @@ as.DList <- as.dlist
 #' @export
 darray <- function(initialize=NULL,nparts = 1L, psize=matrix(1,1,2)) {
   nparts = as.integer(nparts)
-  psize = matrix(1L,nparts,2)
+  psize = matrix(0L,nparts,2)
   if(is.null(initialize)) {
     new(dds.env$driver@DArrayClass,backend=dds.env$driver@backendName,type = "DArrayClass", nparts = nparts, psize = psize)
   } else{
@@ -164,7 +164,7 @@ DArray <- darray
 #' @export
 dframe <- function(initialize=NULL,nparts = 1L, psize=matrix(1,1,2)) {
   nparts = as.integer(nparts)
-  psize = matrix(1L,nparts,2)
+  psize = matrix(0L,nparts,2)
   if(is.null(initialize)) {
     new(dds.env$driver@DFrameClass,backend=dds.env$driver@backendName,type = "DFrameClass", nparts = nparts, psize = psize)
   } else{
@@ -184,7 +184,8 @@ setMethod("show",signature("DObject"),function(object) {
 
   for(i in 1:limit) {
     if(i>1) partsStr <- paste0(partsStr,", ")
-    partsStr <- paste0(partsStr,"[",object@psize[i,],"]")
+    dims <- paste0("",object@psize[i,],collapse=", ")
+    partsStr <- paste0(partsStr,"[",dims,"]")
   }
 
   if(limit < dim(object@psize)[[1]]){
@@ -361,8 +362,11 @@ repartition.DObject <- function(dobj,skeleton) {
     output 
   }
 
+  if(skeleton@type == "DListClass") type = list()
+  else if(skeleton@type == "DArrayClass") type = matrix()
+  else type = data.frame()
 
-  dmapplyArgs <- c(FUN=repartitioner,dmapplyArgs,psize=list(as.list(skeleton@psize)),MoreArgs=list(list(type=skeleton@type)),SIMPLIFY=FALSE)
+  dmapplyArgs <- c(FUN=repartitioner,dmapplyArgs,psize=list(as.list(skeleton@psize)),MoreArgs=list(list(type=skeleton@type)),FUN.VALUE=list(type))
 
   do.call(dmapply,dmapplyArgs)
 

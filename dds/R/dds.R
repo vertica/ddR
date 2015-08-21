@@ -42,7 +42,7 @@ setGeneric("init", function(x,...) {
 
 #' @export
 # dispatches on DDSDriver
-setGeneric("do_dmapply", function(driver,func,...,MoreArgs=list()) {
+setGeneric("do_dmapply", function(driver,func,...,MoreArgs=list(),FUN.VALUE=NULL) {
   standardGeneric("do_dmapply")
 })
 
@@ -64,68 +64,62 @@ dlapply <- function(dobj,FUN,...) {
 }
 
 #' @export
-dmapply <- function(FUN,...,MoreArgs=list(),SIMPLIFY=FALSE) {
+dmapply <- function(FUN,...,MoreArgs=list(),FUN.VALUE=NULL) {
   stopifnot(is.function(FUN))
   stopifnot(length(args) > 0)
 
   dargs <- list(...)
+
   # Ensure that ... arguments are of equal length
-  lens <- tryCatch({
-    lens <- lapply(dargs,function(x){
+  lens <- lapply(dargs,function(x){
      length(x)
-    })
-    stopifnot(max(unlist(lens)) == min(unlist(lens)))
-     lens}, error = 
-    function(e){
-      stop("Arguments to dmapply function must be of equal length (have the 
-        same number of elements)")
-    })
+  })
 
-  if(SIMPLIFY){
-    #TODO: logic to determine the appropriate output class
+  stopifnot(max(unlist(lens)) == min(unlist(lens)))
+    
+  #TODO: Use FUN.VALUE to drive proper selection of output type
+  if(is.null(FUN.VALUE) || is.list(FUN.VALUE) && !is.data.frame(FUN.VALUE)){
     type = "DListClass"
-  }else{
-    type = "DListClass"
+  } else if(is.data.frame(FUN.VALUE)){
+    type = "DFrameClass"
+  } else if(is.matrix(FUN.VALUE)) {
+    type = "DArrayClass"
+  } else {
+    stop("unrecognized return type for FUN.VALUE")
   }
-
-  # newobj <- new(type, backend = create.dobj(dds.env$driver, type, nparts=lens[[1]],psize=matrix(1L,lens[[1]])), 
-   #     nparts = lens[[1]])
+ 
+  partitioning <- getBestOutputPartitioning(dds.env$driver,...)
 
   margs <- list(...)
-  elementWise <- FALSE
-  
-  uses_non_dlists <- FALSE  
+
+  newobj <- do_dmapply(dds.env$driver, func=FUN, ..., MoreArgs=MoreArgs,
+                       FUN.VALUE=FUN.VALUE)
+
+  newobj@backend <- dds.env$driver@backendName
+  newobj@type <- type
+  newobj@nparts <- nparts(partitioning)
+
+  # TODO: this check doesn't work
+  stopifnot(is(newobj,slot(dds.env$driver,type)))
+
+  newobj
+}
+
+#' @export
+getBestOutputPartitioning <- function(driver,...) {
+  UseMethod("getBestOutputPartitioning")
+}
+
+#' @export
+getBestOutputPartitioning.DDSDriver <- function(driver, ...) {
+  margs <- list(...)
 
   for(i in 1:length(margs)) {
     if(is(margs[[i]],"DObject")) { 
-      elementWise <- TRUE
-      newNparts <- nparts(margs[[i]])
-      if(margs[[i]]@type != "DListClass") {
-        uses_non_dlists <- TRUE
-      }
-    }
-    else {
-      if(is(margs[[i]][[1]],"DObject") && margs[[i]][[1]]@type != "DListClass") {
-        uses_non_dlists <- TRUE
-      }  
+      return(mparts[[i]])
     }
   }
 
-  newobj <- do_dmapply(dds.env$driver, func=FUN, ..., MoreArgs=MoreArgs)
-  
-  newobj@backend <- dds.env$driver@backendName
-  newobj@type <- type
-  newobj@nparts <- ifelse(elementWise,newNparts,lens[[1]])
+  new("DObject",nparts=length(margs[[1]]))
 
-  # Verify that the output object is of the correct type
-  stopifnot(is(newobj,slot(dds.env$driver,type)))
-
-  # Currently, SIMPLIFY cannot work for any dmapplies involving any DArrays or DFrames
-  if(uses_non_dlists) SIMPLIFY <- FALSE
- 
-  # TODO: Validate dimensions
-#  newobj@dim <- newobj@backend@dim
-#  newobj@psize <- newobj@backend@psize  
-
-  newobj
 }
