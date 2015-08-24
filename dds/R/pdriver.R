@@ -48,10 +48,14 @@ setMethod("initialize", "ParallelObj", function(.Object, ...) {
 setMethod("init","ParallelDDS",
   function(x, inst=NULL, ...){
     library(parallel)
-    #Use all cores for now (Detectcores can return NA)
-    if(is.null(inst))
-        inst<-detectCores(all.tests=TRUE, logical=FALSE)
-    if(is.na(inst)) x<-1
+    #On windows we should only use a single core (limitation of 'parallel')
+    if(.Platform$OS.type == "windows"){
+      inst<-1
+    }else{
+        #Use all cores for now (Detectcores can return NA)
+        if(is.null(inst)) inst<-detectCores(all.tests=TRUE, logical=FALSE)
+	if(is.na(inst)) x<-1
+    }
     parallel.dds.env$cores = inst
     }
 )
@@ -77,6 +81,8 @@ setMethod("combine",signature(driver="ParallelDDS",items="list"),
   }
 )
 
+#This function calls mclapply internally. 
+# TODO(iR): Parallel processing does not work on Windows due to limitation of parallel package
 #' @export
 setMethod("do_dmapply",signature(driver="ParallelDDS",func="function",MoreArgs="list"), 
   function(driver,func,...,MoreArgs=list()){
@@ -96,11 +102,32 @@ setMethod("do_dmapply",signature(driver="ParallelDDS",func="function",MoreArgs="
      }), recursive=FALSE)
     }
    }
-
-   #Directly call the internal mapply function (check using print(mapply) on R console)
-   #TODO fix to use mcmapply
+   
+   #Now iterate in parallel
+   #We directly call the internal mcmapply function. Check code by print(mcmapply) 
    FUN <- match.fun(func)
-   answer <- .Internal(mapply(FUN, dots, MoreArgs))
+   if (!length(dots)) 
+        return(list())
+   lens <- sapply(dots, length)
+   n <- max(lens)
+   if (n && min(lens) == 0L) 
+       stop("Zero-length inputs cannot be mixed with those of non-zero length")
+   answer <- if (n < 2L) 
+       .mapply(FUN, dots, MoreArgs)
+   else {
+        X <- if (!all(lens == n)) 
+            lapply(dots, function(x) rep(x, length.out = n))
+        else dots
+        do_one <- function(indices, ...) {
+            dots <- lapply(X, function(x) x[indices])
+            .mapply(FUN, dots, MoreArgs)
+        }
+        answer <- mclapply(seq_len(n), do_one, mc.preschedule = TRUE, 
+            mc.set.seed = TRUE, mc.silent = FALSE, 
+            mc.cores = parallel.dds.env$cores, mc.cleanup = TRUE)
+        do.call(c, answer)
+    }
+
    USE.NAMES<-FALSE #TODO(ir): Fix
    SIMPLIFY<-FALSE
    if (USE.NAMES && length(dots)) {
@@ -113,7 +140,7 @@ setMethod("do_dmapply",signature(driver="ParallelDDS",func="function",MoreArgs="
         answer<-simplify2array(answer, higher = (SIMPLIFY == "array"))
 
    #Calculate partition sizes and total dimension. For lists, numeric etc. use length. Otherwise dim()
-   #TODO: Fix base DObject dimension to be numeric since length of list partition can be double?
+   #TODO (iR): Fix base DObject dimension to be numeric since length of list partition can be double?
    psizes<-vapply(answer, function(x){ if(is.null(dim(x))) {c(as.integer(length(x)),0L)} else {dim(x)}}, FUN.VALUE=integer(2))
    psizes<-t(psizes) #ith row now corresponds to ith partition
    dims<-colSums(psizes)
