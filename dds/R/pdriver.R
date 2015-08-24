@@ -44,14 +44,15 @@ setMethod("initialize", "ParallelObj", function(.Object, ...) {
 })
 
 #' @export
-# Initialize the no. of cores in parallel
+# Initialize the no. of cores in parallel backend
 setMethod("init","ParallelDDS",
-  function(x,...){
+  function(x, inst=NULL, ...){
     library(parallel)
     #Use all cores for now (Detectcores can return NA)
-    ncores<-detectCores(all.tests=TRUE, logical=FALSE)
-    if(is.na(ncores)) x<-1
-    parallel.dds.env$cores = ncores
+    if(is.null(inst))
+        inst<-detectCores(all.tests=TRUE, logical=FALSE)
+    if(is.na(inst)) x<-1
+    parallel.dds.env$cores = inst
     }
 )
 

@@ -20,7 +20,7 @@ dds.env <- new.env(emptyenv())
 
 # Set Driver 
 #' @export
-useBackend <- function(driver, init=TRUE) {
+useBackend <- function(driver, ...) {
 
   if(!extends(class(driver)[[1]],"DDSDriver")) stop("Invalid driver object specified")
 
@@ -29,7 +29,7 @@ useBackend <- function(driver, init=TRUE) {
   if(!extends(driver@DArrayClass,"DObject")) stop("The driver DArray class does not extend DDS::Dobject")
 
   dds.env$driver <- driver
-  if(init) init(driver)
+  init(driver, ...)
 }
 
 #' @export
