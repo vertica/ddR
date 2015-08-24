@@ -93,7 +93,7 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
         isElementWise <- TRUE
 
         # If the dobject is a DArray or a DList, the number of apply iterations equals the total number of elements (product of dimensions)
-        if(is(margs[[num]],"DList") || is(margs[[num]],"DArray")) {
+        if(margs[[num]]@type == "DListClass" || margs[[num]]@type=="DArrayClass") {
           lens <- mapply(function(x) { prod(x) }, data.frame(t(margs[[num]]@psize)),SIMPLIFY=FALSE)
         } # otherwise, it's the number of columns 
         else {

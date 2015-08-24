@@ -105,18 +105,24 @@ dmapply <- function(FUN,...,MoreArgs=list(),FUN.VALUE=NULL) {
   newobj
 }
 
+# Given a list of arguments into dmapply, return a dobject
+# whose partitioning scheme we want to enforce the output to have
+# this should be used by do_dmapply as well
 #' @export
 getBestOutputPartitioning <- function(driver,...) {
   UseMethod("getBestOutputPartitioning")
 }
 
+# Currently, we naively choose the first DObject argument we find,
+# or just use the length of the input arguments if none are found
+# (i.e., when parts() is used for all args)
 #' @export
 getBestOutputPartitioning.DDSDriver <- function(driver, ...) {
   margs <- list(...)
 
   for(i in 1:length(margs)) {
     if(is(margs[[i]],"DObject")) { 
-      return(mparts[[i]])
+      return(margs[[i]])
     }
   }
 
