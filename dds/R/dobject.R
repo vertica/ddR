@@ -148,13 +148,49 @@ is.DList <- is.dlist
 as.DList <- as.dlist
 
 #' @export
-darray <- function(initialize=NULL,nparts = 1L, psize=matrix(1,1,2)) {
-  nparts = as.integer(nparts)
-  psize = matrix(0L,nparts,2)
-  if(is.null(initialize)) {
-    new(dds.env$driver@DArrayClass,backend=dds.env$driver@backendName,type = "DArrayClass", nparts = nparts, psize = psize)
+darray <- function(...,nparts = NULL, psize = NULL, dim = NULL) {
+ 
+  if(!is.null(dim) || !is.null(psize)) {
+    if(is.null(psize) || is.null(dim)) stop("Need to supply both psize and dim")
+    if(!is.null(nparts)) stop("Cannot supply nparts as well as psize and dimensions")
+
+    # Test for legality of dim and psize specifications
+    stopifnot(length(psize) > 0)
+    stopifnot(length(psize) == length(dim))
+    nparts <- 1L
+
+    psize_chunk <- psize
+    for(dimension in seq(1,length(psize_chunk))) {
+      numdim <- dim[dimension]/psize_chunk[dimension]
+
+      # must be an integer value
+      stopifnot(as.integer(numdim) == numdim)
+      nparts <- as.integer(nparts * numdim)
+
+      if(dimension > 1) psize <- rbind(psize,psize_chunk)
+    }
+
+  }
+
+ # If all are NULL, then initialize to some default
+  if(is.null(nparts)) {
+    nparts <- 1L
+  }
+
+  if(is.null(dim)) {
+    psize <- matrix(0L,nparts,2)
+    dim <- c(0L,0L)
+  }
+
+  nparts <- as.integer(nparts)
+  dim <- as.integer(dim)
+
+  initialize <- list(...)
+
+  if(length(initialize)==0) {
+    new(dds.env$driver@DArrayClass,backend=dds.env$driver@backendName,type = "DArrayClass", nparts = nparts, psize = psize, dim=dim)
   } else{
-    dmapply(function(x){ list(x) }, list(initialize))
+    dmapply(function(x){ matrix(x) }, initialize, FUN.VALUE=matrix())
   }
 }
 
@@ -162,13 +198,49 @@ darray <- function(initialize=NULL,nparts = 1L, psize=matrix(1,1,2)) {
 DArray <- darray
 
 #' @export
-dframe <- function(initialize=NULL,nparts = 1L, psize=matrix(1,1,2)) {
-  nparts = as.integer(nparts)
-  psize = matrix(0L,nparts,2)
-  if(is.null(initialize)) {
-    new(dds.env$driver@DFrameClass,backend=dds.env$driver@backendName,type = "DFrameClass", nparts = nparts, psize = psize)
+dframe <- function(...,nparts = NULL, psize = NULL, dim = NULL) {
+
+  if(!is.null(dim) || !is.null(psize)) {
+    if(is.null(psize) || is.null(dim)) stop("Need to supply both psize and dim")
+    if(!is.null(nparts)) stop("Cannot supply nparts as well as psize and dimensions")
+
+    # Test for legality of dim and psize specifications
+    stopifnot(length(psize) > 0)
+    stopifnot(length(psize) == length(dim))
+    nparts <- 1L
+
+    psize_chunk <- psize
+    for(dimension in seq(1,length(psize_chunk))) {
+      numdim <- dim[dimension]/psize_chunk[dimension]
+
+      # must be an integer value
+      stopifnot(as.integer(numdim) == numdim)
+      nparts <- as.integer(nparts * numdim)
+
+      if(dimension > 1) psize <- rbind(psize,psize_chunk)
+    }
+  
+  }
+
+  # If all are NULL, then initialize to some default
+  if(is.null(nparts)) {
+    nparts <- 1L
+  }
+
+  if(is.null(dim)) {
+    psize <- matrix(0L,nparts,2)
+    dim <- c(0L,0L)
+  }
+
+  nparts <- as.integer(nparts)
+  dim <- as.integer(dim)
+
+  initialize <- list(...)
+
+  if(length(initialize)==0) {
+    new(dds.env$driver@DFrameClass,backend=dds.env$driver@backendName,type = "DFrameClass", nparts = nparts, psize = psize, dim=dim)
   } else{
-    dmapply(function(x){ list(x) }, list(initialize))
+    dmapply(function(x){ data.frame(x) }, initialize, FUN.VALUE=data.frame())
   }
 }
 

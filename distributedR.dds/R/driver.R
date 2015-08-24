@@ -29,11 +29,19 @@ setMethod("initialize", "DistributedRObj", function(.Object, ...) {
   if(is.null(.Object@DRObj@dobject_ptr)) {
    if(.Object@type == "DListClass")
        .Object@DRObj <- distributedR::dlist(npartitions=.Object@nparts)
-    else if(.Object@type == "DArrayClass")
+   else if(.Object@type == "DArrayClass")
+     if(.Object@dim[1] < 1) {
        .Object@DRObj <- distributedR::darray(npartitions=.Object@nparts)
-    else
-       .Object@DRObj  <- distributedR::dframe(npartitions=.Object@nparts)
-  
+     } else {
+       .Object@DRObj <- distributedR::darray(dim=.Object@dim,blocks=.Object@psize[1,])
+     }
+   else
+     if(.Object@dim[1] < 1) {
+       .Object@DRObj <- distributedR::dframe(npartitions=.Object@nparts)
+     } else {
+       .Object@DRObj <- distributedR::dframe(dim=.Object@dim,blocks=.Object@psize[1,])
+     }
+
    .Object@splits <- 1:npartitions(.Object@DRObj)
 
    }
