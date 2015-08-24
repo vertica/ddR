@@ -37,6 +37,6 @@ setMethod("init",c(x = "ParallelDriver"),
       function(x) print("Init'ing ParallelDriver"))
 
 # Singleton driver
-parallel <- new("ParallelDriver", DListClass = "ParallelDList", DFrameClass = "ParallelDFrame", DArrayClass = "ParallelDArray", backendName = "Parallel (Dummy)")
+#parallel <- new("ParallelDriver", DListClass = "ParallelDList", DFrameClass = "ParallelDFrame", DArrayClass = "ParallelDArray", backendName = "Parallel (Dummy)")
 
-dds.env$driver <- parallel
+#dds.env$driver <- parallel
