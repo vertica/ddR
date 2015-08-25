@@ -159,16 +159,17 @@ darray <- function(...,nparts = NULL, psize = NULL, dim = NULL) {
     stopifnot(length(psize) == length(dim))
     nparts <- 1L
 
-    psize_chunk <- psize
-    for(dimension in seq(1,length(psize_chunk))) {
-      numdim <- dim[dimension]/psize_chunk[dimension]
+    for(dimension in seq(1,length(psize))) {
+      numdim <- dim[dimension]/psize[dimension]
 
       # must be an integer value
       stopifnot(as.integer(numdim) == numdim)
       nparts <- as.integer(nparts * numdim)
-
-      if(dimension > 1) psize <- rbind(psize,psize_chunk)
     }
+
+    # Create number of rows equal to number of parts
+    psize <- t(matrix(psize))
+    psize <- psize[rep(seq_len(nrow(psize)), nparts),] 
 
   }
 
@@ -209,17 +210,18 @@ dframe <- function(...,nparts = NULL, psize = NULL, dim = NULL) {
     stopifnot(length(psize) == length(dim))
     nparts <- 1L
 
-    psize_chunk <- psize
-    for(dimension in seq(1,length(psize_chunk))) {
-      numdim <- dim[dimension]/psize_chunk[dimension]
+    for(dimension in seq(1,length(psize))) {
+      numdim <- dim[dimension]/psize[dimension]
 
       # must be an integer value
       stopifnot(as.integer(numdim) == numdim)
       nparts <- as.integer(nparts * numdim)
-
-      if(dimension > 1) psize <- rbind(psize,psize_chunk)
     }
   
+    # Create number of rows equal to number of parts
+    psize <- t(matrix(psize))
+    psize <- psize[rep(seq_len(nrow(psize)), nparts),] 
+
   }
 
   # If all are NULL, then initialize to some default
