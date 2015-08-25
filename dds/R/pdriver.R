@@ -15,50 +15,33 @@
 # Boston, MA 02111-1307 USA.
 ###################################################################
 
-# Driver for the parallel package
-
-parallel.dds.env <- new.env(emptyenv())
-
 setClass("ParallelDDS", contains="DDSDriver")
 
 #' @export 
 # Exported Driver
 parallel <- new("ParallelDDS",DListClass = "ParallelObj",DFrameClass = "ParallelObj",DArrayClass = "ParallelObj",backendName = "parallel")
 
-setMethod("initialize", "ParallelObj", function(.Object, ...) {
-   .Object <- callNextMethod(.Object, ...)
-
-   #TODO: Fix for data.frame and arrays
-   if(length(.Object@pObj)==0) {
-    if(.Object@type == "DListClass")  
-       .Object@pObj <- vector("list", .Object@nparts)
-    else if(.Object@type == "DArrayClass")
-       .Object@pObj <- vector("list", .Object@nparts)
-    else
-       .Object@pObj  <- vector("list", .Object@nparts) 
-  
-   .Object@splits <- 1:(.Object@nparts)
-  }
-
-   .Object
-})
+# Driver for the parallel package. Parallel is also the default backend.
+dds.env$driver <- parallel
+#Set environment and default number of cores to total no. of cores (but one on windows)
+#Note that DetectCores() can return NA. 
+parallel.dds.env <- new.env(emptyenv())
+parallel.dds.env$cores <- detectCores(all.tests=TRUE, logical=FALSE) 
+if(.Platform$OS.type == "windows" || is.na(parallel.dds.env$cores)) parallel.dds.env$cores <- 1 
 
 #' @export
 # Initialize the no. of cores in parallel backend
 setMethod("init","ParallelDDS",
   function(x, inst=NULL, ...){
-    library(parallel)
-    #On windows we should only use a single core (limitation of 'parallel')
-    if(.Platform$OS.type == "windows"){
-      inst<-1
-    }else{
-        #Use all cores for now (Detectcores can return NA)
-        if(is.null(inst)) inst<-detectCores(all.tests=TRUE, logical=FALSE)
-	if(is.na(inst)) x<-1
+    if(is.null(inst)) return
+
+    #On windows we should only use a single core, which is already the default (limitation of 'parallel')
+    if(.Platform$OS.type == "windows" && inst!=1) {stop("Argument 'inst' should be 1 on Windows\n")}
+    else{
+	if(!((is.numeric(inst) || is.integer(inst)) && floor(inst)==inst && inst>=0)) stop("Argument 'inst' should be a non-negative integral value")
+        parallel.dds.env$cores = inst
     }
-    parallel.dds.env$cores = inst
-    }
-)
+})
 
 setMethod("combine",signature(driver="ParallelDDS",items="list"),
   function(driver,items){
@@ -78,8 +61,7 @@ setMethod("combine",signature(driver="ParallelDDS",items="list"),
     rownames(psizes) <- NULL
     
     new("ParallelObj",pObj=items[[1]]@pObj,splits = unlist(split_indices), dim = dims, psize = psizes)
-  }
-)
+})
 
 #This function calls mclapply internally. 
 # TODO(iR): Parallel processing does not work on Windows due to limitation of parallel package

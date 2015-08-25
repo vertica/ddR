@@ -24,6 +24,25 @@ setClass("ParallelObj",contains="DObject",
       dim = c(1L,1L)
 ))
 
+setMethod("initialize", "ParallelObj", function(.Object, ...) {
+   .Object <- callNextMethod(.Object, ...)
+
+   #TODO: Fix for data.frame and arrays
+   if(length(.Object@pObj)==0) {
+    if(.Object@type == "DListClass")  
+       .Object@pObj <- vector("list", .Object@nparts)
+    else if(.Object@type == "DArrayClass")
+       .Object@pObj <- vector("list", .Object@nparts)
+    else
+       .Object@pObj  <- vector("list", .Object@nparts) 
+  
+   .Object@splits <- 1:(.Object@nparts)
+  }
+
+   .Object
+})
+
+
 #' @export
 setMethod("get_parts",signature("ParallelObj","missing"),
   function(x, ...){
