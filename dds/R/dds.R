@@ -22,6 +22,9 @@ dds.env <- new.env(emptyenv())
 #' @export
 useBackend <- function(driver, ...) {
 
+  # if the selected driver is already loaded, do nothing
+  if(identical(dds.env$driver,driver)) return()
+
   if(!extends(class(driver)[[1]],"DDSDriver")) stop("Invalid driver object specified")
 
   if(!extends(driver@DListClass,"DObject")) stop("The driver DList class does not extend DDS::Dobject")
