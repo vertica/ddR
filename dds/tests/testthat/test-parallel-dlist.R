@@ -18,4 +18,9 @@ test_that("An error is thrown when the return type does not match FUN.VALUE",{
                          return(2L)
                        }, 
                        as.list(1:3)))
+  # FUN.VALUE is a matrix but FUN returns data.frame
+ expect_error(dmapply(function(x) {
+                         data.frame(2L)
+                       }, 
+                       as.list(1:3), FUN.VALUE=matrix(1)))
 })

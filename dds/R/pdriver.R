@@ -33,14 +33,12 @@ if(.Platform$OS.type == "windows" || is.na(parallel.dds.env$cores)) parallel.dds
 # Initialize the no. of cores in parallel backend
 setMethod("init","ParallelDDS",
   function(x, inst=NULL, ...){
-    if(is.null(inst)) return
-
+    if(!is.null(inst)){
     #On windows we should only use a single core, which is already the default (limitation of 'parallel')
     if(.Platform$OS.type == "windows" && inst!=1) {stop("Argument 'inst' should be 1 on Windows\n")}
-    else{
-	if(!((is.numeric(inst) || is.integer(inst)) && floor(inst)==inst && inst>=0)) stop("Argument 'inst' should be a non-negative integral value")
+    if(!((is.numeric(inst) || is.integer(inst)) && floor(inst)==inst && inst>=0)) stop("Argument 'inst' should be a non-negative integral value")
         parallel.dds.env$cores = inst
-    }
+  }
 })
 
 setMethod("combine",signature(driver="ParallelDDS",items="list"),
@@ -66,8 +64,8 @@ setMethod("combine",signature(driver="ParallelDDS",items="list"),
 #This function calls mclapply internally. 
 # TODO(iR): Parallel processing does not work on Windows due to limitation of parallel package
 #' @export
-setMethod("do_dmapply",signature(driver="ParallelDDS",func="function",MoreArgs="list"), 
-  function(driver,func,...,MoreArgs=list()){
+setMethod("do_dmapply",signature(driver="ParallelDDS",func="function",MoreArgs="list", FUN.VALUE="ANY"), 
+  function(driver,func,...,MoreArgs=list(), FUN.VALUE=NULL){
   dots <- list(...)
   for(num in 1:length(dots)){
     if(is(dots[[num]],"DObject")){
@@ -76,15 +74,16 @@ setMethod("do_dmapply",signature(driver="ParallelDDS",func="function",MoreArgs="
     }else{
       #At the moment we don't support non-list objects to iterate on
       stopifnot(is(dots[[num]],"list"))
-      #There are two cases for a list (1) parts(dobj) or (2) normal list
-      dots[[num]] <- unlist (lapply(dots[[num]],function(argument){
-	      if(is(argument,"DObject"))
-               return(argument@pObj[argument@splits])
-             else return(argument)
-     }), recursive=FALSE)
+      #There are two cases for a list (1) parts(dobj) or (2) normal list (don't do anything)
+      if(is(dots[[num]][[1]], "DObject")){
+            dots[[num]] <- unlist (lapply(dots[[num]],function(argument){
+	    	      if(is(argument,"DObject"))
+            	         return(argument@pObj[argument@splits])
+	              else return(argument)
+         }), recursive=FALSE)
+      }
     }
    }
-   
    #Now iterate in parallel
    #We directly call the internal mcmapply function. Check code by print(mcmapply) 
    FUN <- match.fun(func)
@@ -110,16 +109,22 @@ setMethod("do_dmapply",signature(driver="ParallelDDS",func="function",MoreArgs="
         do.call(c, answer)
     }
 
-   USE.NAMES<-FALSE #TODO(ir): Fix
-   SIMPLIFY<-FALSE
+   #Let's check if each partition corresponds to the class defined in FUN.VALUE. 
+   #By default each partition should be a list
+   type<-"list"
+   if(is.matrix(FUN.VALUE)) type<-"matrix"
+   if(is.data.frame(FUN.VALUE)) type<-"data.frame"
+   if(!all(vapply(answer, function(x){return (class(x)==type)}, FUN.VALUE=array()))){
+    stop("Result of FUN should be of type ", type)
+   }
+   
+   USE.NAMES<-TRUE #TODO(ir): What should the default be?
    if (USE.NAMES && length(dots)) {
         if (is.null(names1 <- names(dots[[1L]])) && is.character(dots[[1L]])) 
             names(answer) <- dots[[1L]]
         else if (!is.null(names1)) 
             names(answer) <- names1
     }
-   if (!identical(SIMPLIFY, FALSE) && length(answer)) 
-        answer<-simplify2array(answer, higher = (SIMPLIFY == "array"))
 
    #Calculate partition sizes and total dimension. For lists, numeric etc. use length. Otherwise dim()
    #TODO (iR): Fix base DObject dimension to be numeric since length of list partition can be double?
@@ -127,7 +132,10 @@ setMethod("do_dmapply",signature(driver="ParallelDDS",func="function",MoreArgs="
    psizes<-t(psizes) #ith row now corresponds to ith partition
    dims<-colSums(psizes)
    #Use single dimension if we know it's a list
-   if(dims[2]==0) psizes<-as.matrix(psizes[,1])
+   if(type=="list"){
+	 psizes<-as.matrix(psizes[,1])
+	 dims<-dims[1]
+   }
    
    new("ParallelObj",pObj = answer, splits = 1:length(answer), psize = psizes, dim = as.integer(dims))
 })
