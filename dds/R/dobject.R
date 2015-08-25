@@ -73,7 +73,7 @@ parts <- function(dobj, index=NULL) {
     obj@backend <- dds.env$driver@backendName
     obj@type <- dobj@type 
     obj@psize <- matrix(psize,nrow=1,ncol=length(psize))
-    obj@dim <- psize
+    obj@dim <- as.integer(psize)
     obj
 }, partitions, psize, SIMPLIFY=FALSE)
 
