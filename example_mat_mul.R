@@ -15,8 +15,7 @@
 # Boston, MA 02111-1307 USA.
 ###################################################################
 
-library(distributedR.dds)
-useBackend(distributedR)
+library(dds)
 
 #Matrix Multiplication function using dlists to hold partial matrices
 #computes c = a %*% b
@@ -76,4 +75,4 @@ nrow_partitions_b = 3
 c<-MatrixMultiply(a,b,nrow_partitions_a,nrow_partitions_b)
 c<-collect(c)
 
-c
+print(c)

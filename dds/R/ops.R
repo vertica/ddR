@@ -17,7 +17,7 @@
 
 #' @export
 unique.DObject <- function(x, ...) {
-  unique.per.partition <- dlapply(x,function(x) { unique(x) })
+  unique.per.partition <- dlapply(parts(x),function(x) { unique(x) })
   unique(collect(unique.per.partition))
 }
 
