@@ -1,4 +1,4 @@
-useBackend(distributedR)
+suppressWarnings(useBackend(distributedR))
 
 context("DList metadata")
 

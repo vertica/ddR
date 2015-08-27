@@ -55,6 +55,12 @@ setMethod("init","DistributedRDDS",
     distributedR_start(...)
 )
 
+#' @export
+setMethod("shutdown","DistributedRDDS",
+  function(x)
+    distributedR_shutdown()
+)
+
 setMethod("combine",signature(driver="DistributedRDDS",items="list"),
   function(driver,items){
     split_indices <- lapply(items,function(x) {

@@ -23,7 +23,12 @@ dds.env <- new.env(emptyenv())
 useBackend <- function(driver, ...) {
 
   # if the selected driver is already loaded, do nothing
-  if(identical(dds.env$driver,driver)) return()
+  if(identical(dds.env$driver,driver)) {
+    warning("Selected driver is the same as the one already loaded. Doing nothing.")
+    return()
+  }
+
+  if(!is.null(dds.env$driver)) shutdown(dds.env$driver)
 
   if(!extends(class(driver)[[1]],"DDSDriver")) stop("Invalid driver object specified")
 
@@ -42,6 +47,25 @@ setClass("DDSDriver", representation(DListClass = "character", DFrameClass = "ch
 setGeneric("init", function(x,...) {
   standardGeneric("init")
 }) 
+
+#' @export
+setGeneric("shutdown", function(x) {
+  standardGeneric("shutdown")
+}) 
+
+#' @export
+setMethod("init","DDSDriver",
+  function(x,...) {
+    message(paste0("Activating the ",x@backendName," backend."))
+  }
+)
+
+#' @export
+setMethod("shutdown","DDSDriver",
+  function(x) {
+    message(paste0("Deactivating the ",x@backendName," backend."))
+  }
+)
 
 #' @export
 # dispatches on DDSDriver

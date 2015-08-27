@@ -1,4 +1,4 @@
-useBackend(parallel)
+suppressWarnings(useBackend(parallel))
 
 context("DList metadata")
 
