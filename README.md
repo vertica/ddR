@@ -9,34 +9,20 @@ vignette: >
   \usepackage[utf8]{inputenc}
 ---
 
-Quick examples using distributedR.dds with the API
+Quick examples using the parallel backend with the API
 
 Starting it up:
 
 ```r
-library(distributedR.dds)
+library(dds)
 ```
-
-```
-## Loading required package: distributedR
-## Loading required package: Rcpp
-## Loading required package: RInside
-## Loading required package: XML
-## Loading required package: dds
-## 
-## Attaching package: 'dds'
-## 
-## The following objects are masked from 'package:distributedR':
-## 
-##     darray, dframe, dlist, is.dlist
-```
-
 ```r
-useBackend(distributedR)
+Loading required package: parallel
 ```
 
-```
-## Master address:port - 127.0.0.1:50000
+You can optionally specify the number of cores that should be used:
+```r
+useBackend(parallel, inst=5)
 ```
 
 Init'ing a DList:
@@ -135,6 +121,39 @@ collect(d)
 ```
 
 For a more detailed example, you may view (and run) example_mat_mul.R (matrix multiplication) in the top-level directory.
+
+You also try the parallel K-means clustering example by first installing the HPdcluster package under scripts/ (via R CMD INSTALL HPdcluster), and running scripts/run_kmeans.R.
+
+## Using the Distributed R backend
+
+Use the Distributed R library for dds:
+```r
+library(distributedR.dds)
+```
+
+```
+## Loading required package: distributedR
+## Loading required package: Rcpp
+## Loading required package: RInside
+## Loading required package: XML
+## Loading required package: dds
+## 
+## Attaching package: 'dds'
+## 
+## The following objects are masked from 'package:distributedR':
+## 
+##     darray, dframe, dlist, is.dlist
+```
+
+```r
+useBackend(distributedR)
+```
+
+```
+## Master address:port - 127.0.0.1:50000
+```
+
+Now you can try the different list examples which were used with the 'parallel' backend.
 
 ## How to Contribute
 
