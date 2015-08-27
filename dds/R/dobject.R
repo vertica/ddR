@@ -199,6 +199,15 @@ darray <- function(...,nparts = NULL, psize = NULL, dim = NULL) {
 DArray <- darray
 
 #' @export
+is.darray <- function(x) {
+  is(x,"DObject") && x@type == "DArrayClass"
+}
+
+#' @export
+is.DArray <- is.darray
+
+
+#' @export
 dframe <- function(...,nparts = NULL, psize = NULL, dim = NULL) {
 
   if(!is.null(dim) || !is.null(psize)) {
@@ -248,6 +257,15 @@ dframe <- function(...,nparts = NULL, psize = NULL, dim = NULL) {
 
 #' @export
 DFrame <- dframe
+
+#' @export
+is.dframe <- function(x) {
+  is(x,"DObject") && x@type == "DFrameClass"
+}
+
+#' @export
+is.DFrame <- is.dframe
+
 
 #' @export
 setMethod("show",signature("DObject"),function(object) {
