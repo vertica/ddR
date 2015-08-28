@@ -67,10 +67,23 @@ setMethod("combine",signature(driver="ParallelDDS",items="list"),
 setMethod("do_dmapply",signature(driver="ParallelDDS",func="function",MoreArgs="list", FUN.VALUE="ANY"), 
   function(driver,func,...,MoreArgs=list(), FUN.VALUE=NULL){
   dots <- list(...)
-  for(num in 1:length(dots)){
+  dlen<-length(dots)
+  elementWise <- vector(mode="logical", dlen)
+
+  for(num in 1:dlen){
     if(is(dots[[num]],"DObject")){
       #If this is a DObject, we just need to extract the backend object
-      dots[[num]] <- dots[[num]]@pObj[dots[[num]]@splits]
+      if(dots[[num]]@type != "DListClass"){ 
+         stop("Elementwise operation is currently supported only on distributed lists.")
+      }
+      tmp<-unlist(dots[[num]]@pObj[dots[[num]]@splits])
+      #Check if unlist results in an empty list. This happens when the DObject has just been declared but not initialized any value
+      if(length(tmp) ==0){
+            dots[[num]] <- dots[[num]]@pObj[dots[[num]]@splits]
+      } else {
+            dots[[num]] <- tmp
+      }
+      elementWise[num] <- TRUE
     }else{
       #At the moment we don't support non-list objects to iterate on
       stopifnot(is(dots[[num]],"list"))
@@ -84,11 +97,12 @@ setMethod("do_dmapply",signature(driver="ParallelDDS",func="function",MoreArgs="
       }
     }
    }
+
    #Now iterate in parallel
    #We directly call the internal mcmapply function. Check code by print(mcmapply) 
    FUN <- match.fun(func)
    if (!length(dots)) 
-        return(list())
+        stop("Length of dmapply argument is zero")
    lens <- sapply(dots, length)
    n <- max(lens)
    if (n && min(lens) == 0L) 
@@ -96,8 +110,10 @@ setMethod("do_dmapply",signature(driver="ParallelDDS",func="function",MoreArgs="
    answer <- if (n < 2L) 
        .mapply(FUN, dots, MoreArgs)
    else {
-        X <- if (!all(lens == n)) 
-            lapply(dots, function(x) rep(x, length.out = n))
+        X <- if (!all(lens == n)){ 
+            #lapply(dots, function(x) rep(x, length.out = n))
+	    stop("Unequal length of input arguments. Length of largest argument is ", n)
+	}
         else dots
         do_one <- function(indices, ...) {
             dots <- lapply(X, function(x) x[indices])
@@ -115,6 +131,8 @@ setMethod("do_dmapply",signature(driver="ParallelDDS",func="function",MoreArgs="
    if(is.matrix(FUN.VALUE)) type<-"matrix"
    if(is.data.frame(FUN.VALUE)) type<-"data.frame"
    if(!all(vapply(answer, function(x){return (class(x)==type)}, FUN.VALUE=array()))){
+    #Check if an error occurred. Parallel returns object of type "try-error"
+    lapply(answer, function(x){if(class(x)=="try-error"){stop(x)}})
     stop("Result of FUN should be of type ", type)
    }
    
@@ -136,7 +154,7 @@ setMethod("do_dmapply",signature(driver="ParallelDDS",func="function",MoreArgs="
 	 psizes<-as.matrix(psizes[,1])
 	 dims<-dims[1]
    }
-   
+
    new("ParallelObj",pObj = answer, splits = 1:length(answer), psize = psizes, dim = as.integer(dims))
 })
 
