@@ -22,7 +22,7 @@ dds.env <- new.env(emptyenv())
 #' @export
 useBackend <- function(driver, ...) {
 
-  if(!is.null(dds.env$driver) && !identical(dds.env$driver,driver)) shutdown(dds.env$driver)
+  if(!is.null(dds.env$driver)) shutdown(dds.env$driver)
 
   if(!extends(class(driver)[[1]],"DDSDriver")) stop("Invalid driver object specified")
 
@@ -30,8 +30,8 @@ useBackend <- function(driver, ...) {
   if(!extends(driver@DFrameClass,"DObject")) stop("The driver DFrame class does not extend DDS::Dobject")
   if(!extends(driver@DArrayClass,"DObject")) stop("The driver DArray class does not extend DDS::Dobject")
 
-  dds.env$driver <- driver
   init(driver, ...)
+  dds.env$driver <- driver
 }
 
 #' @export

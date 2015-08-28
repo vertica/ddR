@@ -343,19 +343,21 @@ repartition.DObject <- function(dobj,skeleton) {
      while(is.null(horizontalValues) || tail(horizontalValues,n=1L) < dim(dobj)[[2]]) {
        if(is.null(horizontalValues)) prevMax <- 0
        else prevMax <- horizontalValues[index]
-       horizontalValues <- c(horizontalValues,dobj@psize[index,][[2]] + prevMax)
        index <- index + 1
+       horizontalValues <- c(horizontalValues,dobj@psize[index,][[2]] + prevMax)
      }
    }
 
    nparts_per_row <- ifelse(dims > 1, index, 1)
 
+   count <- 0
+   if(index==0) index <- 1
+
    while(is.null(verticalValues) || tail(verticalValues,n=1L) < dim(dobj)[[1]]) {
-     count <- 0
      if(is.null(verticalValues)) prevMax <- 0
      else prevMax <- verticalValues[count]
-     index <- index + nparts_per_row
      verticalValues <- c(verticalValues,dobj@psize[index,][[1]] + prevMax)
+     index <- index + nparts_per_row
      count <- count + 1
    }
 
