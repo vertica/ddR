@@ -92,11 +92,16 @@ dmapply <- function(FUN,...,MoreArgs=list(),FUN.VALUE=NULL) {
   dargs <- list(...)
 
   # Ensure that ... arguments are of equal length
-  lens <- lapply(dargs,function(x){
+  lens <- sapply(dargs,function(x){
+     if(is(x,"DObject") && x@type == "DFrameClass"){
+       ncol(x)
+     } else if (is(x,"DObject") && x@type == "DArrayClass") {
+       prod(dim(x))
+     }
      length(x)
   })
 
-  stopifnot(max(unlist(lens)) == min(unlist(lens)))
+  stopifnot(max(lens) == min(lens))
     
   #TODO: Use FUN.VALUE to drive proper selection of output type
   if(is.null(FUN.VALUE) || is.list(FUN.VALUE) && !is.data.frame(FUN.VALUE)){
