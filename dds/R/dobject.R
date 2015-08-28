@@ -303,9 +303,9 @@ names.DObject <- function(x) {
 setReplaceMethod("names", signature(x = "DObject", value = "ANY"), definition = function(x,value) {
   stopifnot(length(value) == length(x))
 
-  lens <- mapply(function(x) { prod(x) }, data.frame(t(x@psize)),SIMPLIFY=FALSE)
+  lens <- sapply(data.frame(t(x@psize)), function(x) { prod(x) })
 
-  limits <- cumsum(unlist(lens)) 
+  limits <- cumsum(lens)
   limits <- c(0,limits) + 1
   limits <- limits[1:(length(limits)-1)]
 

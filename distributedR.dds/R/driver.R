@@ -23,32 +23,6 @@ setClass("DistributedRDDS", contains="DDSDriver")
 # Exported Driver
 distributedR <- new("DistributedRDDS",DListClass = "DistributedRObj",DFrameClass = "DistributedRObj",DArrayClass = "DistributedRObj",backendName = "Distributed R")
 
-setMethod("initialize", "DistributedRObj", function(.Object, ...) {
-   .Object <- callNextMethod(.Object, ...)
-
-  if(is.null(.Object@DRObj@dobject_ptr)) {
-   if(.Object@type == "DListClass")
-       .Object@DRObj <- distributedR::dlist(npartitions=.Object@nparts)
-   else if(.Object@type == "DArrayClass")
-     if(.Object@dim[1] < 1) {
-       .Object@DRObj <- distributedR::darray(npartitions=.Object@nparts)
-     } else {
-       .Object@DRObj <- distributedR::darray(dim=.Object@dim,blocks=.Object@psize[1,])
-     }
-   else
-     if(.Object@dim[1] < 1) {
-       .Object@DRObj <- distributedR::dframe(npartitions=.Object@nparts)
-     } else {
-       .Object@DRObj <- distributedR::dframe(dim=.Object@dim,blocks=.Object@psize[1,])
-     }
-
-   .Object@splits <- 1:npartitions(.Object@DRObj)
-
-   }
-
-   .Object
-})
-
 #' @export
 setMethod("init","DistributedRDDS",
   function(x,...)
@@ -59,27 +33,6 @@ setMethod("init","DistributedRDDS",
 setMethod("shutdown","DistributedRDDS",
   function(x)
     distributedR_shutdown()
-)
-
-setMethod("combine",signature(driver="DistributedRDDS",items="list"),
-  function(driver,items){
-    split_indices <- lapply(items,function(x) {
-      x@splits
-    })
-    dims <- lapply(items,function(x) {
-      x@dim
-    })
-
-    psizes <- lapply(items,function(x) {
-      x@psize
-    })
-
-    dims <- Reduce("+",dims) 
-    psizes <- Reduce("rbind",psizes)
-    rownames(psizes) <- NULL
-
-    new("DistributedRObj",DRObj=items[[1]]@DRObj,splits = unlist(split_indices), dim = dims, psize = psizes)
-  }
 )
 
 #' @export
@@ -100,13 +53,13 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
 
         # If the dobject is a DArray or a DList, the number of apply iterations equals the total number of elements (product of dimensions)
         if(margs[[num]]@type == "DListClass" || margs[[num]]@type=="DArrayClass") {
-          lens <- mapply(function(x) { prod(x) }, data.frame(t(margs[[num]]@psize)),SIMPLIFY=FALSE)
+          lens <- sapply(data.frame(t(margs[[num]]@psize)), function(x) { prod(x) })
         } # otherwise, it's the number of columns 
         else {
-          lens <- mapply(function(x) { x[[2]] }, data.frame(t(margs[[num]]@psize)),SIMPLIFY=FALSE)
+          lens <- sapply(data.frame(t(margs[[num]]@psize)), function(x) { x[[2]] })
         }
 
-        limits <- cumsum(unlist(lens))
+        limits <- cumsum(lens)
         limits <- c(0,limits) + 1
         limits <- limits[1:(length(limits)-1)]
 
