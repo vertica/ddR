@@ -1,5 +1,4 @@
 # Test the repartition.DObject function
-# TODO: Move this test to dds package once parallel implementation exists
 
 #suppressWarnings(useBackend(distributedR))
 
