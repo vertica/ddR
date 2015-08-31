@@ -65,12 +65,10 @@ setMethod("get_parts",signature("ParallelObj","integer"),
 #' @export
 setMethod("do_collect",signature("ParallelObj","integer"),
   function(x, parts) {
-    if(identical(x@splits, parts) && length(parts) > 1) {
-       unlist(x@pObj, recursive=FALSE)
-    } else if(length(parts) > 1) {
-      stop("Cannot getpartition on more than one index at a time")
-    }
-   else {
-      unlist(x@pObj[x@splits[[parts]]], recursive=FALSE)
-   }
+   tmp<-x@pObj[x@splits[[parts]]]
+   #Unlist only if the output had multiple partitions (i.e., nested list)
+   if(is.list(tmp[[1]]))
+      unlist(tmp, recursive=FALSE)
+   else 
+      tmp
 })

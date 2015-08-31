@@ -127,15 +127,17 @@ setMethod("do_dmapply",signature(driver="ParallelDDS",func="function",MoreArgs="
 
    #Let's check if each partition corresponds to the class defined in FUN.VALUE. 
    #By default each partition should be a list
+   #No type check required if we are processing elementwise. Each output element can be of any type.
    type<-"list"
-   if(is.matrix(FUN.VALUE)) type<-"matrix"
-   if(is.data.frame(FUN.VALUE)) type<-"data.frame"
-   if(!all(vapply(answer, function(x){return (class(x)==type)}, FUN.VALUE=array()))){
-    #Check if an error occurred. Parallel returns object of type "try-error"
-    lapply(answer, function(x){if(class(x)=="try-error"){stop(x)}})
-    stop("Result of FUN should be of type ", type)
-   }
-   
+   if(!any(elementWise)){
+      if(is.matrix(FUN.VALUE)) type<-"matrix"
+      if(is.data.frame(FUN.VALUE)) type<-"data.frame"
+      if(!all(vapply(answer, function(x){return (class(x)==type)}, FUN.VALUE=array()))){
+      #Check if an error occurred. Parallel returns object of type "try-error"
+      lapply(answer, function(x){if(class(x)=="try-error"){stop(x)}})
+      stop("Result of FUN should be of type ", type)
+      }
+   }   
    USE.NAMES<-TRUE #TODO(ir): What should the default be?
    if (USE.NAMES && length(dots)) {
         if (is.null(names1 <- names(dots[[1L]])) && is.character(dots[[1L]])) 
