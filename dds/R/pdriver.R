@@ -76,7 +76,7 @@ setMethod("do_dmapply",signature(driver="ParallelDDS",func="function",MoreArgs="
       if(dots[[num]]@type != "DListClass"){ 
          stop("Elementwise operation is currently supported only on distributed lists.")
       }
-      tmp<-unlist(dots[[num]]@pObj[dots[[num]]@splits])
+      tmp<-unlist(dots[[num]]@pObj[dots[[num]]@splits], recursive=FALSE)
       #Check if unlist results in an empty list. This happens when the DObject has just been declared but not initialized any value
       if(length(tmp) ==0){
             dots[[num]] <- dots[[num]]@pObj[dots[[num]]@splits]

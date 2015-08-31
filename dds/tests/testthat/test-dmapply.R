@@ -42,13 +42,13 @@ test_that("DList parts-wise dmapply works", {
 
 test_that("DList elementwise dmapply works", {
   e <- dmapply(function(x) {
-                 length(x)
+                 as.list(length(x))
                }, a)
   
   expect_equal(collect(e),as.list(rep(1,length(a))))
 
   f <- dmapply(function(x,y) {
-                 x + y
+                 as.list(x + y)
                },a,b)
 
   expect_equal(collect(f),as.list(seq(2,20,by=2)))
