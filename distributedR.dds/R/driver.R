@@ -40,36 +40,56 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
   function(driver,func,...,MoreArgs=list(),FUN.VALUE=NULL){
     margs <- list(...)
     ids <- list()
+    dr_obj <- list()
 
     elementWise <- list()
     isElementWise <- FALSE
 
     dobjects <- list()
 
+    # model by which all other dobjects need to be repartitioned to be compatible with
+    modelObj <- NULL
+
     for(num in 1:length(margs)) {
       if(!is.list(margs[[num]]) && is(margs[[num]],"DObject")) {
         elementWise[[num]] <- TRUE
         isElementWise <- TRUE
 
+        if(is.null(modelObj)) {
         # If the dobject is a DArray or a DList, the number of apply iterations equals the total number of elements (product of dimensions)
         if(margs[[num]]@type == "DListClass" || margs[[num]]@type=="DArrayClass") {
-          lens <- sapply(data.frame(t(margs[[num]]@psize)), function(x) { prod(x) })
+          lens <- vapply(data.frame(t(margs[[num]]@psize)), function(x) { prod(x) },FUN.VALUE=numeric(1))
         } # otherwise, it's the number of columns 
         else {
-          lens <- sapply(data.frame(t(margs[[num]]@psize)), function(x) { x[[2]] })
+          lens <- vapply(data.frame(t(margs[[num]]@psize)), function(x) { x[[2]] },FUN.VALUE=numeric(1))
         }
 
         limits <- cumsum(lens)
         limits <- c(0,limits) + 1
         limits <- limits[1:(length(limits)-1)]
 
+        # Currently, we set the first dobject to be the model object
+        modelObj <- margs[[num]]
+
+       } else {
+
+          # TODO: this only works if dobjects are of the same type as the model
+          # need to support repartitioning objects against model objects of different type
+          if(!identical(margs[[num]]@psize,modelObj@psize) && 
+                margs[[num]]@type == modelObj@type) {
+            warning("repartitioning")
+            margs[[num]] <- repartition(margs[[num]],modelObj)
+          }
+       }
+      
         margs[[num]] <- parts(margs[[num]])
 
       } else {
         elementWise[[num]] <- FALSE
       }
-
-        dobjects[[num]] <- is(margs[[num]][[1]],"DObject")
+        dobject_list <- vapply(margs[[num]], function(x) { is(x,"DObject")},FUN.VALUE=logical(1))
+        dobjects[[num]] <- any(dobject_list)
+        if(dobjects[[num]]) dr_obj[[length(dr_obj) + 1]] <- margs[[num]][dobject_list][[1]]@DRObj
      }
 
     np <- ifelse(isElementWise,length(lens),length(margs[[1]]))   
@@ -101,22 +121,30 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
       } else {
         nm <- nms[[num]]
       }
+
+      # DR currently cannot handle NAs for second argument to splits(). Therefore, we use 
+      # empty list as a workaround ... repartition function has this "hack" as well
       ids[[num]] <- lapply(margs[[num]],function(argument){
         if(is(argument,"DObject"))
          return(argument@splits)
-        else return(argument)
+        else if(dobjects[[num]]) {
+          return(list())
+        } else {
+          return(argument)
+        }
       })
 
+
       if(!elementWise[[num]] && isElementWise) {
-        ids[[num]] <- mapply(function(x,y) {ids[[num]][y:(y+x)-1] }, lens, limits, SIMPLIFY=FALSE)
+        ids[[num]] <- mapply(function(x,y) { ids[[num]][y:(y+x)-1] }, lens, limits, SIMPLIFY=FALSE)
       } 
 
       if(dobjects[[num]]) {
         nDobjs <- nDobjs + 1
         tempName <- paste0(".tempVar",nDobjs)
-        assign(tempName,margs[[num]][[1]]@DRObj)
+        assign(tempName,dr_obj[[nDobjs]])
         tempStr <- paste0("substitute(splits(",tempName,",ids[[num]][[index]]),env=parent.frame())")
-   }
+      }
       else{
         tempStr <- "substitute(ids[[num]][[index]],env=parent.frame())" 
       }

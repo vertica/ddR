@@ -92,14 +92,14 @@ dmapply <- function(FUN,...,MoreArgs=list(),FUN.VALUE=NULL) {
   dargs <- list(...)
 
   # Ensure that ... arguments are of equal length
-  lens <- sapply(dargs,function(x){
+  lens <- vapply(dargs,function(x){
      if(is(x,"DObject") && x@type == "DFrameClass"){
        ncol(x)
      } else if (is(x,"DObject") && x@type == "DArrayClass") {
        prod(dim(x))
      }
      length(x)
-  })
+  },FUN.VALUE=numeric(1))
 
   stopifnot(max(lens) == min(lens))
     
@@ -123,7 +123,8 @@ dmapply <- function(FUN,...,MoreArgs=list(),FUN.VALUE=NULL) {
 
   newobj@backend <- dds.env$driver@backendName
   newobj@type <- type
-  newobj@nparts <- length(newobj@psize)
+
+  newobj@nparts <- nrow(newobj@psize)
 
   # TODO: this check doesn't work
   stopifnot(is(newobj,slot(dds.env$driver,type)))
