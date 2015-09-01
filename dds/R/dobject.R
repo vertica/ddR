@@ -413,6 +413,7 @@ repartition.DObject <- function(dobj,skeleton) {
      }
   }
 
+
   dmapplyArgs <- lapply(1:(max_parts*3), function(x) {
                              ind <- ceiling(x/3)
                              if(x %% 3 == 1) field = "parts"
@@ -445,7 +446,16 @@ repartition.DObject <- function(dobj,skeleton) {
 
     currentPosition <- rep(1,dims)
 
-    while(index <= length(dataPartitions) - 2 && !is.na(dataPartitions[[index]])) {
+
+    while(index <= length(dataPartitions) - 2 && !identical(list(),dataPartitions[[index]]) && !is.na(dataPartitions[[index]])) {
+
+      # This "hack" is needed due to a DistR limitation...NAs are converted into empty list() 
+      if(is.list(dataPartitions[[index]])) {
+        # Need to remove one layer of redundant listing
+        if(is.list(dataPartitions[[index]][[1]]) || type != "DListClass")
+          dataPartitions[[index]] <- dataPartitions[[index]][[1]]
+      }
+ 
       oldPartition <- dataPartitions[[index]]
       start <- dataPartitions[[index+1]]
       end <- dataPartitions[[index+2]]
@@ -456,6 +466,7 @@ repartition.DObject <- function(dobj,skeleton) {
         output[currentPosition[[1]]:endingPosition[[1]],currentPosition[[2]]:endingPosition[[2]]] <-
         oldPartition[start[[1]]:end[[1]],start[[2]]:end[[2]]]
       }
+
       index <- index + 3
 
       if(dims > 1) {
@@ -467,7 +478,8 @@ repartition.DObject <- function(dobj,skeleton) {
       } else {
         currentPosition <- endingPosition + 1
       }
-
+ 
+     
     }
 
     output 

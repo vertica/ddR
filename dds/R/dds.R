@@ -92,14 +92,14 @@ dmapply <- function(FUN,...,MoreArgs=list(),FUN.VALUE=NULL) {
   dargs <- list(...)
 
   # Ensure that ... arguments are of equal length
-  lens <- sapply(dargs,function(x){
+  lens <- vapply(dargs,function(x){
      if(is(x,"DObject") && x@type == "DFrameClass"){
        ncol(x)
      } else if (is(x,"DObject") && x@type == "DArrayClass") {
        prod(dim(x))
      }
      length(x)
-  })
+  },FUN.VALUE=numeric(1))
 
   stopifnot(max(lens) == min(lens))
     
