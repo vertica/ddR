@@ -123,7 +123,7 @@ dmapply <- function(FUN,...,MoreArgs=list(),FUN.VALUE=NULL) {
 
   newobj@backend <- dds.env$driver@backendName
   newobj@type <- type
-  newobj@nparts <- length(newobj@psize)
+  newobj@nparts <- nrow(newobj@psize)
 
   # TODO: this check doesn't work
   stopifnot(is(newobj,slot(dds.env$driver,type)))

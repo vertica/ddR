@@ -65,10 +65,42 @@ setMethod("get_parts",signature("ParallelObj","integer"),
 #' @export
 setMethod("do_collect",signature("ParallelObj","integer"),
   function(x, parts) {
-   tmp<-x@pObj[x@splits[[parts]]]
-   #Unlist only if the output had multiple partitions (i.e., nested list)
-   if(is.list(tmp[[1]]))
-      unlist(tmp, recursive=FALSE)
-   else 
-      tmp
+ 
+  #We can combine arbitraty subset of lists but not for other objects
+  plen <- length(parts)
+  if(plen> 1 && plen!=x@nparts && !is.dlist(x)) stop("Cannot getpartition on more than one index at a time")
+
+  if(plen < x@nparts){
+    #We are extracting 1 partition (for darrays/dframes) or subset (for dlists)
+    res<-x@pObj[x@splits[[parts]]]
+    #Unlist only if the output had multiple partitions (i.e., nested list)
+    if(is.list(res[[1]])) res<-unlist(res, recursive= FALSE)
+    return (res)
+  }else{  
+  #We have to return the full object 
+  #Case 1: object is dlist
+  if(is.dlist(x)){
+	 if(is.list(x@pObj[[1]])) return (unlist(x@pObj, recursive=FALSE))
+         else return (x@pObj)
+   } else{
+     #Case 2: Object is darray
+     if(is.darray(x)){
+       #We need to reassemble the full array
+       res<-NULL
+       sid<-1
+       eid<-sid
+       while(sid <= x@nparts){
+       #Let's find partition ids for current row (i.e., stitch from left to right)
+	  csize<-0
+	  while(csize < x@dim[2]) {
+	     csize<-csize+x@psize[eid,2]
+ 	     eid<-eid+1
+	   }
+       res<-rbind2(res, do.call(cbind,x@pObj[sid:(eid-1)]))
+       sid<-eid 
+       }
+       return (res)
+     } else {stop("Collect on all partitions is not yet supported for object of type ",class(x))}
+   } 
+  }
 })
