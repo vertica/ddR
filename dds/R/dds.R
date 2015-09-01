@@ -97,8 +97,9 @@ dmapply <- function(FUN,...,MoreArgs=list(),FUN.VALUE=NULL) {
        ncol(x)
      } else if (is(x,"DObject") && x@type == "DArrayClass") {
        prod(dim(x))
+     } else {
+       length(x)
      }
-     length(x)
   },FUN.VALUE=numeric(1))
 
   stopifnot(max(lens) == min(lens))
