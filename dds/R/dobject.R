@@ -58,7 +58,7 @@ parts <- function(dobj, index=NULL) {
   stopifnot(is.numeric(index))
   index <- as.integer(index)
 
-  if(max(index) > dobj@nparts)
+  if(max(index) > nparts(dobj))
     stop("Partition index must be smaller than total number of partitions.")
  
   if(min(index) < 1)
@@ -69,7 +69,7 @@ parts <- function(dobj, index=NULL) {
   psize <- lapply(1:nrow(dobj@psize),function(i) dobj@psize[i,])[index]
 
   partitions <- mapply(FUN=function(obj,psize) {
-    obj@nparts <- 1L
+    obj@nparts <- c(1L, 1L)
     obj@backend <- dds.env$driver@backendName
     obj@type <- dobj@type 
     obj@psize <- matrix(psize,nrow=1,ncol=length(psize))
@@ -81,8 +81,15 @@ parts <- function(dobj, index=NULL) {
   partitions
 }
 
+#Returns the total number of partitions (i.e., product of all dimensions of obj@nparts)
 #' @export
 nparts <- function(dobj) {
+  prod(dobj@nparts)
+}
+
+#Returns the vector with partitions in each dimension (currently 2D)
+#' @export
+npartsVec <- function(dobj) {
   dobj@nparts
 }
 
@@ -91,13 +98,13 @@ nparts <- function(dobj) {
 setClass("DObject",
   representation(nparts = "integer", psize = "matrix",
           dim = "integer", dim.names = "list", backend = "character", type = "character"),
-  prototype = prototype(nparts = 1L,psize = matrix(1,1),
+  prototype = prototype(nparts = c(1L, 1L),psize = matrix(1,1),
               dim = c(1L), dim.names = list()))
 
 #' @export
 dlist <- function(...,nparts = 1L, psize=matrix(1,1)) {
-  nparts = as.integer(nparts)
-  psize = matrix(0L,nparts)
+  nparts = c(as.integer(nparts), 1L) #The second dimension is always 1 for dlists
+  psize = matrix(0L,nparts[1])
   initialize <- list(...)
   if(length(initialize) == 0) {
     new(dds.env$driver@DListClass,backend=dds.env$driver@backendName,type = "DListClass", nparts = nparts, psize = psize, dim = 0L)
@@ -119,7 +126,7 @@ as.dlist <- function(items) {
 
   if(is.dobject(items[[1]])) {
     newobj <- combine(dds.env$driver,items)
-    newobj@nparts <- length(items)
+    newobj@nparts <- c(length(items), 1L)
     newobj@backend <- dds.env$driver@backendName
     newobj@type <- "DListClass"
     return(newobj)
@@ -157,33 +164,31 @@ darray <- function(...,nparts = NULL, psize = NULL, dim = NULL) {
     # Test for legality of dim and psize specifications
     stopifnot(length(psize) > 0)
     stopifnot(length(psize) == length(dim))
-    nparts <- 1L
 
-    for(dimension in seq(1,length(psize))) {
-      numdim <- dim[dimension]/psize[dimension]
-
-      # must be an integer value
-      stopifnot(as.integer(numdim) == numdim)
-      nparts <- as.integer(nparts * numdim)
-    }
+    #TODO (iR):Add more sanity checks on dim and psize
+    nparts <-  c(ceiling(dim[1]/psize[1]), ceiling(dim[2]/psize[2]))
 
     # Create number of rows equal to number of parts
     psize <- t(matrix(psize))
-    psize <- psize[rep(seq_len(nrow(psize)), nparts),] 
+    psize <- psize[rep(seq_len(nrow(psize)), prod(nparts)),] 
 
   }
 
  # If all are NULL, then initialize to some default
   if(is.null(nparts)) {
-    nparts <- 1L
+    nparts <- c(1L, 1L)
   }
 
   if(is.null(dim)) {
-    psize <- matrix(0L,nparts,2)
+    psize <- matrix(0L,prod(nparts),2)
     dim <- c(0L,0L)
   }
 
-  nparts <- as.integer(nparts)
+ #Check that nparts should be two dimensional
+ if(length(nparts)==1) nparts <- c(nparts,1L)
+ if(length(nparts)!=2) stop("length(nparts) should be two: current nparts", nparts)
+ nparts <- as.integer(nparts)
+  
   dim <- as.integer(dim)
 
   initialize <- list(...)
@@ -217,33 +222,31 @@ dframe <- function(...,nparts = NULL, psize = NULL, dim = NULL) {
     # Test for legality of dim and psize specifications
     stopifnot(length(psize) > 0)
     stopifnot(length(psize) == length(dim))
-    nparts <- 1L
 
-    for(dimension in seq(1,length(psize))) {
-      numdim <- dim[dimension]/psize[dimension]
+    #TODO (iR):Add more sanity checks on dim and psize
+    nparts <-  c(ceiling(dim[1]/psize[1]), ceiling(dim[2]/psize[2]))
 
-      # must be an integer value
-      stopifnot(as.integer(numdim) == numdim)
-      nparts <- as.integer(nparts * numdim)
-    }
-  
     # Create number of rows equal to number of parts
     psize <- t(matrix(psize))
-    psize <- psize[rep(seq_len(nrow(psize)), nparts),] 
+    psize <- psize[rep(seq_len(nrow(psize)), prod(nparts)),] 
 
   }
 
   # If all are NULL, then initialize to some default
   if(is.null(nparts)) {
-    nparts <- 1L
+    nparts <- c(1L, 1L)
   }
 
   if(is.null(dim)) {
-    psize <- matrix(0L,nparts,2)
+    psize <- matrix(0L,prod(nparts),2)
     dim <- c(0L,0L)
   }
 
-  nparts <- as.integer(nparts)
+ #Check that nparts should be two dimensional
+ if(length(nparts)==1) nparts <- c(nparts,1L)
+ if(length(nparts)!=2) stop("length(nparts) should be two")
+ nparts <- as.integer(nparts)
+
   dim <- as.integer(dim)
 
   initialize <- list(...)

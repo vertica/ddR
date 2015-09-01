@@ -123,7 +123,7 @@ dmapply <- function(FUN,...,MoreArgs=list(),FUN.VALUE=NULL) {
 
   newobj@backend <- dds.env$driver@backendName
   newobj@type <- type
-  newobj@nparts <- nrow(newobj@psize)
+  newobj@nparts <- c(nrow(newobj@psize), 1L) #TODO(iR): This needs to be fixed
 
   # TODO: this check doesn't work
   stopifnot(is(newobj,slot(dds.env$driver,type)))
@@ -152,6 +152,6 @@ getBestOutputPartitioning.DDSDriver <- function(driver, ...) {
     }
   }
 
-  new("DObject",nparts=length(margs[[1]]))
+  new("DObject",nparts=c(length(margs[[1]]), 1L))
 
 }

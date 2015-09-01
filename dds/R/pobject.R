@@ -20,7 +20,7 @@ setClassUnion("ParallelObjUnion", c("list","array","data.frame"))
 
 setClass("ParallelObj",contains="DObject",
     slots=list(pObj = "ParallelObjUnion", splits = "numeric"),
-    prototype = prototype(nparts = 1L, psize = matrix(1,1), 
+    prototype = prototype(nparts = c(1L, 1L), psize = matrix(1,1), 
       dim = c(1L,1L)
 ))
 
@@ -30,13 +30,13 @@ setMethod("initialize", "ParallelObj", function(.Object, ...) {
    #TODO: Fix for data.frame and arrays
    if(length(.Object@pObj)==0) {
     if(.Object@type == "DListClass")  
-       .Object@pObj <- vector("list", .Object@nparts)
+       .Object@pObj <- vector("list", nparts(.Object))
     else if(.Object@type == "DArrayClass")
-       .Object@pObj <- vector("list", .Object@nparts)
+       .Object@pObj <- vector("list", nparts(.Object))
     else
-       .Object@pObj  <- vector("list", .Object@nparts) 
+       .Object@pObj  <- vector("list", nparts(.Object))
   
-   .Object@splits <- 1:(.Object@nparts)
+   .Object@splits <- 1:nparts(.Object)
   }
 
    .Object
@@ -68,9 +68,9 @@ setMethod("do_collect",signature("ParallelObj","integer"),
  
   #We can combine arbitraty subset of lists but not for other objects
   plen <- length(parts)
-  if(plen> 1 && plen!=x@nparts && !is.dlist(x)) stop("Cannot getpartition on more than one index at a time")
+  if(plen> 1 && plen!=nparts(x) && !is.dlist(x)) stop("Cannot getpartition on more than one index at a time")
 
-  if(plen < x@nparts){
+  if(plen < nparts(x)){
     #We are extracting 1 partition (for darrays/dframes) or subset (for dlists)
     res<-x@pObj[x@splits[[parts]]]
     #Unlist only if the output had multiple partitions (i.e., nested list)
@@ -89,7 +89,7 @@ setMethod("do_collect",signature("ParallelObj","integer"),
        res<-NULL
        sid<-1
        eid<-sid
-       while(sid <= x@nparts){
+       while(sid <= nparts(x)){
        #Let's find partition ids for current row (i.e., stitch from left to right)
 	  csize<-0
 	  while(csize < x@dim[2]) {
