@@ -43,7 +43,7 @@ setMethod("initialize", "DistributedRObj", function(.Object, ...) {
        .Object@DRObj <- distributedR::dframe(dim=.Object@dim,blocks=.Object@psize[1,])
      }
 
-   .Object@splits <- 1:npartitions(.Object@DRObj)
+   .Object@splits <- seq(npartitions(.Object@DRObj))
 
    }
 
@@ -53,7 +53,7 @@ setMethod("initialize", "DistributedRObj", function(.Object, ...) {
 #' @export
 setMethod("get_parts",signature("DistributedRObj","missing"),
   function(x, ...){
-  index = 1:length(x@splits)
+  index = seq(length(x@splits))
  lapply(index,function(b) {
       new("DistributedRObj",DRObj = x@DRObj, splits = x@splits[b],dim = as.integer(x@psize[b,]),psize=matrix(x@psize[b,],nrow=1,ncol=length(x@psize[b,])))
     })

@@ -126,7 +126,6 @@ dmapply <- function(FUN,...,MoreArgs=list(),FUN.VALUE=NULL,.model=NULL) {
   newobj@backend <- dds.env$driver@backendName
   newobj@type <- type
 
-
   newobj
 }
 
@@ -139,7 +138,7 @@ checkReturnObject <- function(model,result) {
 # whose partitioning scheme we want to enforce the output to have
 # this should be used by do_dmapply as well
 #' @export
-getBestOutputPartitioning <- function(driver,...) {
+getBestOutputPartitioning <- function(driver,...,.model=NULL,type=NULL) {
   UseMethod("getBestOutputPartitioning")
 }
 
@@ -147,7 +146,7 @@ getBestOutputPartitioning <- function(driver,...) {
 # or just use the length of the input arguments if none are found
 # (i.e., when parts() is used for all args)
 #' @export
-getBestOutputPartitioning.DDSDriver <- function(driver, ...,.model=NULL) {
+getBestOutputPartitioning.DDSDriver <- function(driver, ...,.model=NULL,type=NULL) {
 
   # TODO: If not NULL, check if .model is valid and acceptable...otherwise throw an error
   # or print a warning and return a model object using default logic instead

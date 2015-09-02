@@ -32,7 +32,7 @@ setMethod("[", c("DObject", "numeric", "missing","ANY"),
     sequences <- rle(indicesAndOffsets[1,])
 
     temp <- c(0,cumsum(sequences$lengths)) + 1
-    temp <- temp[1:(length(temp)-1)]
+    temp <- temp[seq((length(temp)-1))]
 
     partitionIndices <- as.list(sequences$values)
     valueOffsets <- mapply(function(x,y) { 

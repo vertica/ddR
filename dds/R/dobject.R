@@ -21,7 +21,7 @@
 #' @export
 collect <- function(dobj, index=NULL) { 
   if(is.null(index)) {
-    index <- 1:totalParts(dobj)
+    index <- seq(totalParts(dobj))
   }
 
   index <- as.integer(unlist(index))
@@ -53,7 +53,7 @@ parts <- function(dobj, index=NULL) {
     }
   }
 
-  if(is.null(index)) index = 1:totalParts(dobj) 
+  if(is.null(index)) index = seq(totalParts(dobj))
   index <- unlist(index)
   stopifnot(is.numeric(index))
   index <- as.integer(index)
@@ -66,7 +66,7 @@ parts <- function(dobj, index=NULL) {
 
   partitions <- get_parts(dobj, index)
 
-  psize <- lapply(1:nrow(dobj@psize),function(i) dobj@psize[i,])[index]
+  psize <- lapply(seq(nrow(dobj@psize)),function(i) dobj@psize[i,])[index]
 
   partitions <- mapply(FUN=function(obj,psize) {
     obj@nparts <- c(1L, 1L)
@@ -277,7 +277,7 @@ setMethod("show",signature("DObject"),function(object) {
 
   limit <- min(10,dim(object@psize)[[1]])
 
-  for(i in 1:limit) {
+  for(i in seq(limit)) {
     if(i>1) partsStr <- paste0(partsStr,", ")
     dims <- paste0("",object@psize[i,],collapse=", ")
     partsStr <- paste0(partsStr,"[",dims,"]")
@@ -287,8 +287,9 @@ setMethod("show",signature("DObject"),function(object) {
     partsStr <- paste0(partsStr,", ...")
   }
 
-  printStr <- paste0("\nType: ", object@type,"\nnparts: ", object@nparts,"\npsize: ", partsStr, "\ndim: ", paste(object@dim,collapse=","), "\nBackend Type: ", object@backend,"\n")
- cat(printStr) 
+  printStr <- paste0("\nType: ", object@type,"\nNo. of Partitions: ", totalParts(object), "\nnparts: ", paste(object@nparts,collapse=","),"\npsize: ", partsStr, "\ndim: ", paste(object@dim,collapse=","), "\nBackend Type: ", object@backend,"\n")
+
+  cat(printStr) 
 })
 
 #' @export
@@ -310,7 +311,7 @@ setReplaceMethod("names", signature(x = "DObject", value = "ANY"), definition = 
 
   limits <- cumsum(lens)
   limits <- c(0,limits) + 1
-  limits <- limits[1:(length(limits)-1)]
+  limits <- limits[seq(length(limits)-1)]
 
   
   namesList <- mapply(function(x,y) {
@@ -417,7 +418,7 @@ repartition.DObject <- function(dobj,skeleton) {
   }
 
 
-  dmapplyArgs <- lapply(1:(max_parts*3), function(x) {
+  dmapplyArgs <- lapply(seq((max_parts*3)), function(x) {
                              ind <- ceiling(x/3)
                              if(x %% 3 == 1) field = "parts"
                              else if (x %% 3 == 2) field = "starts"
@@ -528,7 +529,7 @@ getIdsAndOffsets <- function(start_x,end_x,start_y,end_y,vertical,horizontal=NUL
   partitions <- partitions_range
 
   if(lenVertical > 0 && !is.null(horizontal)) {
-    for(i in 1:lenVertical) {
+    for(i in seq(lenVertical)) {
       partitions <- c(partitions,partitions_range+length(horizontal)*i)
     }
   }
@@ -542,7 +543,7 @@ getIdsAndOffsets <- function(start_x,end_x,start_y,end_y,vertical,horizontal=NUL
   }
 
   if(lenVertical > 0 && !is.null(horizontal)) {
-    for(i in 1:lenVertical) {
+    for(i in seq(lenVertical)) {
        offset_start <- c(offset_start,list(c(1,start_x_start_y[[2]][[2]])))
        offset_start <- c(offset_start,rep(list(c(1,1)),lenHorizontal))
     }
@@ -566,7 +567,7 @@ getIdsAndOffsets <- function(start_x,end_x,start_y,end_y,vertical,horizontal=NUL
   }  
 
   if(lenVertical > 0 && !is.null(horizontal)) {
-    for(i in 1:lenVertical) {
+    for(i in seq(lenVertical)) {
       endPartition <- end_x_end_y[[1]] - i*length(horizontal)
       partitionIdRow <- seq(endPartition - lenHorizontal,endPartition-1)
       partitionIdRow <- rev(partitionIdRow)
@@ -593,7 +594,7 @@ getCorners <- function(x,y,vertical,horizontal=NULL) {
   if(!is.null(horizontal))
     numPerRow <- length(horizontal)
   
-  for(i in 1:times) {
+  for(i in seq(times)) {
     lower <- 1
     upper <- ifelse(i==1,length(vertical),length(horizontal))
 

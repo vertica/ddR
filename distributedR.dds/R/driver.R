@@ -69,7 +69,7 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
 
       limits <- cumsum(modelApplyIterations)
       limits <- c(0,limits) + 1
-      limits <- limits[1:(length(limits)-1)]
+      limits <- limits[seq(length(limits)-1)]
     }
 
     np <- totalParts(.model)
@@ -248,7 +248,7 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
   body(exec_func)[[nLines+2]] <- eval(parse(text=paste0("substitute(",modLine,")")),envir=new.env())
   body(exec_func)[[nLines+3]] <- substitute(update(.dimObj))
 
-  foreach(index,1:np,exec_func,progress=FALSE) 
+  foreach(index,seq(np),exec_func,progress=FALSE) 
 
   dimensions <- getpartition(.dimsObj)
 
@@ -260,7 +260,7 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
     dims <- as.integer(dim(.outObj))
   }
 
-  new("DistributedRObj",DRObj = .outObj, splits = 1:npartitions(.outObj),
+  new("DistributedRObj",DRObj = .outObj, splits = seq(npartitions(.outObj)),
        psize = psizes, dim = dims, nparts=c(nrow(psizes),1L))
 }
 )
