@@ -37,7 +37,6 @@ test_that("DList parts-wise dmapply works", {
 
   expect_equal(nparts(d),4)
   expect_equal(collect(d),list(11,9,7,5))
-
 }) 
 
 test_that("DList elementwise dmapply works", {
@@ -52,6 +51,44 @@ test_that("DList elementwise dmapply works", {
                },a,b)
 
   expect_equal(collect(f),as.list(seq(2,20,by=2)))
-
 }) 
  
+# TODO(etduwx): add more tests
+context("test multimodal (mixture of different dobject types) dmapply")
+
+  # Two partitions, going from 1 to 4, 2 elements each
+  test_dlist <- dmapply(function(x) {
+                  start <- 2*(x-1)+1
+                  list(start,start+1) 
+                }, as.list(1:2))
+
+  # Two partitions, going from 1 to 4, 1 row (2 elem) each
+  test_darray <- dmapply(function(x) {
+                   start <- 2*(x-1)+1
+                   t(as.matrix(c(start,start+1)))
+                }, as.list(1:2),FUN.VALUE=matrix())
+
+  # Two partitions, going from 1 to 8, 1 row (4 elem) each
+  test_dframe <- dmapply(function(x) {
+                   start <- 4*(x-1)+1
+                   end <- start + 3 
+                   data.frame(t(as.matrix(start:end)))
+                }, as.list(1:2),FUN.VALUE=data.frame())
+
+test_that("parts-wise multimodal dmapply works", {
+  answer <- dmapply(function(x,y,z) {
+                      list(is.list(x),is.matrix(y),is.data.frame(z),
+                           sum(x), sum(y), sum(z))
+                    }, parts(test_dlist), parts(test_darray), parts(test_dframe))
+
+  expect_equal(collect(answer),list(TRUE,TRUE,TRUE,3,3,10,TRUE,TRUE,TRUE,7,7,26))
+})
+
+# We will apply columnwise for test_dframe, elementWise (column-major order) for test_darray
+test_that("element-wise multimodal dmapply works", {
+  answer <- dmapply(function(x,y,z) {
+                      x + y + sum(z)
+                    }, test_dlist, test_darray, test_dframe)
+
+  expect_equal(collect(answer),list(8,13,15,20))
+})

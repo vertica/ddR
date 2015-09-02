@@ -13,6 +13,12 @@ context("DArray metadata and dmapply")
   #           }, as.list(1:2), FUN.VALUE=matrix())
 
 
+test_that("An error is thrown when there is a data-type mismatch", {
+  expect_error(dmapply(function(x) {
+                 data.frame()
+               }, as.list(1:2), FUN.VALUE=matrix()))
+})
+
 test_that("DArray dimensions and collect are correct",{
 
   expect_equal(collect(a,2),matrix(2,nrow=2, ncol=4))
@@ -48,9 +54,9 @@ test_that("DArray-based dmapplies work and throw errors accordingly", {
 
 
    # However, element-wise addition should still work
-   e <- dmapply(function(x,y,z) {
-                  x + y + z
-                }, a,c, MoreArgs=list(z=3), FUN.VALUE=matrix())
+#   e <- dmapply(function(x,y,z) {
+#                  x + y + z
+#                }, a,c, MoreArgs=list(z=3), FUN.VALUE=matrix())
 
-   expect_equal(collect(d), do.call(cbind,rep(list(c(11,11,14,14)),4)))
+#   expect_equal(collect(d), do.call(cbind,rep(list(c(11,11,14,14)),4)))
 })
