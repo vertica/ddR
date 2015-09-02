@@ -104,20 +104,63 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
       nm <- nms[[num]]
       arg <- margs[[num]]
 
+     
       if(!is.list(arg) && is(arg,"DObject")) {
         elementWise <- TRUE
 
         # Now we're checking to see whether this dobject has a compatible partitioning with the model
         applyIterations <- mapply(getApplyIterations,data.frame(t(arg@psize)),arg@type)     
 
-        if(!identical(applyIterations,modelApplyIterations)) {
+        # Repartitioning needs to happen when applyIterations don't match, OR
+        # when partitioning is happening rowwise
+        if(!identical(applyIterations,modelApplyIterations)
+            || (arg@psize[1,][[1]] != arg@dim[[1]] && arg@type != "DListClass")) {
           warning(paste0("A repartitioning of input variable '", deparse(substitute(arg)), "' has been triggered.
                     For better performance, please try to partition your inputs compatibly."))
 
-          # Now using applyIterations, we need to build the skeleton object by which 
-          arg <- repartition(arg,modelObj)
+          # Now using applyIterations, we need to build the skeleton object whose partitioning
+          # the repartitioned object should match
+          # TODO: DArrays need to be "shifted" into alignment??? Throw an error if not possible
+
+      
+          if(arg@type == modelObj@type) skeleton <- modelObj
+          
+          else {
+            if(arg@type == "DFrameClass") {
+              new_psize <- vapply(modelApplyIterations, 
+                                  function(x) c(arg@dim[[1]],x),
+                          FUN.VALUE=numeric(2))
+
+              skeleton <- dframe(nparts=length(modelApplyIterations))
+            }
+
+           if(arg@type == "DArrayClass") {
+              new_psize <- vapply(modelApplyIterations,
+                                  function(x) {
+                                    # if applyIterations is not a multiple of column
+                                    # length, stop with error as we cannot guarantee that 
+                                    # repartition is doable
+                                    numCol = x/arg@dim[[1]]
+                                    if(floor(numCol) != numCol)
+                                      stop("Repartitioning matrix not possible.")
+                                    
+                                    c(arg@dim[[1]],numCol)
+                                  }, FUN.VALUE=numeric(2))
+
+             skeleton <- darray(nparts=length(modelApplyIterations))
+           }
+
+           new_psize <- t(as.matrix(new_psize))
+
+           skeleton@dim <- arg@dim
+           skeleton@psize <- new_psize
+          }
+
+          arg <- repartition(arg,skeleton)
+        
         }
-          arg <- parts(arg)
+
+        arg <- parts(arg)
 
       } else elementWise <- FALSE
 
