@@ -63,7 +63,7 @@ setMethod("shutdown","DDSDriver",
 
 #' @export
 # dispatches on DDSDriver
-setGeneric("do_dmapply", function(driver,func,...,MoreArgs=list(),FUN.VALUE=NULL) {
+setGeneric("do_dmapply", function(driver,func,...,MoreArgs=list(),FUN.VALUE=NULL,nparts=NULL) {
   standardGeneric("do_dmapply")
 })
 
