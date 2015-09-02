@@ -147,12 +147,11 @@ getBestOutputPartitioning <- function(driver,...) {
 getBestOutputPartitioning.DDSDriver <- function(driver, ...) {
   margs <- list(...)
 
-  for(i in 1:length(margs)) {
+  for(i in seq(length(margs))) {
     if(is(margs[[i]],"DObject")) { 
       return(margs[[i]])
     }
   }
 
   new("DObject",nparts=c(length(margs[[1]]), 1L))
-
 }

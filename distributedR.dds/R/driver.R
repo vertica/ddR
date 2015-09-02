@@ -35,64 +35,47 @@ setMethod("shutdown","DistributedRDDS",
     distributedR_shutdown()
 )
 
+# Internal helper function to determine number of "apply"-able elements per partition
+# Should be used with mapply on data.frame(t(dobj@psize)) and dobj@type 
+getApplyIterations <- function(psize,type) {
+  # If it's a DList partition, then the number of apply-able
+  # iterations is equal to the psize
+  # For DArrays, it's the prod of the dimensions
+  # Both of these can be expressed using prod(psize)
+  if(type != "DFrameClass") prod(psize)
+  # If it's a DFrame, then we get number of columns
+  # in the partition, represented by psize[[2]]
+  else psize[[2]]
+}
+
 #' @export
 setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreArgs="list",FUN.VALUE="ANY"), 
-  function(driver,func,...,MoreArgs=list(),FUN.VALUE=NULL){
+  function(driver,func,...,MoreArgs=list(),FUN.VALUE=NULL) {
+    # margs stores the dmapply args
     margs <- list(...)
+    # ids stores the arguments to splits() and the values of the raw arguments in foreach
     ids <- list()
-    dr_obj <- list()
-
-    elementWise <- list()
-    isElementWise <- FALSE
-
-    dobjects <- list()
 
     # model by which all other dobjects need to be repartitioned to be compatible with
-    modelObj <- NULL
+    modelObj <- getBestOutputPartitioning(distributedR,...)
 
-    for(num in 1:length(margs)) {
-      if(!is.list(margs[[num]]) && is(margs[[num]],"DObject")) {
-        elementWise[[num]] <- TRUE
-        isElementWise <- TRUE
+    # Determine if this dmapply involves any elementwise apply
+    elementWiseApply <- any(vapply(margs, function(x) {
+                              !is.list(x) && is(x,"DObject")
+                            },FUN.VALUE=logical(1)))
 
-        if(is.null(modelObj)) {
-        # If the dobject is a DArray or a DList, the number of apply iterations equals the total number of elements (product of dimensions)
-        if(margs[[num]]@type == "DListClass" || margs[[num]]@type=="DArrayClass") {
-          lens <- vapply(data.frame(t(margs[[num]]@psize)), function(x) { prod(x) },FUN.VALUE=numeric(1))
-        } # otherwise, it's the number of columns 
-        else {
-          lens <- vapply(data.frame(t(margs[[num]]@psize)), function(x) { x[[2]] },FUN.VALUE=numeric(1))
-        }
+    # Used to calculate breaks in lists
+    if(elementWiseApply) {
+      # compute apply iterations per partition
+      modelApplyIterations <- mapply(getApplyIterations,
+                   data.frame(t(modelObj@psize)),modelObj@type)
 
-        limits <- cumsum(lens)
-        limits <- c(0,limits) + 1
-        limits <- limits[1:(length(limits)-1)]
+      limits <- cumsum(modelApplyIterations)
+      limits <- c(0,limits) + 1
+      limits <- limits[1:(length(limits)-1)]
+    }
 
-        # Currently, we set the first dobject to be the model object
-        modelObj <- margs[[num]]
-
-       } else {
-
-          # TODO: this only works if dobjects are of the same type as the model
-          # need to support repartitioning objects against model objects of different type
-          if(!identical(margs[[num]]@psize,modelObj@psize) && 
-                margs[[num]]@type == modelObj@type) {
-            warning("repartitioning")
-            margs[[num]] <- repartition(margs[[num]],modelObj)
-          }
-       }
-      
-        margs[[num]] <- parts(margs[[num]])
-
-      } else {
-        elementWise[[num]] <- FALSE
-      }
-        dobject_list <- vapply(margs[[num]], function(x) { is(x,"DObject")},FUN.VALUE=logical(1))
-        dobjects[[num]] <- any(dobject_list)
-        if(dobjects[[num]]) dr_obj[[length(dr_obj) + 1]] <- margs[[num]][dobject_list][[1]]@DRObj
-     }
-
-    np <- ifelse(isElementWise,length(lens),length(margs[[1]]))   
+    np <- nparts(modelObj)
 
     # to store the output of the foreach
     # also perform necessary repartitioning here if elementWise
@@ -109,62 +92,80 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
 
     nDobjs = 0
 
-    # Create wrapper executor function
-    exec_func <- function(){}
+    # Create a wrapper executor function
+    exec_func <- function() {}
+
+    # String for arguments to exec_func
+    argsStr <- ""
 
     nms <- names(margs)
 
-    # get the splits ids for each dobject in the list
-    for(num in 1:length(margs)){
-      if(nchar(nms[[num]]) == 0 || is.null(nms)){
+    for(num in seq(length(margs))) {
+      nm <- nms[[num]]
+      arg <- margs[[num]]
+
+      if(!is.list(arg) && is(arg,"DObject")) {
+        elementWise <- TRUE
+
+        # Now we're checking to see whether this dobject has a compatible partitioning with the model
+        applyIterations <- mapply(getApplyIterations,data.frame(t(arg@psize)),arg@type)     
+
+        if(!identical(applyIterations,modelApplyIterations)) {
+          warning(paste0("A repartitioning of input variable '", deparse(substitute(arg)), "' has been triggered.
+                    For better performance, please try to partition your inputs compatibly."))
+
+          # Now using applyIterations, we need to build the skeleton object by which 
+          arg <- repartition(arg,modelObj)
+        }
+          arg <- parts(arg)
+
+      } else elementWise <- FALSE
+
+      dobject_list <- vapply(arg, function(x) { is(x,"DObject")},FUN.VALUE=logical(1))
+      containsDobject <- any(dobject_list)
+         
+      # If unnamed, give it a name. Otherwise, leave it be.
+      if(nchar(nm) == 0 || is.null(nms)) 
         nm <- paste0(".tmpVarName",num)
-      } else {
-        nm <- nms[[num]]
-      }
 
       # DR currently cannot handle NAs for second argument to splits(). Therefore, we use 
       # empty list as a workaround ... repartition function has this "hack" as well
-      ids[[num]] <- lapply(margs[[num]],function(argument){
-        if(is(argument,"DObject"))
-         return(argument@splits)
-        else if(dobjects[[num]]) {
-          return(list())
-        } else {
-          return(argument)
-        }
-      })
+      if(containsDobject) {
+        ids[[num]] <- lapply(arg,function(argument) {
+          if(is.na(argument)) list()
+          else if(is(argument,"DObject")) argument@splits
+          else stop(paste0("Argument ", deparse(substitute(arg)), " contains
+                 a mix of dobjects and non-dobjects. Currently this is unsupported for 
+                 dmapply in Distributed R"))
+          })
 
+          nDobjs <- nDobjs + 1
+          tempName <- paste0(".tempVar",nDobjs)
+          assign(tempName,arg[dobject_list][[1]]@DRObj)
+          tempStr <- paste0("substitute(splits(",tempName,",ids[[num]][[index]]),env=parent.frame())")
 
-      if(!elementWise[[num]] && isElementWise) {
+      } else {
+          ids[[num]] <- arg
+          tempStr <- "substitute(ids[[num]][[index]],env=parent.frame())" 
+      }
+
+      if(!elementWise && elementWiseApply) 
         ids[[num]] <- mapply(function(x,y) { ids[[num]][y:(y+x)-1] }, lens, limits, SIMPLIFY=FALSE)
-      } 
+      
 
-      if(dobjects[[num]]) {
-        nDobjs <- nDobjs + 1
-        tempName <- paste0(".tempVar",nDobjs)
-        assign(tempName,dr_obj[[nDobjs]])
-        tempStr <- paste0("substitute(splits(",tempName,",ids[[num]][[index]]),env=parent.frame())")
-      }
-      else{
-        tempStr <- "substitute(ids[[num]][[index]],env=parent.frame())" 
-      }
-        tempStr <- gsub("num",as.character(num),tempStr)
-        formals(exec_func)[[nm]] <- eval(parse(text=tempStr))
+      tempStr <- gsub("num",as.character(num),tempStr)
+      formals(exec_func)[[nm]] <- eval(parse(text=tempStr))
+
+      if(num > 1) argsStr <- paste0(argsStr,", ")
+        argsStr <- paste0(argsStr,names(formals(exec_func))[[num]])
+      if(nchar(nm) != 0 && !is.null(nms)) 
+        argsStr <- paste0(argsStr,"=",names(formals(exec_func))[[num]])      
+
     }
 
-    formals(exec_func)[[".funct"]] <- func
+  formals(exec_func)[[".funct"]] <- match.fun(func)
 
-    argsStr <- ""
-
-    for(z in 1:length(margs)){
-      if(z > 1) argsStr <- paste0(argsStr,", ")
-      argsStr <- paste0(argsStr,names(formals(exec_func))[[z]])
-     if(nchar(nms[[z]]) != 0 && !is.null(nms)){
-       argsStr <- paste0(argsStr,"=",names(formals(exec_func))[[z]])      
-     }
-    }
-
-  if(!isElementWise) {
+  if(!elementWiseApply) {
      # Take care of MoreArgs
     for(other in names(MoreArgs)) {
       formals(exec_func)[[other]] <- MoreArgs[[other]]
@@ -174,51 +175,52 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
     execLine <- paste0(".newDObj <- .funct(",argsStr,")")
   
   } else {
-    for(other in names(MoreArgs)) {
-      formals(exec_func)[[other]] <- NULL
-    }
+      for(other in names(MoreArgs))
+        formals(exec_func)[[other]] <- NULL
   
-    formals(exec_func)[["MoreArgs"]] <- MoreArgs
-    execLine <- paste0(".newDObj <- mapply(.funct,",argsStr,",MoreArgs=MoreArgs,SIMPLIFY=FALSE)")
-    if(distributedR::is.dframe(.outObj)) {
+      formals(exec_func)[["MoreArgs"]] <- MoreArgs
+
+      execLine <- paste0(".newDObj <- mapply(.funct,",argsStr,",MoreArgs=MoreArgs,SIMPLIFY=FALSE)")
+
+      if(distributedR::is.dframe(.outObj)) {
         convert <- ".newDObj <- as.data.frame(.newDObj)"
         body(exec_func)[[3]] <- eval(parse(text=paste0("substitute(",convert,")")),envir=new.env())
-    } else if(distributedR::is.darray(.outObj)) {
+      } else if(distributedR::is.darray(.outObj)) {
         convert <- ".newDObj <- as.matrix"
         body(exec_func)[[3]] <- eval(parse(text=paste0("substitute(",convert,")")),envir=new.env())
-    }
+      }
   }
 
-      body(exec_func)[[2]] <- eval(parse(text=paste0("substitute(",execLine,")")),envir=new.env())
+  body(exec_func)[[2]] <- eval(parse(text=paste0("substitute(",execLine,")")),envir=new.env())
 
-      nLines <- length(body(exec_func))
-      formals(exec_func)[[".newDObj"]] <- substitute(splits(.outObj,index),env=parent.frame())
-      formals(exec_func)[[".dimObj"]] <- substitute(splits(.dimsObj,index),env=parent.frame())
-      body(exec_func)[[nLines+1]] <- substitute(update(.newDObj))
+  nLines <- length(body(exec_func))
+  formals(exec_func)[[".newDObj"]] <- substitute(splits(.outObj,index),env=parent.frame())
+  formals(exec_func)[[".dimObj"]] <- substitute(splits(.dimsObj,index),env=parent.frame())
+  body(exec_func)[[nLines+1]] <- substitute(update(.newDObj))
 
-    if(distributedR::is.dlist(.outObj)) {
-       modLine <- ".dimObj <- list(length(.newDObj))"
-    }
-    else {
-       modLine <- ".dimObj <- list(dim(.newDObj))" 
-    }
+  if(distributedR::is.dlist(.outObj)) {
+    modLine <- ".dimObj <- list(length(.newDObj))"
+  }
+  else {
+    modLine <- ".dimObj <- list(dim(.newDObj))" 
+  }
 
-      body(exec_func)[[nLines+2]] <- eval(parse(text=paste0("substitute(",modLine,")")),envir=new.env())
-      body(exec_func)[[nLines+3]] <- substitute(update(.dimObj))
+  body(exec_func)[[nLines+2]] <- eval(parse(text=paste0("substitute(",modLine,")")),envir=new.env())
+  body(exec_func)[[nLines+3]] <- substitute(update(.dimObj))
 
-    foreach(index,1:np,exec_func,progress=FALSE) 
+  foreach(index,1:np,exec_func,progress=FALSE) 
 
-    dimensions <- getpartition(.dimsObj)
+  dimensions <- getpartition(.dimsObj)
 
-    psizes <- matrix(unlist(dimensions,recursive=FALSE), ncol=length(dimensions[[1]]),byrow=TRUE)
+  psizes <- matrix(unlist(dimensions,recursive=FALSE), ncol=length(dimensions[[1]]),byrow=TRUE)
 
-    if (distributedR::is.dlist(.outObj)) {
-      dims <- Reduce("+",psizes)
-    } else {
-      dims <- as.integer(dim(.outObj))
-    }
+  if(distributedR::is.dlist(.outObj)) {
+    dims <- Reduce("+",psizes)
+  } else {
+    dims <- as.integer(dim(.outObj))
+  }
 
-    new("DistributedRObj",DRObj = .outObj, splits = 1:npartitions(.outObj),
-         psize = psizes, dim = dims)
+  new("DistributedRObj",DRObj = .outObj, splits = 1:npartitions(.outObj),
+       psize = psizes, dim = dims)
 }
 )
