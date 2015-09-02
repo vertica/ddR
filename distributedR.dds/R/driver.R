@@ -49,15 +49,12 @@ getApplyIterations <- function(psize,type) {
 }
 
 #' @export
-setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreArgs="list",FUN.VALUE="ANY"), 
-  function(driver,func,...,MoreArgs=list(),FUN.VALUE=NULL) {
+setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreArgs="list",FUN.VALUE="ANY",.model="DObject"), 
+  function(driver,func,...,MoreArgs=list(),FUN.VALUE=NULL,.model=NULL) {
     # margs stores the dmapply args
     margs <- list(...)
     # ids stores the arguments to splits() and the values of the raw arguments in foreach
     ids <- list()
-
-    # model by which all other dobjects need to be repartitioned to be compatible with
-    modelObj <- getBestOutputPartitioning(distributedR,...)
 
     # Determine if this dmapply involves any elementwise apply
     elementWiseApply <- any(vapply(margs, function(x) {
@@ -68,14 +65,14 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
     if(elementWiseApply) {
       # compute apply iterations per partition
       modelApplyIterations <- mapply(getApplyIterations,
-                   data.frame(t(modelObj@psize)),modelObj@type)
+                   data.frame(t(.model@psize)),.model@type)
 
       limits <- cumsum(modelApplyIterations)
       limits <- c(0,limits) + 1
       limits <- limits[1:(length(limits)-1)]
     }
 
-    np <- nparts(modelObj)
+    np <- totalParts(.model)
 
     # to store the output of the foreach
     # also perform necessary repartitioning here if elementWise
@@ -123,7 +120,7 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
           # TODO: DArrays need to be "shifted" into alignment??? Throw an error if not possible
 
       
-          if(arg@type == modelObj@type) skeleton <- modelObj
+          if(arg@type == .model@type) skeleton <- .model
           
           else {
             if(arg@type == "DFrameClass") {
@@ -264,6 +261,6 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
   }
 
   new("DistributedRObj",DRObj = .outObj, splits = 1:npartitions(.outObj),
-       psize = psizes, dim = dims)
+       psize = psizes, dim = dims, nparts=c(nrow(psizes),1L))
 }
 )

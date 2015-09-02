@@ -21,11 +21,11 @@
 #' @export
 collect <- function(dobj, index=NULL) { 
   if(is.null(index)) {
-    index <- 1:nparts(dobj)
+    index <- 1:totalParts(dobj)
   }
 
   index <- as.integer(unlist(index))
-  stopifnot(max(index) <= nparts(dobj) && min(index) > 0)
+  stopifnot(max(index) <= totalParts(dobj) && min(index) > 0)
 
   # Try to get data from backend all at once
   # If the backend does not support this, we'll have to stitch it together by ourselves
@@ -53,12 +53,12 @@ parts <- function(dobj, index=NULL) {
     }
   }
 
-  if(is.null(index)) index = 1:nparts(dobj) 
+  if(is.null(index)) index = 1:totalParts(dobj) 
   index <- unlist(index)
   stopifnot(is.numeric(index))
   index <- as.integer(index)
 
-  if(max(index) > nparts(dobj))
+  if(max(index) > totalParts(dobj))
     stop("Partition index must be smaller than total number of partitions.")
  
   if(min(index) < 1)
@@ -83,13 +83,13 @@ parts <- function(dobj, index=NULL) {
 
 #Returns the total number of partitions (i.e., product of all dimensions of obj@nparts)
 #' @export
-nparts <- function(dobj) {
+totalParts <- function(dobj) {
   prod(dobj@nparts)
 }
 
 #Returns the vector with partitions in each dimension (currently 2D)
 #' @export
-npartsVec <- function(dobj) {
+nparts <- function(dobj) {
   dobj@nparts
 }
 
@@ -368,7 +368,7 @@ repartition.DObject <- function(dobj,skeleton) {
   cur_col <- 0
   index <- 0
 
-  starts_and_ends <- matrix(0,nparts(skeleton),4)
+  starts_and_ends <- matrix(0,totalParts(skeleton),4)
 
   if(dims > 1) {
     col_end <- dim(skeleton)[[2]]
@@ -376,7 +376,7 @@ repartition.DObject <- function(dobj,skeleton) {
     col_end <- 0
   }
 
-  while(index < nparts(skeleton)) {
+  while(index < totalParts(skeleton)) {
 
     index <- index + 1
 

@@ -20,7 +20,7 @@ setClassUnion("DistRObj", c("dlist","darray","dframe"))
 
 setClass("DistributedRObj",contains="DObject",
     slots=list(DRObj = "DistRObj", splits = "numeric"),
-    prototype = prototype(nparts = 1L, psize = matrix(1,1), 
+    prototype = prototype(nparts = c(1L,1L), psize = matrix(1,1), 
       dim = c(1L,1L)
 ))
 
@@ -29,16 +29,16 @@ setMethod("initialize", "DistributedRObj", function(.Object, ...) {
     
   if(is.null(.Object@DRObj@dobject_ptr)) {
    if(.Object@type == "DListClass")
-       .Object@DRObj <- distributedR::dlist(npartitions=.Object@nparts)
+       .Object@DRObj <- distributedR::dlist(npartitions=totalParts(.Object))
    else if(.Object@type == "DArrayClass")
      if(.Object@dim[1] < 1) {
-       .Object@DRObj <- distributedR::darray(npartitions=.Object@nparts)
+       .Object@DRObj <- distributedR::darray(npartitions=totalParts(.Object))
      } else {
        .Object@DRObj <- distributedR::darray(dim=.Object@dim,blocks=.Object@psize[1,])
      }
    else
      if(.Object@dim[1] < 1) {
-       .Object@DRObj <- distributedR::dframe(npartitions=.Object@nparts)
+       .Object@DRObj <- distributedR::dframe(npartitions=totalParts(.Object))
      } else {
        .Object@DRObj <- distributedR::dframe(dim=.Object@dim,blocks=.Object@psize[1,])
      }

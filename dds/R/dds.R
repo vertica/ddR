@@ -63,7 +63,7 @@ setMethod("shutdown","DDSDriver",
 
 #' @export
 # dispatches on DDSDriver
-setGeneric("do_dmapply", function(driver,func,...,MoreArgs=list(),FUN.VALUE=NULL,nparts=NULL) {
+setGeneric("do_dmapply", function(driver,func,...,MoreArgs=list(),FUN.VALUE=NULL,.model=NULL) {
   standardGeneric("do_dmapply")
 })
 
@@ -80,14 +80,16 @@ setGeneric("get_parts", function(x,index,...) {
 })
 
 #' @export
-dlapply <- function(dobj,FUN,...) {
-   dmapply(FUN,dobj,MoreArgs=list(...))
+dlapply <- function(dobj,FUN,...,.model=NULL) {
+   dmapply(FUN,dobj,MoreArgs=list(...),.model=.model)
 }
 
 #' @export
-dmapply <- function(FUN,...,MoreArgs=list(),FUN.VALUE=NULL) {
+dmapply <- function(FUN,...,MoreArgs=list(),FUN.VALUE=NULL,.model=NULL) {
   stopifnot(is.function(FUN))
   stopifnot(length(args) > 0)
+
+  if(!is.null(.model) && !is(.model,"DObject")) stop(".model object must be of type DObject")
 
   dargs <- list(...)
 
@@ -104,7 +106,6 @@ dmapply <- function(FUN,...,MoreArgs=list(),FUN.VALUE=NULL) {
 
   stopifnot(max(lens) == min(lens))
     
-  #TODO: Use FUN.VALUE to drive proper selection of output type
   if(is.null(FUN.VALUE) || is.list(FUN.VALUE) && !is.data.frame(FUN.VALUE)){
     type = "DListClass"
   } else if(is.data.frame(FUN.VALUE)){
@@ -114,22 +115,24 @@ dmapply <- function(FUN,...,MoreArgs=list(),FUN.VALUE=NULL) {
   } else {
     stop("unrecognized return type for FUN.VALUE")
   }
- 
-  partitioning <- getBestOutputPartitioning(dds.env$driver,...)
+  
+  modelObj <- getBestOutputPartitioning(dds.env$driver,...,.model=.model,type)
 
-  margs <- list(...)
+  newobj <- do_dmapply(dds.env$driver, func=match.fun(FUN), ..., MoreArgs=MoreArgs,
+                       FUN.VALUE=FUN.VALUE,.model=modelObj)
 
-  newobj <- do_dmapply(dds.env$driver, func=FUN, ..., MoreArgs=MoreArgs,
-                       FUN.VALUE=FUN.VALUE)
+  checkReturnObject(modelObj,newobj)
 
   newobj@backend <- dds.env$driver@backendName
   newobj@type <- type
-  newobj@nparts <- c(nrow(newobj@psize), 1L) #TODO(iR): This needs to be fixed
 
-  # TODO: this check doesn't work
-  stopifnot(is(newobj,slot(dds.env$driver,type)))
 
   newobj
+}
+
+# Check object returned by backend
+checkReturnObject <- function(model,result) {
+  stopifnot(model@nparts == result@nparts)
 }
 
 # Given a list of arguments into dmapply, return a dobject
@@ -144,7 +147,14 @@ getBestOutputPartitioning <- function(driver,...) {
 # or just use the length of the input arguments if none are found
 # (i.e., when parts() is used for all args)
 #' @export
-getBestOutputPartitioning.DDSDriver <- function(driver, ...) {
+getBestOutputPartitioning.DDSDriver <- function(driver, ...,.model=NULL) {
+
+  # TODO: If not NULL, check if .model is valid and acceptable...otherwise throw an error
+  # or print a warning and return a model object using default logic instead
+  # Insert checks here
+  if(!is.null(.model)) return(.model) # If all tests pass, return original .model 
+
+  # Otherwise, revert to default behavior below
   margs <- list(...)
 
   for(i in seq(length(margs))) {

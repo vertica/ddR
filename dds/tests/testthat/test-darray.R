@@ -1,17 +1,8 @@
 context("DArray metadata and dmapply")
 
-  a <- darray(dim=c(4,4), psize = c(2,4))
-  a <- dmapply(function(x,y) {
-                matrix(y, nrow=2,ncol=4)
-              }, parts(a), as.list(1:nparts(a)), FUN.VALUE=matrix())
-
-  # etduwx: Above two lines can be rewritten as below in a simpler way, without
-  # invoking the constructor first (which is redundant). Should we use this instead?
-  #
-  # a <- dmapply(function(x) {
-  #            matrix(x, nrow=2, ncol=4)
-  #           }, as.list(1:2), FUN.VALUE=matrix())
-
+ a <- dmapply(function(x) {
+             matrix(x, nrow=2, ncol=4)
+             }, as.list(1:2), FUN.VALUE=matrix())
 
 test_that("An error is thrown when there is a data-type mismatch", {
   expect_error(dmapply(function(x) {

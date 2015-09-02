@@ -64,8 +64,8 @@ setMethod("combine",signature(driver="ParallelDDS",items="list"),
 #This function calls mclapply internally. 
 # TODO(iR): Parallel processing does not work on Windows due to limitation of parallel package
 #' @export
-setMethod("do_dmapply",signature(driver="ParallelDDS",func="function",MoreArgs="list", FUN.VALUE="ANY"), 
-  function(driver,func,...,MoreArgs=list(), FUN.VALUE=NULL, nparts = NULL){
+setMethod("do_dmapply",signature(driver="ParallelDDS",func="function",MoreArgs="list", FUN.VALUE="ANY",.model="DObject"), 
+  function(driver,func,...,MoreArgs=list(), FUN.VALUE=NULL, .model=NULL){
   dots <- list(...)
   dlen<-length(dots)
   elementWise <- vector(mode="logical", dlen)
