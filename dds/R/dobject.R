@@ -431,6 +431,7 @@ repartition.DObject <- function(dobj,skeleton) {
                                    })
                            })
 
+
   repartitioner <- function(...,psize,type) {
     
     dataPartitions <- list(...)
@@ -442,7 +443,7 @@ repartition.DObject <- function(dobj,skeleton) {
 
     if(type=="DListClass") {
       output <- list()    
-    } else if(type=="DFrameClass"){
+    } else if(type=="DFrameClass") {
       output <- data.frame(matrix(0,psize[[1]],psize[[2]]))
     } else {
       output <- matrix(0,psize[[1]],psize[[2]])
@@ -450,20 +451,21 @@ repartition.DObject <- function(dobj,skeleton) {
 
     currentPosition <- rep(1,dims)
 
-
     while(index <= length(dataPartitions) - 2 && !identical(list(),dataPartitions[[index]]) && !is.na(dataPartitions[[index]])) {
 
       # This "hack" is needed due to a DistR limitation...NAs are converted into empty list() 
-      if(is.list(dataPartitions[[index]])) {
+      if(is.list(dataPartitions[[index]]) && !is.data.frame(dataPartitions[[index]])) {
         # Need to remove one layer of redundant listing
         if(is.list(dataPartitions[[index]][[1]]) || type != "DListClass")
           dataPartitions[[index]] <- dataPartitions[[index]][[1]]
       }
  
       oldPartition <- dataPartitions[[index]]
+  
       start <- dataPartitions[[index+1]]
       end <- dataPartitions[[index+2]]
       endingPosition <- currentPosition + end - start
+
       if(type=="DListClass") {
         output[currentPosition:endingPosition] <- oldPartition[start:end]
       } else {
@@ -482,10 +484,7 @@ repartition.DObject <- function(dobj,skeleton) {
       } else {
         currentPosition <- endingPosition + 1
       }
- 
-     
     }
-
     output 
   }
 

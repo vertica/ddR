@@ -1,6 +1,7 @@
 # file for testing common functionality between dds and DR dds
+options(warn=-1)
 
-suppressWarnings(useBackend(distributedR))
+useBackend(distributedR)
 
 context("testing common features")
 

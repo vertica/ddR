@@ -172,12 +172,9 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
       # empty list as a workaround ... repartition function has this "hack" as well
       if(containsDobject) {
         ids[[num]] <- lapply(arg,function(argument) {
-          if(is.na(argument)) list()
-          else if(is(argument,"DObject")) argument@splits
-          else stop(paste0("Argument ", deparse(substitute(arg)), " contains
-                 a mix of dobjects and non-dobjects. Currently this is unsupported for 
-                 dmapply in Distributed R"))
-          })
+          if(is(argument,"DObject")) argument@splits
+          else list()          
+        })
 
           nDobjs <- nDobjs + 1
           tempName <- paste0(".tempVar",nDobjs)
