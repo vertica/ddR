@@ -27,16 +27,17 @@ setClass("ParallelObj",contains="DObject",
 setMethod("initialize", "ParallelObj", function(.Object, ...) {
    .Object <- callNextMethod(.Object, ...)
 
+   numparts<-totalParts(.Object)
    #TODO: Fix for data.frame and arrays
    if(length(.Object@pObj)==0) {
     if(.Object@type == "DListClass")  
-       .Object@pObj <- vector("list", nparts(.Object))
+       .Object@pObj <- vector("list", numparts)
     else if(.Object@type == "DArrayClass")
-       .Object@pObj <- vector("list", nparts(.Object))
+       .Object@pObj <- vector("list", numparts)
     else
-       .Object@pObj  <- vector("list", nparts(.Object))
+       .Object@pObj  <- vector("list", numparts)
   
-   .Object@splits <- 1:nparts(.Object)
+   .Object@splits <- 1:numparts
   }
 
    .Object
@@ -66,16 +67,17 @@ setMethod("get_parts",signature("ParallelObj","integer"),
 setMethod("do_collect",signature("ParallelObj","integer"),
   function(x, parts) {
  
+  xparts<-totalParts(x)
   #We can combine arbitraty subset of lists but not for other objects
   plen <- length(parts)
-  if(plen> 1 && plen!=nparts(x) && !is.dlist(x)) stop("Cannot getpartition on more than one index at a time")
+  if(plen> 1 && plen!=xparts && !is.dlist(x)) stop("Cannot collect more than one index at a time for non-list objects")
 
-  if(plen < nparts(x)){
+  if(plen < xparts){
     #We are extracting 1 partition (for darrays/dframes) or subset (for dlists)
     res<-x@pObj[x@splits[[parts]]]
     #Unlist only if the output had multiple partitions (i.e., nested list)
-    if(is.list(res[[1]])) res<-unlist(res, recursive= FALSE)
-    return (res)
+    if(plen > 1) res<-unlist(res, recursive= FALSE)
+    return (res[[1]])
   }else{  
   #We have to return the full object 
   #Case 1: object is dlist
@@ -83,24 +85,13 @@ setMethod("do_collect",signature("ParallelObj","integer"),
 	 if(is.list(x@pObj[[1]])) return (unlist(x@pObj, recursive=FALSE))
          else return (x@pObj)
    } else{
-     #Case 2: Object is darray
-     if(is.darray(x)){
-       #We need to reassemble the full array
-       res<-NULL
-       sid<-1
-       eid<-sid
-       while(sid <= nparts(x)){
-       #Let's find partition ids for current row (i.e., stitch from left to right)
-	  csize<-0
-	  while(csize < x@dim[2]) {
-	     csize<-csize+x@psize[eid,2]
- 	     eid<-eid+1
-	   }
-       res<-rbind2(res, do.call(cbind,x@pObj[sid:(eid-1)]))
-       sid<-eid 
-       }
-       return (res)
-     } else {stop("Collect on all partitions is not yet supported for object of type ",class(x))}
+         #Case 2: Object is darray or dframe
+         #We need to reassemble the full array. We stitch partitions from left to right, and then top to bottom
+	 res<-NULL
+	 for (index in seq(1, xparts, by=nparts(x)[2])){
+             res<-rbind2(res, do.call(cbind,x@pObj[index:(index+nparts(x)[2]-1)]))
+         }
+    	 return (res)
    } 
   }
 })

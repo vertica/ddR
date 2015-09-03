@@ -63,7 +63,7 @@ function(X, centers, iter.max = 10, nstart = 1,
     nstart <- as.integer(nstart)
     if(nstart <= 0) stop("nstart should be a positive integer number")
     
-    nparts <- nparts(X)  # number of partitions (blocks)
+    nparts <- nparts(X)[1]  # number of partitions (blocks)
 
     mask <- NULL
     switch(match.arg(na_action),
@@ -253,7 +253,7 @@ fitted.hpdkmeans <- function(object, method = c("centers", "classes"), ...)
     if(!is.logical(trace)) stop("'trace' should be logical")
     if(!is.null(mask) && !is.dlist(mask)) stop("'mask' should be of type dlist")
 
-    nparts <- nparts(X)
+    nparts <- nparts(X)[1]
     if(trace) {
         cat("Calculating the total sum of squares\n")
         starttime<-proc.time()
@@ -320,7 +320,7 @@ fitted.hpdkmeans <- function(object, method = c("centers", "classes"), ...)
 
 ## .naCheckKmeans checks any missed value (NA, NaN, Inf) in X
 .naCheckKmeans <- function(X, trace, mask = NULL) {
-    nparts <- nparts(X)
+    nparts <- nparts(X)[1]
     tempArray = dmapply(function(x) return(list(0)), parts(X))
 
     if (trace) {
@@ -376,7 +376,7 @@ fitted.hpdkmeans <- function(object, method = c("centers", "classes"), ...)
 .pickCenters <- function (X, k, sampling_threshold, trace) {
     nSample <- .nrow(X)    # number of samples
     p <- as.integer(.ncol(X))    # number of predictors
-    nparts <- nparts(X)  # number of partitions (blocks)
+    nparts <- nparts(X)[1]  # number of partitions (blocks)
     blockSizes <- dmapply(function(x) list(dim(x[[1]])),parts(X))
     blockSizes <- do.call(rbind,collect(blockSizes))
     blockSizes <- blockSizes[,1]
@@ -489,7 +489,7 @@ fitted.hpdkmeans <- function(object, method = c("centers", "classes"), ...)
 .do_oneSet <- function (nmeth, X, Norms, k, centers, iter.max, trace, mask = NULL, completeModel=FALSE) {
     nSample <- .nrow(X)    # number of samples
     p <- as.integer(.ncol(X))    # number of features
-    nparts <- nparts(X)  # number of partitions (blocks)
+    nparts <- nparts(X)[1]  # number of partitions (blocks)
     # Create two arrays which hold the intermediate sum of points and total no. of points belonging to a cluster
     # We create k.p matrix as it's easier to operate on
 
