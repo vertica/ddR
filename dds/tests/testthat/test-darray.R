@@ -4,12 +4,6 @@ context("DArray metadata and dmapply")
              matrix(x, nrow=2, ncol=4)
              }, as.list(1:2), FUN.VALUE=matrix())
 
-test_that("An error is thrown when there is a data-type mismatch", {
-  expect_error(dmapply(function(x) {
-                 data.frame()
-               }, as.list(1:2), FUN.VALUE=matrix()))
-})
-
 test_that("DArray dimensions and collect are correct",{
 
   expect_equal(collect(a,2),matrix(2,nrow=2, ncol=4))

@@ -167,5 +167,8 @@ getBestOutputPartitioning.DDSDriver <- function(driver, ...,.model=NULL,type=NUL
     }
   }
 
-  new("DObject",nparts=c(length(margs[[1]]), 1L))
+  numparts <- c(length(margs[[1]]),1L)
+  psizes <- do.call(rbind,rep(list(c(1L,1L)),prod(numparts)))
+
+  new("DObject",nparts=numparts,psize=psizes,type="DListClass")
 }

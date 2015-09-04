@@ -6,12 +6,6 @@ context("DFrame metadata and dmapply")
                 data.frame(matrix(x, nrow=2, ncol=4))
               }, as.list(1:2), FUN.VALUE=data.frame())
 
-test_that("An error is thrown when there is a data-type mismatch", {
-  expect_error(dmapply(function(x) {
-                matrix(1,2,3)
-               }, as.list(1:2), FUN.VALUE=data.frame()))
-})
-
 test_that("DFrame dimensions and collect are correct",{
 
   expect_equal(collect(a,2),data.frame(matrix(2,nrow=2, ncol=4)))
