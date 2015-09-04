@@ -95,9 +95,14 @@ dmapply <- function(FUN,...,MoreArgs=list(),FUN.VALUE=NULL,.model=NULL) {
 
   # Ensure that ... arguments are of equal length
   lens <- vapply(dargs,function(x){
-     if(is(x,"DObject") && x@type == "DFrameClass"){
+     if(is(x,"DObject") && x@backend != dds.env$driver@backendName)
+       stop(paste0("An argument passed in was created with 
+            backend '",x@backend,"'; the currently loaded backend is '",
+            dds.env$driver@backendName,"'."))
+
+     if((is(x,"DObject") && x@type == "DFrameClass") || is.data.frame(x)){
        ncol(x)
-     } else if (is(x,"DObject") && x@type == "DArrayClass") {
+     } else if ((is(x,"DObject") && x@type == "DArrayClass") || is.matrix(x)) {
        prod(dim(x))
      } else {
        length(x)
@@ -113,7 +118,7 @@ dmapply <- function(FUN,...,MoreArgs=list(),FUN.VALUE=NULL,.model=NULL) {
   } else if(is.matrix(FUN.VALUE)) {
     type = "DArrayClass"
   } else {
-    stop("unrecognized return type for FUN.VALUE")
+    stop("unrecognized type for FUN.VALUE")
   }
   
   modelObj <- getBestOutputPartitioning(dds.env$driver,...,.model=.model,type)

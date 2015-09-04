@@ -92,3 +92,45 @@ test_that("element-wise multimodal dmapply works", {
 
   expect_equal(collect(answer),list(8,13,15,20))
 })
+
+  foo <- data.frame(cbind(c(1,2,3),c(4,5,6),c(7,8,9),c(10,11,12)))
+  bar <- list(13,14,15,16)
+  baz <- cbind(c(1,2),c(3,4))
+
+  # these mimic the test_dobjects above, but in vanilla form
+  tlist <- list(1,2,3,4)
+  tframe <- data.frame(rbind(c(1,2,3,4),c(5,6,7,8)))
+  tarray <- rbind(c(1,2),c(3,4))
+  
+# When standard R objects (lists,arrays, and/or data.frames) are 
+# passed into dmapply (with or without other dobject inputs) -- 
+# output should be DObject but behavior should be the same
+test_that("element-wise dmapply works with vanilla-R variables", {
+  
+  # Using standard mapply
+  vanilla_answer1 <- mapply(function(x,y,z) {
+                               x + y + z
+                            }, foo, bar, baz, SIMPLIFY=FALSE)
+
+  # Using dmapply
+  test_answer1 <- dmapply(function(x,y,z) {
+                               x + y + z
+                            }, foo, bar, baz)
+
+  expect_equal(collect(test_answer1),vanilla_answer)
+
+  vanilla_answer2 <- mapply(function(a,b,c,d,e,f) {
+                       a + b + c + d + e + f
+                     }, foo, bar, baz, 
+                      tlist,tframe,tarray, SIMPLIFY=FALSE)
+
+  test_answer2 <- dmapply(function(a,b,c,d,e,f) {
+                      a + b + c + d + e + f
+                     }, foo, bar, baz,
+                        test_dlist,
+                        test_dframe,
+                        test_darray)
+  
+  expect_equal(collect(test_answer2),vanilla_answer2)
+  
+})
