@@ -63,7 +63,7 @@ setMethod("shutdown","DDSDriver",
 
 #' @export
 # dispatches on DDSDriver
-setGeneric("do_dmapply", function(driver,func,...,MoreArgs=list(),FUN.VALUE=NULL,.model=NULL) {
+setGeneric("do_dmapply", function(driver,func,...,MoreArgs=list(),output.type="DListClass",nparts=NULL,combine="flatten") {
   standardGeneric("do_dmapply")
 })
 
@@ -85,51 +85,47 @@ dlapply <- function(dobj,FUN,...,.model=NULL) {
 }
 
 #' @export
-dmapply <- function(FUN,...,MoreArgs=list(),FUN.VALUE=NULL,.model=NULL) {
+dmapply <- function(FUN,...,MoreArgs=list(),output.type="DListClass",nparts=NULL,combine="flatten") {
   stopifnot(is.function(FUN))
-  stopifnot(length(args) > 0)
 
-  if(!is.null(.model) && !is(.model,"DObject")) stop(".model object must be of type DObject")
+  if(output.type != "DListClass" && output.type != "DArrayClass" && output.type != "DFrameClass")
+    stop("Unrecognized output type -- must be one of: {'DListClass', 'DArrayClass', 'DFrameClass'}.")   
 
+  if(!is.null(nparts))
+    if(!is.numeric(nparts) || length(nparts) < 1 || length(nparts) > 2) 
+      stop("Invalid nparts vector provided. Must be a 1d or 2d vector")
+
+  if(combine != "flatten" && combine != "row" && combine != "col")
+    stop("Unrecognized option for combine -- must be one of: {'flatten', 'row', 'col'}")
+  
   dargs <- list(...)
+  stopifnot(length(dargs) > 0)
 
-  # Ensure that ... arguments are of equal length
-  lens <- vapply(dargs,function(x){
+  # Ensure that ... arguments are of equal length. length() works correctly for data.frame,
+  # arrays, and lists
+  lens <- vapply(dargs,function(x) {
      if(is(x,"DObject") && x@backend != dds.env$driver@backendName)
        stop(paste0("An argument passed in was created with 
             backend '",x@backend,"'; the currently loaded backend is '",
             dds.env$driver@backendName,"'."))
-
-     if((is(x,"DObject") && x@type == "DFrameClass") || is.data.frame(x)){
-       ncol(x)
-     } else if ((is(x,"DObject") && x@type == "DArrayClass") || is.matrix(x)) {
-       prod(dim(x))
-     } else {
-       length(x)
-     }
-  },FUN.VALUE=numeric(1))
+        
+     length(x)
+   },FUN.VALUE=numeric(1))
 
   stopifnot(max(lens) == min(lens))
     
-  if(is.null(FUN.VALUE) || is.list(FUN.VALUE) && !is.data.frame(FUN.VALUE)){
-    type = "DListClass"
-  } else if(is.data.frame(FUN.VALUE)){
-    type = "DFrameClass"
-  } else if(is.matrix(FUN.VALUE)) {
-    type = "DArrayClass"
-  } else {
-    stop("unrecognized type for FUN.VALUE")
-  }
-  
-  modelObj <- getBestOutputPartitioning(dds.env$driver,...,.model=.model,type)
+  modelObj <- getBestOutputPartitioning(dds.env$driver,...,nparts=nparts,type=output.type)
+
+  # simplify2array does not work well on data.frames, default to column instead
+  if(output.type == "DFrameClass" && combine == "flatten") combine = "col"
 
   newobj <- do_dmapply(dds.env$driver, func=match.fun(FUN), ..., MoreArgs=MoreArgs,
-                       FUN.VALUE=FUN.VALUE,.model=modelObj)
+                       output.type=output.type,nparts=nparts(modelObj),combine=combine)
 
   checkReturnObject(modelObj,newobj)
 
   newobj@backend <- dds.env$driver@backendName
-  newobj@type <- type
+  newobj@type <- output.type 
 
   newobj
 }
@@ -143,7 +139,7 @@ checkReturnObject <- function(model,result) {
 # whose partitioning scheme we want to enforce the output to have
 # this should be used by do_dmapply as well
 #' @export
-getBestOutputPartitioning <- function(driver,...,.model=NULL,type=NULL) {
+getBestOutputPartitioning <- function(driver,...,nparts=NULL,type=NULL) {
   UseMethod("getBestOutputPartitioning")
 }
 
@@ -151,24 +147,70 @@ getBestOutputPartitioning <- function(driver,...,.model=NULL,type=NULL) {
 # or just use the length of the input arguments if none are found
 # (i.e., when parts() is used for all args)
 #' @export
-getBestOutputPartitioning.DDSDriver <- function(driver, ...,.model=NULL,type=NULL) {
+getBestOutputPartitioning.DDSDriver <- function(driver, ...,nparts=NULL,type=NULL) {
 
   # TODO: If not NULL, check if .model is valid and acceptable...otherwise throw an error
   # or print a warning and return a model object using default logic instead
   # Insert checks here
-  if(!is.null(.model)) return(.model) # If all tests pass, return original .model 
-
-  # Otherwise, revert to default behavior below
+  selection <- NULL
   margs <- list(...)
 
-  for(i in seq(length(margs))) {
-    if(is(margs[[i]],"DObject")) { 
-      return(margs[[i]])
+  # Change this value when we want to change default
+  # TODO(etduwx): determine proper number. 
+  # Should be either 1 or length or arguments??
+  defaultNoOfPartitions <- length(margs[[1]])
+
+  # if nparts is NULL, we run our heuristic algorithm here
+  if(is.null(nparts)) {
+    # first we prioritize matching nparts of one dobject, if any are dobjects
+    for(i in seq(length(margs))) {
+      if(is(margs[[i]],"DObject")) { 
+        selection <- margs[[i]]
+        break
+      }
     }
+
+    # if none are found, then we resort to making nparts == length of first argument
+
+    # TODO(etduwx): consider moving this psize logic into getBestOutputPartition.DistributedRDDS
+    # "psizes" is currently not used for actually determining output psize, but really
+    # to help DistR determine how to slice inputs by counting iterations per
+    # partition
+    if(is.null(selection)) {
+      selection <- new("DObject",nparts=defaultNoOfPartitions)
+      selection@type <- "DListClass"
+      iterations <- ceiling(length(margs[[1]]) / defaultNoOfPartitions)
+      remainder <- length(margs[[1]]) %% defaultNoOfPartitions
+      if(remainder == 0)
+        psizes <- do.call(rbind,rep(list(c(iterations,1L)),defaultNoOfPartitions))
+      else {
+        psizes <- do.call(rbind,rep(list(c(iterations,1L)),defaultNoOfPartitions-1))
+        psizes <- rbind(psizes,c(remainder,1L))
+      }
+        selection@psize <- psizes
+    }
+
+    # default to cbinding partitions if 2D
+    if(type == "DListClass")
+      selection@nparts <- c(totalParts(selection), 1L)
+    else
+      selection@nparts <- c(1L,totalParts(selection))
+
+    
+  } else {
+      selection <- new("DObject",nparts=nparts)
+      selection@type <- "DListClass"
+      iterations <- ceiling(length(margs[[1]]) / prod(nparts))
+      remainder <- length(margs[[1]]) %% prod(nparts)
+      if(remainder == 0)
+        psizes <- do.call(rbind,rep(list(c(iterations,1L)),prod(nparts)))
+      else {
+        psizes <- do.call(rbind,rep(list(c(iterations,1L)),prod(nparts)-1))
+        psizes <- rbind(psizes,c(remainder,1L))
+      }
+      selection@psize <- psizes
   }
+  
+  selection
 
-  numparts <- c(length(margs[[1]]),1L)
-  psizes <- do.call(rbind,rep(list(c(1L,1L)),prod(numparts)))
-
-  new("DObject",nparts=numparts,psize=psizes,type="DListClass")
 }

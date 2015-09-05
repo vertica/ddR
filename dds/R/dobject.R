@@ -96,8 +96,8 @@ nparts <- function(dobj) {
 #' @export
 # TODO: finish definitions, slots
 setClass("DObject",
-  representation(nparts = "integer", psize = "matrix",
-          dim = "integer", dim.names = "list", backend = "character", type = "character"),
+  representation(nparts = "numeric", psize = "matrix",
+          dim = "numeric", dim.names = "list", backend = "character", type = "character"),
   prototype = prototype(nparts = c(1L, 1L),psize = matrix(1,1),
               dim = c(1L), dim.names = list()))
 
@@ -109,7 +109,7 @@ dlist <- function(...,nparts = 1L, psize=matrix(1,1)) {
   if(length(initialize) == 0) {
     new(dds.env$driver@DListClass,backend=dds.env$driver@backendName,type = "DListClass", nparts = nparts, psize = psize, dim = 0L)
   } else{
-    dmapply(function(x){ list(x) }, initialize)
+    dmapply(function(x){ x }, initialize)
   }
 }
 
@@ -130,9 +130,9 @@ as.dlist <- function(items) {
     newobj@backend <- dds.env$driver@backendName
     newobj@type <- "DListClass"
     return(newobj)
-    }
+  }
 
-   dmapply(function(x) { list(x) }, items)
+   dmapply(function(x) { x }, items)
 }
 
 #' @export
@@ -184,10 +184,10 @@ darray <- function(...,nparts = NULL, psize = NULL, dim = NULL) {
     dim <- c(0L,0L)
   }
 
- #Check that nparts should be two dimensional
- if(length(nparts)==1) nparts <- c(nparts,1L)
- if(length(nparts)!=2) stop("length(nparts) should be two: current nparts", nparts)
- nparts <- as.integer(nparts)
+  #Check that nparts should be two dimensional
+  if(length(nparts)==1) nparts <- c(1L,nparts)
+  if(length(nparts)!=2) stop("length(nparts) should be two: current nparts", nparts)
+  nparts <- as.integer(nparts)
   
   dim <- as.integer(dim)
 
@@ -196,7 +196,7 @@ darray <- function(...,nparts = NULL, psize = NULL, dim = NULL) {
   if(length(initialize)==0) {
     new(dds.env$driver@DArrayClass,backend=dds.env$driver@backendName,type = "DArrayClass", nparts = nparts, psize = psize, dim=dim)
   } else{
-    dmapply(function(x){ matrix(x) }, initialize, FUN.VALUE=matrix())
+    dmapply(function(x){ matrix(x) }, initialize, output.type="DArrayClass",nparts=nparts)
   }
 }
 
@@ -242,10 +242,10 @@ dframe <- function(...,nparts = NULL, psize = NULL, dim = NULL) {
     dim <- c(0L,0L)
   }
 
- #Check that nparts should be two dimensional
- if(length(nparts)==1) nparts <- c(nparts,1L)
- if(length(nparts)!=2) stop("length(nparts) should be two")
- nparts <- as.integer(nparts)
+  #Check that nparts should be two dimensional
+  if(length(nparts)==1) nparts <- c(1L,nparts)
+  if(length(nparts)!=2) stop("length(nparts) should be two")
+  nparts <- as.integer(nparts)
 
   dim <- as.integer(dim)
 
@@ -254,7 +254,7 @@ dframe <- function(...,nparts = NULL, psize = NULL, dim = NULL) {
   if(length(initialize)==0) {
     new(dds.env$driver@DFrameClass,backend=dds.env$driver@backendName,type = "DFrameClass", nparts = nparts, psize = psize, dim=dim)
   } else{
-    dmapply(function(x){ data.frame(x) }, initialize, FUN.VALUE=data.frame())
+    dmapply(function(x){ data.frame(x) }, initialize, output.type="DFrameClass",nparts=nparts,combine="col")
   }
 }
 
@@ -294,7 +294,9 @@ setMethod("show",signature("DObject"),function(object) {
 
 #' @export
 length.DObject <- function(x) {
-  if(is.dlist(x)) x@dim
+  if(is.dlist(x)) dim(x)[[1]]
+  if(is.darray(x)) prod(dim(x))
+  else dim(x)[[2]]
 }
 
 #' @export
@@ -492,7 +494,7 @@ repartition.DObject <- function(dobj,skeleton) {
   else if(skeleton@type == "DArrayClass") type = matrix(1)
   else type = data.frame(1)
 
-  dmapplyArgs <- c(FUN=repartitioner,dmapplyArgs,psize=list(as.list(data.frame(t(skeleton@psize)))),MoreArgs=list(list(type=skeleton@type)),FUN.VALUE=list(type))
+  dmapplyArgs <- c(FUN=repartitioner,dmapplyArgs,psize=list(as.list(data.frame(t(skeleton@psize)))),MoreArgs=list(list(type=skeleton@type)),output.type=list(skeleton@type),combine=list("rbind"))
 
   do.call(dmapply,dmapplyArgs)
 }
