@@ -295,7 +295,7 @@ setMethod("show",signature("DObject"),function(object) {
 #' @export
 length.DObject <- function(x) {
   if(is.dlist(x)) dim(x)[[1]]
-  if(is.darray(x)) prod(dim(x))
+  else if(is.darray(x)) prod(dim(x))
   else dim(x)[[2]]
 }
 

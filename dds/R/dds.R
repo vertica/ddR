@@ -114,15 +114,15 @@ dmapply <- function(FUN,...,MoreArgs=list(),output.type="DListClass",nparts=NULL
 
   stopifnot(max(lens) == min(lens))
     
-  modelObj <- getBestOutputPartitioning(dds.env$driver,...,nparts=nparts,type=output.type)
+  partitioning <- getBestOutputPartitioning(dds.env$driver,...,nparts=nparts,type=output.type)
 
   # simplify2array does not work well on data.frames, default to column instead
   if(output.type == "DFrameClass" && combine == "flatten") combine = "col"
 
   newobj <- do_dmapply(dds.env$driver, func=match.fun(FUN), ..., MoreArgs=MoreArgs,
-                       output.type=output.type,nparts=nparts(modelObj),combine=combine)
+                       output.type=output.type,nparts=partitioning,combine=combine)
 
-  checkReturnObject(modelObj,newobj)
+  checkReturnObject(partitioning,newobj)
 
   newobj@backend <- dds.env$driver@backendName
   newobj@type <- output.type 
@@ -131,8 +131,8 @@ dmapply <- function(FUN,...,MoreArgs=list(),output.type="DListClass",nparts=NULL
 }
 
 # Check object returned by backend
-checkReturnObject <- function(model,result) {
-  stopifnot(model@nparts == result@nparts)
+checkReturnObject <- function(partitioning,result) {
+  stopifnot(partitioning == result@nparts)
 }
 
 # Given a list of arguments into dmapply, return a dobject
@@ -143,74 +143,46 @@ getBestOutputPartitioning <- function(driver,...,nparts=NULL,type=NULL) {
   UseMethod("getBestOutputPartitioning")
 }
 
+# This has been recently changed to returning the "best" nparts configuration
+
 # Currently, we naively choose the first DObject argument we find,
 # or just use the length of the input arguments if none are found
 # (i.e., when parts() is used for all args)
 #' @export
 getBestOutputPartitioning.DDSDriver <- function(driver, ...,nparts=NULL,type=NULL) {
 
-  # TODO: If not NULL, check if .model is valid and acceptable...otherwise throw an error
-  # or print a warning and return a model object using default logic instead
-  # Insert checks here
-  selection <- NULL
   margs <- list(...)
-
   # Change this value when we want to change default
   # TODO(etduwx): determine proper number. 
-  # Should be either 1 or length or arguments??
+  # Should be either 1 or length or arguments?
   defaultNoOfPartitions <- length(margs[[1]])
 
   # if nparts is NULL, we run our heuristic algorithm here
   if(is.null(nparts)) {
-    # first we prioritize matching nparts of one dobject, if any are dobjects
+    # first we prioritize matching nparts of one (the first) dobject, if any are dobjects
     for(i in seq(length(margs))) {
       if(is(margs[[i]],"DObject")) { 
-        selection <- margs[[i]]
+        nparts  <- totalParts(margs[[i]])
         break
       }
     }
+  }   
 
-    # if none are found, then we resort to making nparts == length of first argument
+  # or if none are found, then we resort to making nparts == length of first argument
+  
+  # default to cbinding partitions if 2D
+  # # TODO(etduwx): Assert that user-provided nparts (if any) is valid and acceptable.
+  # If not, throw an error. Alternatively, resort to defaultValue as below:
+  # if(error(nparts) || is.null(nparts)) nparts <- defaultNoOfPartitions
+  if(is.null(nparts)) nparts <- defaultNoOfPartitions 
 
-    # TODO(etduwx): consider moving this psize logic into getBestOutputPartition.DistributedRDDS
-    # "psizes" is currently not used for actually determining output psize, but really
-    # to help DistR determine how to slice inputs by counting iterations per
-    # partition
-    if(is.null(selection)) {
-      selection <- new("DObject",nparts=defaultNoOfPartitions)
-      selection@type <- "DListClass"
-      iterations <- ceiling(length(margs[[1]]) / defaultNoOfPartitions)
-      remainder <- length(margs[[1]]) %% defaultNoOfPartitions
-      if(remainder == 0)
-        psizes <- do.call(rbind,rep(list(c(iterations,1L)),defaultNoOfPartitions))
-      else {
-        psizes <- do.call(rbind,rep(list(c(iterations,1L)),defaultNoOfPartitions-1))
-        psizes <- rbind(psizes,c(remainder,1L))
-      }
-        selection@psize <- psizes
-    }
-
+  if(length(nparts) == 1) {
     # default to cbinding partitions if 2D
     if(type == "DListClass")
-      selection@nparts <- c(totalParts(selection), 1L)
+      nparts <- c(nparts, 1L)
     else
-      selection@nparts <- c(1L,totalParts(selection))
-
-    
-  } else {
-      selection <- new("DObject",nparts=nparts)
-      selection@type <- "DListClass"
-      iterations <- ceiling(length(margs[[1]]) / prod(nparts))
-      remainder <- length(margs[[1]]) %% prod(nparts)
-      if(remainder == 0)
-        psizes <- do.call(rbind,rep(list(c(iterations,1L)),prod(nparts)))
-      else {
-        psizes <- do.call(rbind,rep(list(c(iterations,1L)),prod(nparts)-1))
-        psizes <- rbind(psizes,c(remainder,1L))
-      }
-      selection@psize <- psizes
+      nparts <- c(1L,nparts)
   }
-  
-  selection
 
+  nparts 
 }

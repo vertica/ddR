@@ -39,19 +39,6 @@ setMethod("shutdown","DistributedRDDS",
   }
 )
 
-# Internal helper function to determine number of "apply"-able elements per partition
-# Should be used with mapply on data.frame(t(dobj@psize)) and dobj@type 
-getApplyIterations <- function(psize,type) {
-  # If it's a DList partition, then the number of apply-able
-  # iterations is equal to the psize
-  # For DArrays, it's the prod of the dimensions
-  # Both of these can be expressed using prod(psize)
-  if(type != "DFrameClass") prod(psize)
-  # If it's a DFrame, then we get number of columns
-  # in the partition, represented by psize[[2]]
-  else psize[[2]]
-}
-
 #' @export
 setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreArgs="list",output.type="character",nparts="numeric",combine="character"), 
   function(driver,func,...,MoreArgs=list(),output.type="DListClass",nparts=NULL,combine="flatten") {
@@ -60,11 +47,10 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
     # ids stores the arguments to splits() and the values of the raw arguments in foreach
     ids <- list()
 
-    # Used to calculate breaks in lists
-    # compute apply iterations per partition
-    .model <- getBestOutputPartitioning(distributedR,...,type=output.type,nparts=nparts)
-   
-    modelApplyIterations <- vapply(data.frame(t(.model@psize)),getApplyIterations,FUN.VALUE=numeric(1),type=.model@type)
+    pieceSize <- floor(length(margs[[1]])/prod(nparts)) + 1
+    remainder <- length(margs[[1]]) %% prod(nparts)
+
+    modelApplyIterations <- c(rep(pieceSize,remainder),rep(pieceSize-1,prod(nparts)-remainder))
 
     limits <- cumsum(modelApplyIterations)
     limits <- c(0,limits) + 1
@@ -107,7 +93,17 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
         isDObj <- TRUE
 
         # Now we're checking to see whether this dobject has a compatible partitioning with the model
-        applyIterations <- vapply(data.frame(t(arg@psize)),getApplyIterations,FUN.VALUE=numeric(1),type=arg@type)     
+        applyIterations <- vapply(data.frame(t(arg@psize)),
+          function(psize) {
+            # If it's a DList partition, then the number of apply-able
+            # iterations is equal to the psize
+            # For DArrays, it's the prod of the dimensions
+            # Both of these can be expressed using prod(psize)
+            if(arg@type != "DFrameClass") prod(psize)
+            # If it's a DFrame, then we get number of columns
+            # in the partition, represented by psize[[2]]
+            else psize[[2]]
+          }, FUN.VALUE=numeric(1))     
 
         # Repartitioning needs to happen when applyIterations don't match, OR
         # when partitioning is happening rowwise
@@ -120,40 +116,42 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
           # the repartitioned object should match
           # TODO: DArrays need to be "shifted" into alignment??? Throw an error if not possible
       
-          if(arg@type == .model@type) skeleton <- .model
-          
-          else {
-            if(arg@type == "DFrameClass") {
-              new_psize <- vapply(modelApplyIterations, 
-                                  function(x) c(arg@dim[[1]],x),
-                          FUN.VALUE=numeric(2))
-
-              skeleton <- dframe(nparts=length(modelApplyIterations))
-            }
-
-           if(arg@type == "DArrayClass") {
-              new_psize <- vapply(modelApplyIterations,
-                                  function(x) {
-                                    # if applyIterations is not a multiple of column
-                                    # length, stop with error as we cannot guarantee that 
-                                    # repartition is doable
-                                    numCol = x/arg@dim[[1]]
-                                    if(floor(numCol) != numCol)
-                                      stop("Repartitioning matrix not possible.")
-                                    
-                                    c(arg@dim[[1]],numCol)
-                                  }, FUN.VALUE=numeric(2))
-
-             skeleton <- darray(nparts=length(modelApplyIterations))
-           }
-
-           new_psize <- t(as.matrix(new_psize))
-
-           skeleton@dim <- arg@dim
-           skeleton@psize <- new_psize
+          if(arg@type == "DListClass") { 
+            new_psize <- matrix(modelApplyIterations, ncol = 1, byrow = TRUE)
+            skeleton <- dlist(nparts=length(modelApplyIterations))
           }
 
-          arg <- repartition(arg,skeleton)
+          else if(arg@type == "DFrameClass") {
+            new_psize <- vapply(modelApplyIterations, 
+                                function(x) c(arg@dim[[1]],x),
+                        FUN.VALUE=numeric(2))
+
+            skeleton <- dframe(nparts=length(modelApplyIterations))
+          }
+
+          else if(arg@type == "DArrayClass") {
+            new_psize <- vapply(modelApplyIterations,
+                                function(x) {
+                                  # if applyIterations is not a multiple of column
+                                  # length, stop with error as we cannot guarantee that 
+                                  # repartition is doable
+                                  numCol = x/arg@dim[[1]]
+                                  if(floor(numCol) != numCol)
+                                    stop("Repartitioning matrix not possible.")
+                                  
+                                  c(arg@dim[[1]],numCol)
+                                }, FUN.VALUE=numeric(2))
+
+           skeleton <- darray(nparts=length(modelApplyIterations))
+         }
+
+         new_psize <- t(as.matrix(new_psize))
+
+         skeleton@dim <- arg@dim
+         skeleton@psize <- new_psize
+         
+
+        arg <- repartition(arg,skeleton)
         }
 
         arg <- parts(arg)
