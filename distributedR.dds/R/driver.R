@@ -40,8 +40,8 @@ setMethod("shutdown","DistributedRDDS",
 )
 
 #' @export
-setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreArgs="list",output.type="character",nparts="numeric",combine="character"), 
-  function(driver,func,...,MoreArgs=list(),output.type="DListClass",nparts=NULL,combine="flatten") {
+setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreArgs="list",output.type="character",nparts="numeric",combine="character",.unlistEach="logical"), 
+  function(driver,func,...,MoreArgs=list(),output.type="DListClass",nparts=NULL,combine="flatten",.unlistEach=FALSE) {
     # margs stores the dmapply args
     margs <- list(...)
     # ids stores the arguments to splits() and the values of the raw arguments in foreach
@@ -107,10 +107,10 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
 
         # Repartitioning needs to happen when applyIterations don't match, OR
         # when partitioning is happening rowwise
-        if(!identical(applyIterations,modelApplyIterations)
+        if(!identical(unname(applyIterations), modelApplyIterations)
             || (arg@psize[1,][[1]] != arg@dim[[1]] && arg@type != "DListClass")) {
-          warning(paste0("A repartitioning of input variable '", deparse(substitute(arg)), "' has been triggered.
-                    For better performance, please try to partition your inputs compatibly."))
+          warning(paste0("A repartitioning of an input variable has been triggered.
+For better performance, please try to partition your inputs compatibly."))
 
           # Now using applyIterations, we need to build the skeleton object whose partitioning
           # the repartitioned object should match
@@ -127,6 +127,7 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
                         FUN.VALUE=numeric(2))
 
             skeleton <- dframe(nparts=length(modelApplyIterations))
+            new_psize <- t(as.matrix(new_psize))
           }
 
           else if(arg@type == "DArrayClass") {
@@ -143,14 +144,12 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
                                 }, FUN.VALUE=numeric(2))
 
            skeleton <- darray(nparts=length(modelApplyIterations))
+           new_psize <- t(as.matrix(new_psize))
          }
-
-         new_psize <- t(as.matrix(new_psize))
 
          skeleton@dim <- arg@dim
          skeleton@psize <- new_psize
          
-
         arg <- repartition(arg,skeleton)
         }
 
@@ -170,7 +169,7 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
       if(containsDobject) {
         ids[[num]] <- lapply(arg,function(argument) {
           if(is(argument,"DObject")) argument@splits
-          else NA          
+          else NULL        
         })
           nDobjs <- nDobjs + 1
           tempName <- paste0(".tempVar",nDobjs)
@@ -198,16 +197,28 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
 
     formals(exec_func)[[".funct"]] <- match.fun(func)
 
-    for(other in names(MoreArgs))
-      formals(exec_func)[[other]] <- NULL
-  
     formals(exec_func)[["MoreArgs"]] <- MoreArgs
     formals(exec_func)[[".newDObj"]] <- substitute(splits(.outObj,index),env=parent.frame())
     formals(exec_func)[[".dimObj"]] <- substitute(splits(.dimsObj,index),env=parent.frame())
 
     execLine <- paste0(".newDObj <- mapply(.funct,",argsStr,",MoreArgs=MoreArgs,SIMPLIFY=FALSE)")
+    
+    # Need to convert empty lists to NAs here, because DR can't pass NAs to executors when arg is also using splits()
+    insertNAs <- "for (n in ls(all.names=TRUE,envir=parent.frame())) {
+                    if(identical(get(n,envir=parent.frame()),list()) && n != 'MoreArgs' 
+                       && n != '.newDObj' && n != '.dimObj') 
+                    assign(n,list(NA)) 
+                  }"
 
-    body(exec_func)[[2]] <- eval(parse(text=paste0("substitute(",execLine,")")),envir=new.env())
+    body(exec_func)[[2]] <- eval(parse(text=paste0("substitute(",insertNAs,")")),envir=new.env())
+    body(exec_func)[[3]] <- eval(parse(text=paste0("substitute(",execLine,")")),envir=new.env())
+    
+    if(.unlistEach) {
+      unlistedResults <- ".newDObj <- unlist(.newDObj,recursive=FALSE)"
+      body(exec_func)[[4]] <- eval(parse(text=paste0("substitute(",unlistedResults,")")),envir=new.env())
+    }
+
+    nLines <- length(body(exec_func))
 
     # If the output is not a dlist, then we have to worry about how to 
     # stitch together the internal components of a partition --
@@ -221,18 +232,19 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
       else 
         stitchResults <- ".newDObj <- simplify2array(.newDObj,higher=FALSE)"
 
-      body(exec_func)[[3]] <- eval(parse(text=paste0("substitute(",stitchResults,")")),envir=new.env())
+      body(exec_func)[[nLines+1]] <- eval(parse(text=paste0("substitute(",stitchResults,")")),envir=new.env())
 
       if(distributedR::is.dframe(.outObj)) {
         convert <- ".newDObj <- as.data.frame(.newDObj)"
-        body(exec_func)[[4]] <- eval(parse(text=paste0("substitute(",convert,")")),envir=new.env())
+        body(exec_func)[[nLines+2]] <- eval(parse(text=paste0("substitute(",convert,")")),envir=new.env())
       } else if(distributedR::is.darray(.outObj)) {
         convert <- ".newDObj <- as.matrix(.newDObj)"
-        body(exec_func)[[4]] <- eval(parse(text=paste0("substitute(",convert,")")),envir=new.env())
+        body(exec_func)[[nLines+2]] <- eval(parse(text=paste0("substitute(",convert,")")),envir=new.env())
       }
     }
 
     nLines <- length(body(exec_func))
+
     body(exec_func)[[nLines+1]] <- substitute(update(.newDObj))
     if(distributedR::is.dlist(.outObj)) {
       modLine <- ".dimObj <- list(length(.newDObj))"
@@ -243,7 +255,7 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
 
     body(exec_func)[[nLines+2]] <- eval(parse(text=paste0("substitute(",modLine,")")),envir=new.env())
     body(exec_func)[[nLines+3]] <- substitute(update(.dimObj))
-
+ 
     foreach(index,seq(prod(nparts)),exec_func,progress=FALSE) 
 
     dimensions <- getpartition(.dimsObj)

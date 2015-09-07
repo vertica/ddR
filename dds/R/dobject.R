@@ -453,15 +453,8 @@ repartition.DObject <- function(dobj,skeleton) {
 
     currentPosition <- rep(1,dims)
 
-    while(index <= length(dataPartitions) - 2 && !identical(list(),dataPartitions[[index]]) && !is.na(dataPartitions[[index]])) {
+    while(index <= length(dataPartitions) - 2 && !is.na(dataPartitions[[index]])) {
 
-      # This "hack" is needed due to a DistR limitation...NAs are converted into empty list() 
-      if(is.list(dataPartitions[[index]]) && !is.data.frame(dataPartitions[[index]])) {
-        # Need to remove one layer of redundant listing
-        if(is.list(dataPartitions[[index]][[1]]) || type != "DListClass")
-          dataPartitions[[index]] <- dataPartitions[[index]][[1]]
-      }
- 
       oldPartition <- dataPartitions[[index]]
   
       start <- dataPartitions[[index+1]]
@@ -494,7 +487,7 @@ repartition.DObject <- function(dobj,skeleton) {
   else if(skeleton@type == "DArrayClass") type = matrix(1)
   else type = data.frame(1)
 
-  dmapplyArgs <- c(FUN=repartitioner,dmapplyArgs,psize=list(as.list(data.frame(t(skeleton@psize)))),MoreArgs=list(list(type=skeleton@type)),output.type=list(skeleton@type),combine=list("rbind"))
+  dmapplyArgs <- c(FUN=repartitioner,dmapplyArgs,psize=list(as.list(data.frame(t(skeleton@psize)))),MoreArgs=list(list(type=skeleton@type)),output.type=list(skeleton@type),combine=list("row"),.unlistEach=list(TRUE))
 
   do.call(dmapply,dmapplyArgs)
 }

@@ -63,7 +63,7 @@ setMethod("shutdown","DDSDriver",
 
 #' @export
 # dispatches on DDSDriver
-setGeneric("do_dmapply", function(driver,func,...,MoreArgs=list(),output.type="DListClass",nparts=NULL,combine="flatten") {
+setGeneric("do_dmapply", function(driver,func,...,MoreArgs=list(),output.type="DListClass",nparts=NULL,combine="flatten",.unlistEach=FALSE) {
   standardGeneric("do_dmapply")
 })
 
@@ -85,7 +85,7 @@ dlapply <- function(dobj,FUN,...,.model=NULL) {
 }
 
 #' @export
-dmapply <- function(FUN,...,MoreArgs=list(),output.type="DListClass",nparts=NULL,combine="flatten") {
+dmapply <- function(FUN,...,MoreArgs=list(),output.type="DListClass",nparts=NULL,combine="flatten",.unlistEach=FALSE) {
   stopifnot(is.function(FUN))
 
   if(output.type != "DListClass" && output.type != "DArrayClass" && output.type != "DFrameClass")
@@ -120,7 +120,8 @@ dmapply <- function(FUN,...,MoreArgs=list(),output.type="DListClass",nparts=NULL
   if(output.type == "DFrameClass" && combine == "flatten") combine = "col"
 
   newobj <- do_dmapply(dds.env$driver, func=match.fun(FUN), ..., MoreArgs=MoreArgs,
-                       output.type=output.type,nparts=partitioning,combine=combine)
+                       output.type=output.type,nparts=partitioning,combine=combine,
+                       .unlistEach=.unlistEach)
 
   checkReturnObject(partitioning,newobj)
 
