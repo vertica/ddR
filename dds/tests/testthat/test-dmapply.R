@@ -1,42 +1,31 @@
 context("test dlist dmapply")
 
-a <- dmapply(function(x) {
-                 if(x==1) {
-                   list(1,2,3,4)
-                 } else if(x==2) {
-                   list(5,6,7)
-                 } else if(x==3) {
-                   list(8,9)
-                 } else {
-                   list(10)
-                 }
-               }, as.list(1:4))
+  # Initialize a dlist going from 1 to 10, equal partitions of 2 each
+  a <- dmapply(function(x) x, 1:10,nparts=5)
  
-  expect_equal(totalParts(a),4)
+  expect_equal(totalParts(a),5)
   expect_equal(collect(a),as.list(1:10))
 
-  # dlist going from 1 to 10, equal partition 
-  b <- dmapply(function(x) { 
-                 start <- 2*(x-1)+1 
-                 list(start,start+1) }, as.list(1:5))
+  # dlist going from 1 to 10, 10 partitions 
+  b <- dmapply(function(x) x, 5:14,nparts=10)
 
-  expect_equal(totalParts(b),5)
-  expect_equal(collect(b),as.list(1:10))
+  expect_equal(totalParts(b),10)
+  expect_equal(collect(b),as.list(5:14))
 
 test_that("DList parts-wise dmapply works", {
   c <- dmapply(function(x) {
-                 list(length(x))
+                 length(x)
                }, parts(a))
 
-  expect_equal(totalParts(c),4)
-  expect_equal(collect(c),as.list(4:1))
+  expect_equal(totalParts(c),5)
+  expect_equal(collect(c),as.list(rep(2,5)))
 
   d <- dmapply(function(x,y,z) {
-                 list(length(x) + y - z)
-               }, parts(a),as.list(10:7),MoreArgs=list(z=3))
+                 length(x) + y - z
+               }, parts(a),as.list(10:6),MoreArgs=list(z=3))
 
-  expect_equal(totalParts(d),4)
-  expect_equal(collect(d),list(11,9,7,5))
+  expect_equal(totalParts(d),5)
+  expect_equal(collect(d),as.list(9:5))
 }) 
 
 test_that("DList elementwise dmapply works", {
@@ -50,36 +39,33 @@ test_that("DList elementwise dmapply works", {
                  x + y
                },a,b)
 
-  expect_equal(collect(f),as.list(seq(2,20,by=2)))
+  expect_equal(collect(f),as.list(seq(6,24,by=2)))
 }) 
  
 # TODO(etduwx): add more tests
 context("test multimodal (mixture of different dobject types) dmapply")
 
   # Two partitions, going from 1 to 4, 2 elements each
-  test_dlist <- dmapply(function(x) {
-                  start <- 2*(x-1)+1
-                  list(start,start+1) 
-                }, as.list(1:2))
+  test_dlist <- dmapply(function(x) x, 1:4, nparts=2)
 
   # Two partitions, going from 1 to 4, 1 row (2 elem) each
   test_darray <- dmapply(function(x) {
                    start <- 2*(x-1)+1
                    t(as.matrix(c(start,start+1)))
-                }, as.list(1:2),FUN.VALUE=matrix())
+                }, output.type="DArrayClass",1:2,combine="row",nparts=c(2,1))
 
   # Two partitions, going from 1 to 8, 1 row (4 elem) each
   test_dframe <- dmapply(function(x) {
                    start <- 4*(x-1)+1
                    end <- start + 3 
                    data.frame(t(as.matrix(start:end)))
-                }, as.list(1:2),FUN.VALUE=data.frame())
+                }, output.type="DFrameClass",1:2,combine="row",nparts=c(2,1))
 
 test_that("parts-wise multimodal dmapply works", {
   answer <- dmapply(function(x,y,z) {
                       list(is.list(x),is.matrix(y),is.data.frame(z),
                            length(x), sum(y), sum(z))
-                    }, parts(test_dlist), parts(test_darray), parts(test_dframe))
+                    }, parts(test_dlist), parts(test_darray), parts(test_dframe),.unlistEach=TRUE)
 
   expect_equal(collect(answer),list(TRUE,TRUE,TRUE,2,3,10,TRUE,TRUE,TRUE,2,7,26))
 })
@@ -117,7 +103,7 @@ test_that("element-wise dmapply works with vanilla-R variables", {
                                x + y + z
                             }, foo, bar, baz)
 
-  expect_equal(collect(test_answer1),vanilla_answer)
+  expect_equal(collect(test_answer1),vanilla_answer1)
 
   vanilla_answer2 <- mapply(function(a,b,c,d,e,f) {
                        a + b + c + d + e + f

@@ -25,67 +25,53 @@ distributedR <- new("DistributedRDDS",DListClass = "DistributedRObj",DFrameClass
 
 #' @export
 setMethod("init","DistributedRDDS",
-  function(x,...)
+  function(x,...) {
+    message("Backend switched to Distributed R. Starting it up...")
     distributedR_start(...)
+  }
 )
 
 #' @export
 setMethod("shutdown","DistributedRDDS",
-  function(x)
+  function(x) {
+    message("Switching out of using Distributed R. Shutting it down...")
     distributedR_shutdown()
+  }
 )
 
-# Internal helper function to determine number of "apply"-able elements per partition
-# Should be used with mapply on data.frame(t(dobj@psize)) and dobj@type 
-getApplyIterations <- function(psize,type) {
-  # If it's a DList partition, then the number of apply-able
-  # iterations is equal to the psize
-  # For DArrays, it's the prod of the dimensions
-  # Both of these can be expressed using prod(psize)
-  if(type != "DFrameClass") prod(psize)
-  # If it's a DFrame, then we get number of columns
-  # in the partition, represented by psize[[2]]
-  else psize[[2]]
-}
-
 #' @export
-setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreArgs="list",FUN.VALUE="ANY",.model="DObject"), 
-  function(driver,func,...,MoreArgs=list(),FUN.VALUE=NULL,.model=NULL) {
+setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreArgs="list",output.type="character",nparts="numeric",combine="character",.unlistEach="logical"), 
+  function(driver,func,...,MoreArgs=list(),output.type="DListClass",nparts=NULL,combine="flatten",.unlistEach=FALSE) {
     # margs stores the dmapply args
     margs <- list(...)
     # ids stores the arguments to splits() and the values of the raw arguments in foreach
     ids <- list()
 
-    # Determine if this dmapply involves any elementwise apply
-    elementWiseApply <- any(vapply(margs, function(x) {
-                              !is.list(x) && is(x,"DObject")
-                            },FUN.VALUE=logical(1)))
+    pieceSize <- floor(length(margs[[1]])/prod(nparts)) + 1
+    remainder <- length(margs[[1]]) %% prod(nparts)
 
-    # Used to calculate breaks in lists
-    if(elementWiseApply) {
-      # compute apply iterations per partition
-      modelApplyIterations <- mapply(getApplyIterations,
-                   data.frame(t(.model@psize)),.model@type)
+    modelApplyIterations <- c(rep(pieceSize,remainder),rep(pieceSize-1,prod(nparts)-remainder))
 
-      limits <- cumsum(modelApplyIterations)
-      limits <- c(0,limits) + 1
-      limits <- limits[seq(length(limits)-1)]
-    }
-
-    np <- totalParts(.model)
+    limits <- cumsum(modelApplyIterations)
+    limits <- c(0,limits) + 1
+    limits <- limits[seq(length(limits)-1)]
 
     # to store the output of the foreach
-    # also perform necessary repartitioning here if elementWise
-    if(is.data.frame(FUN.VALUE)) {
-      .outObj <- distributedR::dframe(npartitions=np)
-    } else if (is.matrix(FUN.VALUE)) {
-      .outObj <- distributedR::darray(npartition=np)
+    if(output.type=="DFrameClass") {
+      .outObj <- distributedR::dframe(npartitions=nparts)
+    } else if (output.type=="DArrayClass") {
+      .outObj <- distributedR::darray(npartitions=nparts)
     } else {
-      .outObj <- distributedR::dlist(npartitions=np)
+      .outObj <- distributedR::dlist(npartitions=nparts[[1]])
     }
 
+    # We can't flatten (in a nice way) if it's a dframe, so throw an
+    # error here
+    if(distributedR::is.dframe(.outObj) && combine=="flatten") 
+      stop("Cannot flatten a data frame")
+
     # to store the dimensions (or length if dlist) of each partition
-    .dimsObj <- distributedR::dlist(npartitions=np)
+    .dimsObj <- distributedR::dlist(npartitions=prod(nparts))
 
     nDobjs = 0
 
@@ -100,66 +86,76 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
     for(num in seq(length(margs))) {
       nm <- nms[[num]]
       arg <- margs[[num]]
-
      
       if(!is.list(arg) && is(arg,"DObject")) {
-        elementWise <- TRUE
+        # Boolean to store whether the current argument being processed is a pure
+        # DObject (i.e., not used with parts() or a vanilla-R argument
+        isDObj <- TRUE
 
         # Now we're checking to see whether this dobject has a compatible partitioning with the model
-        applyIterations <- mapply(getApplyIterations,data.frame(t(arg@psize)),arg@type)     
+        applyIterations <- vapply(data.frame(t(arg@psize)),
+          function(psize) {
+            # If it's a DList partition, then the number of apply-able
+            # iterations is equal to the psize
+            # For DArrays, it's the prod of the dimensions
+            # Both of these can be expressed using prod(psize)
+            if(arg@type != "DFrameClass") prod(psize)
+            # If it's a DFrame, then we get number of columns
+            # in the partition, represented by psize[[2]]
+            else psize[[2]]
+          }, FUN.VALUE=numeric(1))     
 
         # Repartitioning needs to happen when applyIterations don't match, OR
         # when partitioning is happening rowwise
-        if(!identical(applyIterations,modelApplyIterations)
+        if(!identical(unname(applyIterations), modelApplyIterations)
             || (arg@psize[1,][[1]] != arg@dim[[1]] && arg@type != "DListClass")) {
-          warning(paste0("A repartitioning of input variable '", deparse(substitute(arg)), "' has been triggered.
-                    For better performance, please try to partition your inputs compatibly."))
+          warning(paste0("A repartitioning of an input variable has been triggered.
+For better performance, please try to partition your inputs compatibly."))
 
           # Now using applyIterations, we need to build the skeleton object whose partitioning
           # the repartitioned object should match
           # TODO: DArrays need to be "shifted" into alignment??? Throw an error if not possible
-
       
-          if(arg@type == .model@type) skeleton <- .model
-          
-          else {
-            if(arg@type == "DFrameClass") {
-              new_psize <- vapply(modelApplyIterations, 
-                                  function(x) c(arg@dim[[1]],x),
-                          FUN.VALUE=numeric(2))
-
-              skeleton <- dframe(nparts=length(modelApplyIterations))
-            }
-
-           if(arg@type == "DArrayClass") {
-              new_psize <- vapply(modelApplyIterations,
-                                  function(x) {
-                                    # if applyIterations is not a multiple of column
-                                    # length, stop with error as we cannot guarantee that 
-                                    # repartition is doable
-                                    numCol = x/arg@dim[[1]]
-                                    if(floor(numCol) != numCol)
-                                      stop("Repartitioning matrix not possible.")
-                                    
-                                    c(arg@dim[[1]],numCol)
-                                  }, FUN.VALUE=numeric(2))
-
-             skeleton <- darray(nparts=length(modelApplyIterations))
-           }
-
-           new_psize <- t(as.matrix(new_psize))
-
-           skeleton@dim <- arg@dim
-           skeleton@psize <- new_psize
+          if(arg@type == "DListClass") { 
+            new_psize <- matrix(modelApplyIterations, ncol = 1, byrow = TRUE)
+            skeleton <- dlist(nparts=length(modelApplyIterations))
           }
 
-          arg <- repartition(arg,skeleton)
-        
+          else if(arg@type == "DFrameClass") {
+            new_psize <- vapply(modelApplyIterations, 
+                                function(x) c(arg@dim[[1]],x),
+                        FUN.VALUE=numeric(2))
+
+            skeleton <- dframe(nparts=length(modelApplyIterations))
+            new_psize <- t(as.matrix(new_psize))
+          }
+
+          else if(arg@type == "DArrayClass") {
+            new_psize <- vapply(modelApplyIterations,
+                                function(x) {
+                                  # if applyIterations is not a multiple of column
+                                  # length, stop with error as we cannot guarantee that 
+                                  # repartition is doable
+                                  numCol = x/arg@dim[[1]]
+                                  if(floor(numCol) != numCol)
+                                    stop("Repartitioning matrix not possible.")
+                                  
+                                  c(arg@dim[[1]],numCol)
+                                }, FUN.VALUE=numeric(2))
+
+           skeleton <- darray(nparts=length(modelApplyIterations))
+           new_psize <- t(as.matrix(new_psize))
+         }
+
+         skeleton@dim <- arg@dim
+         skeleton@psize <- new_psize
+         
+        arg <- repartition(arg,skeleton)
         }
 
         arg <- parts(arg)
 
-      } else elementWise <- FALSE
+      } else isDObj <- FALSE
 
       dobject_list <- vapply(arg, function(x) { is(x,"DObject")},FUN.VALUE=logical(1))
       containsDobject <- any(dobject_list)
@@ -173,9 +169,8 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
       if(containsDobject) {
         ids[[num]] <- lapply(arg,function(argument) {
           if(is(argument,"DObject")) argument@splits
-          else list()          
+          else NULL        
         })
-
           nDobjs <- nDobjs + 1
           tempName <- paste0(".tempVar",nDobjs)
           assign(tempName,arg[dobject_list][[1]]@DRObj)
@@ -186,8 +181,8 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
           tempStr <- "substitute(ids[[num]][[index]],env=parent.frame())" 
       }
 
-      if(!elementWise && elementWiseApply) 
-        ids[[num]] <- mapply(function(x,y) { ids[[num]][y:(y+x)-1] }, lens, limits, SIMPLIFY=FALSE)
+      if(!isDObj) 
+        ids[[num]] <- mapply(function(x,y) { ids[[num]][y:(y+x-1)] }, modelApplyIterations, limits, SIMPLIFY=FALSE)
       
 
       tempStr <- gsub("num",as.character(num),tempStr)
@@ -200,64 +195,80 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
 
     }
 
-  formals(exec_func)[[".funct"]] <- match.fun(func)
+    formals(exec_func)[[".funct"]] <- match.fun(func)
 
-  if(!elementWiseApply) {
-     # Take care of MoreArgs
-    for(other in names(MoreArgs)) {
-      formals(exec_func)[[other]] <- MoreArgs[[other]]
-      argsStr <- paste0(argsStr,", ",other,"=",other)
+    formals(exec_func)[["MoreArgs"]] <- MoreArgs
+    formals(exec_func)[[".newDObj"]] <- substitute(splits(.outObj,index),env=parent.frame())
+    formals(exec_func)[[".dimObj"]] <- substitute(splits(.dimsObj,index),env=parent.frame())
+
+    execLine <- paste0(".newDObj <- mapply(.funct,",argsStr,",MoreArgs=MoreArgs,SIMPLIFY=FALSE)")
+    
+    # Need to convert empty lists to NAs here, because DR can't pass NAs to executors when arg is also using splits()
+    insertNAs <- "for (n in ls(all.names=TRUE,envir=parent.frame())) {
+                    if(identical(get(n,envir=parent.frame()),list()) && n != 'MoreArgs' 
+                       && n != '.newDObj' && n != '.dimObj') 
+                    assign(n,list(NA)) 
+                  }"
+
+    body(exec_func)[[2]] <- eval(parse(text=paste0("substitute(",insertNAs,")")),envir=new.env())
+    body(exec_func)[[3]] <- eval(parse(text=paste0("substitute(",execLine,")")),envir=new.env())
+    
+    if(.unlistEach) {
+      unlistedResults <- ".newDObj <- unlist(.newDObj,recursive=FALSE)"
+      body(exec_func)[[4]] <- eval(parse(text=paste0("substitute(",unlistedResults,")")),envir=new.env())
     }
-  
-    execLine <- paste0(".newDObj <- .funct(",argsStr,")")
-  
-  } else {
-      for(other in names(MoreArgs))
-        formals(exec_func)[[other]] <- NULL
-  
-      formals(exec_func)[["MoreArgs"]] <- MoreArgs
 
-      execLine <- paste0(".newDObj <- mapply(.funct,",argsStr,",MoreArgs=MoreArgs,SIMPLIFY=FALSE)")
+    nLines <- length(body(exec_func))
+
+    # If the output is not a dlist, then we have to worry about how to 
+    # stitch together the internal components of a partition --
+    # either rowwise, columnwise, or the default, which is to 
+    # cbind the results after flattening them into 1d-vectors
+    if(!distributedR::is.dlist(.outObj)) {
+      if(combine=="row")
+        stitchResults <- ".newDObj <- do.call(rbind,.newDObj)"
+      else if(combine=="col")
+        stitchResults <- ".newDObj <- do.call(cbind,.newDObj)"
+      else 
+        stitchResults <- ".newDObj <- simplify2array(.newDObj,higher=FALSE)"
+
+      body(exec_func)[[nLines+1]] <- eval(parse(text=paste0("substitute(",stitchResults,")")),envir=new.env())
 
       if(distributedR::is.dframe(.outObj)) {
         convert <- ".newDObj <- as.data.frame(.newDObj)"
-        body(exec_func)[[3]] <- eval(parse(text=paste0("substitute(",convert,")")),envir=new.env())
+        body(exec_func)[[nLines+2]] <- eval(parse(text=paste0("substitute(",convert,")")),envir=new.env())
       } else if(distributedR::is.darray(.outObj)) {
-        convert <- ".newDObj <- as.matrix"
-        body(exec_func)[[3]] <- eval(parse(text=paste0("substitute(",convert,")")),envir=new.env())
+        convert <- ".newDObj <- as.matrix(.newDObj)"
+        body(exec_func)[[nLines+2]] <- eval(parse(text=paste0("substitute(",convert,")")),envir=new.env())
       }
+    }
+
+    nLines <- length(body(exec_func))
+
+    body(exec_func)[[nLines+1]] <- substitute(update(.newDObj))
+    if(distributedR::is.dlist(.outObj)) {
+      modLine <- ".dimObj <- list(length(.newDObj))"
+    }
+    else {
+      modLine <- ".dimObj <- list(dim(.newDObj))" 
+    }
+
+    body(exec_func)[[nLines+2]] <- eval(parse(text=paste0("substitute(",modLine,")")),envir=new.env())
+    body(exec_func)[[nLines+3]] <- substitute(update(.dimObj))
+ 
+    foreach(index,seq(prod(nparts)),exec_func,progress=FALSE) 
+
+    dimensions <- getpartition(.dimsObj)
+
+    psizes <- matrix(unlist(dimensions,recursive=FALSE), ncol=length(dimensions[[1]]),byrow=TRUE)
+
+    if(distributedR::is.dlist(.outObj)) {
+      dims <- Reduce("+",psizes)
+    } else {
+      dims <- as.integer(dim(.outObj))
+    }
+
+    new("DistributedRObj",DRObj = .outObj, splits = seq(npartitions(.outObj)),
+         psize = psizes, dim = dims, nparts=nparts)
   }
-
-  body(exec_func)[[2]] <- eval(parse(text=paste0("substitute(",execLine,")")),envir=new.env())
-
-  nLines <- length(body(exec_func))
-  formals(exec_func)[[".newDObj"]] <- substitute(splits(.outObj,index),env=parent.frame())
-  formals(exec_func)[[".dimObj"]] <- substitute(splits(.dimsObj,index),env=parent.frame())
-  body(exec_func)[[nLines+1]] <- substitute(update(.newDObj))
-
-  if(distributedR::is.dlist(.outObj)) {
-    modLine <- ".dimObj <- list(length(.newDObj))"
-  }
-  else {
-    modLine <- ".dimObj <- list(dim(.newDObj))" 
-  }
-
-  body(exec_func)[[nLines+2]] <- eval(parse(text=paste0("substitute(",modLine,")")),envir=new.env())
-  body(exec_func)[[nLines+3]] <- substitute(update(.dimObj))
-
-  foreach(index,seq(np),exec_func,progress=FALSE) 
-
-  dimensions <- getpartition(.dimsObj)
-
-  psizes <- matrix(unlist(dimensions,recursive=FALSE), ncol=length(dimensions[[1]]),byrow=TRUE)
-
-  if(distributedR::is.dlist(.outObj)) {
-    dims <- Reduce("+",psizes)
-  } else {
-    dims <- as.integer(dim(.outObj))
-  }
-
-  new("DistributedRObj",DRObj = .outObj, splits = seq(npartitions(.outObj)),
-       psize = psizes, dim = dims, nparts=c(nrow(psizes),1L))
-}
 )

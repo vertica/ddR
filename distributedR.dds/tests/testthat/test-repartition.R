@@ -54,11 +54,9 @@ test_that("DLists repartition correctly",{
   # This should be a two-partition dlist with the same 
   # overall contents
   b <- dmapply(function(y) { 
-                 start <- (y-1) * 2 + 1
-                 end <- start + 1  
-                 list(start,end)
+                  y
                }
-               , as.list(1:2))
+               , 1:4,nparts=2)
   expect_equal(totalParts(b),2L)
   expect_equal(collect(a),collect(b))
 
