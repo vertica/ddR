@@ -487,7 +487,10 @@ repartition.DObject <- function(dobj,skeleton) {
   else if(skeleton@type == "DArrayClass") type = matrix(1)
   else type = data.frame(1)
 
-  dmapplyArgs <- c(FUN=repartitioner,dmapplyArgs,psize=list(as.list(data.frame(t(skeleton@psize)))),MoreArgs=list(list(type=skeleton@type)),output.type=list(skeleton@type),combine=list("row"),.unlistEach=list(TRUE))
+  if(skeleton@type == "DListClass") .unlistEach=TRUE
+  else .unlistEach=FALSE
+
+  dmapplyArgs <- c(FUN=repartitioner,dmapplyArgs,psize=list(as.list(data.frame(t(skeleton@psize)))),MoreArgs=list(list(type=skeleton@type)),output.type=list(skeleton@type),combine=list("row"),.unlistEach=list(.unlistEach))
 
   do.call(dmapply,dmapplyArgs)
 }
