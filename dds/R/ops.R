@@ -17,7 +17,7 @@
 
 #' @export
 unique.DObject <- function(x, ...) {
-  unique.per.partition <- dlapply(parts(x),function(x) { unique(x) })
+  unique.per.partition <- dlapply(parts(x),function(x) { unique(x) },.unlistEach=TRUE)
   unique(collect(unique.per.partition))
 }
 
@@ -40,7 +40,7 @@ setMethod("[", c("DObject", "numeric", "missing","ANY"),
     },
    temp,sequences$lengths,SIMPLIFY=FALSE)
 
-   values <- dmapply(function(x,y) { x[y] }, parts(x, partitionIndices), valueOffsets)
+   values <- dmapply(function(x,y) { x[y] }, parts(x, partitionIndices), valueOffsets,.unlistEach=TRUE)
 }
    collect(values)
 })
@@ -82,3 +82,66 @@ findPartitionByIndex <- function(index,cumRowIndex) {
   starting <- ifelse(partition == 0, 0, cumRowIndex[partition])
   c(partition+1,index-starting)
 }
+
+#' @export
+rev.DObject <- function(x) {
+  rev(collect(x))
+}
+
+#' @export
+setMethod("colSums", signature(x="DObject"),
+  function(x, na.rm = FALSE, dims = 1L) {
+    if(is.dlist(x)) stop("colSums is only supported for DArrays and DFrames")  
+
+    # keep nparts == length(parts(x)) to keep data in place without movement
+    columnSumsPerPartition <- 
+      collect(dmapply(function(part,na.rm) colSums(part,na.rm=na.rm), parts(x),
+              MoreArgs=list(na.rm=na.rm),nparts=length(parts(x))))
+
+    colPartitionResults <- lapply(1:nparts(x)[[2]], function(col) {
+                             partitionIds <- seq(col,col+(nparts(x)[[1]]-1)*nparts(x)[[2]],
+                                           by=nparts(x)[[2]])
+                             Reduce("+",
+                                  columnSumsPerPartition[partitionIds])
+                           })
+
+    Reduce("c",colPartitionResults)
+})
+
+#' @export
+setMethod("colMeans", signature(x="DObject"),
+  function(x, na.rm = FALSE, dims = 1L) {
+    if(is.dlist(x)) stop("colMeans is only supported for DArrays and DFrames")  
+
+    columnSums <- colSums(x,na.rm=na.rm)
+    columnSums / nrow(x)
+})
+
+#' @export
+setMethod("rowSums", signature(x="DObject"),
+  function(x, na.rm = FALSE, dims = 1L) {
+    if(is.dlist(x)) stop("rowSums is only supported for DArrays and DFrames")  
+
+    # keep nparts == length(parts(x)) to keep data in place without movement
+    rowSumsPerPartition <- 
+      collect(dmapply(function(part,na.rm) rowSums(part,na.rm=na.rm), parts(x),
+              MoreArgs=list(na.rm=na.rm),nparts=length(parts(x))))
+
+    rowPartitionResults <- lapply(seq(1,1+(nparts(x)[[1]]-1)*nparts(x)[[2]],
+                                      by=nparts(x)[[2]]), function(rowStart) {
+                             partitionIds <- rowStart:(rowStart+nparts(x)[[2]]-1)
+                             Reduce("+",
+                                  rowSumsPerPartition[partitionIds])
+                           })
+
+    Reduce("c",rowPartitionResults)
+})
+
+#' @export
+setMethod("rowMeans", signature(x="DObject"),
+  function(x, na.rm = FALSE, dims = 1L,...) {
+    if(is.dlist(x)) stop("rowMeans is only supported for DArrays and DFrames")  
+
+    rowsSums <- rowSums(x,na.rm=na.rm)
+    rowsSums / ncol(x)
+})

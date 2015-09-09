@@ -80,8 +80,8 @@ setGeneric("get_parts", function(x,index,...) {
 })
 
 #' @export
-dlapply <- function(dobj,FUN,...,.model=NULL) {
-   dmapply(FUN,dobj,MoreArgs=list(...),.model=.model)
+dlapply <- function(dobj,FUN,...,nparts=NULL,combine="flatten",.unlistEach=FALSE) {
+   dmapply(FUN,dobj,MoreArgs=list(...),nparts=nparts,combine=combine,.unlistEach=.unlistEach)
 }
 
 #' @export
