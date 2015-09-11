@@ -70,9 +70,6 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
     if(distributedR::is.dframe(.outObj) && combine=="flatten") 
       stop("Cannot flatten a data frame")
 
-    # to store the dimensions (or length if dlist) of each partition
-    .dimsObj <- distributedR::dlist(npartitions=prod(nparts))
-
     nDobjs = 0
 
     # Create a wrapper executor function
@@ -199,14 +196,13 @@ For better performance, please try to partition your inputs compatibly."))
 
     formals(exec_func)[["MoreArgs"]] <- MoreArgs
     formals(exec_func)[[".newDObj"]] <- substitute(splits(.outObj,index),env=parent.frame())
-    formals(exec_func)[[".dimObj"]] <- substitute(splits(.dimsObj,index),env=parent.frame())
 
     execLine <- paste0(".newDObj <- mapply(.funct,",argsStr,",MoreArgs=MoreArgs,SIMPLIFY=FALSE)")
     
     # Need to convert empty lists to NAs here, because DR can't pass NAs to executors when arg is also using splits()
     insertNAs <- "for (n in ls(all.names=TRUE,envir=parent.frame())) {
                     if(identical(get(n,envir=parent.frame()),list()) && n != 'MoreArgs' 
-                       && n != '.newDObj' && n != '.dimObj') 
+                       && n != '.newDObj') 
                     assign(n,list(NA)) 
                   }"
 
@@ -246,21 +242,10 @@ For better performance, please try to partition your inputs compatibly."))
     nLines <- length(body(exec_func))
 
     body(exec_func)[[nLines+1]] <- substitute(update(.newDObj))
-    if(distributedR::is.dlist(.outObj)) {
-      modLine <- ".dimObj <- list(length(.newDObj))"
-    }
-    else {
-      modLine <- ".dimObj <- list(dim(.newDObj))" 
-    }
 
-    body(exec_func)[[nLines+2]] <- eval(parse(text=paste0("substitute(",modLine,")")),envir=new.env())
-    body(exec_func)[[nLines+3]] <- substitute(update(.dimObj))
- 
     foreach(index,seq(prod(nparts)),exec_func,progress=FALSE) 
 
-    dimensions <- getpartition(.dimsObj)
-
-    psizes <- matrix(unlist(dimensions,recursive=FALSE), ncol=length(dimensions[[1]]),byrow=TRUE)
+    psizes <- partitionsize(.outObj)
 
     if(distributedR::is.dlist(.outObj)) {
       dims <- Reduce("+",psizes)
