@@ -257,3 +257,13 @@ For better performance, please try to partition your inputs compatibly."))
          psize = psizes, dim = dims, nparts=nparts)
   }
 )
+
+# Do not allow DistR to overwrite dds definitions if this package is loaded after dds
+.onAttach <- function(libname, pkgname) {
+  assign("dlist", dds::dlist, envir=globalenv())
+  assign("darray", dds::darray, envir=globalenv())
+  assign("dframe", dds::dframe, envir=globalenv())
+  assign("is.darray", dds::is.darray, envir=globalenv())
+  assign("is.dframe", dds::is.dframe, envir=globalenv())
+  assign("is.dlist", dds::is.dlist, envir=globalenv())
+}

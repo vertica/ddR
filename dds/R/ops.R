@@ -145,3 +145,49 @@ setMethod("rowMeans", signature(x="DObject"),
     rowsSums <- rowSums(x,na.rm=na.rm)
     rowsSums / ncol(x)
 })
+
+#' @export
+setMethod("max", "DObject",
+  function(x,...,na.rm=FALSE) {
+    types <- vapply(list(x,...),function(y) is.darray(y) || is.dframe(y),
+               FUN.VALUE=logical(1))
+
+    if(any(!types)) stop("max is only supported for DArrays and DFrames")    
+
+    # Get maxima for each DObject in the list(...)
+    maxima <- vapply(list(x,...), function(y) {
+       # Get local maxima of every partition
+       localMax <- dmapply(function(part,na.rm) max(part,na.rm=na.rm), parts(y),
+            MoreArgs=list(na.rm=na.rm))
+    
+       # Return maximum of all partitions together
+       max(unlist(collect(localMax)))
+
+    }, FUN.VALUE=numeric(1))    
+
+    # Return maximum of maxima
+    max(maxima)
+})
+
+#' @export
+setMethod("min", "DObject",
+  function(x,...,na.rm=FALSE) {
+    types <- vapply(list(x,...),function(y) is.darray(y) || is.dframe(y),
+               FUN.VALUE=logical(1))
+
+    if(any(!types)) stop("min is only supported for DArrays and DFrames")    
+
+    # Get minima for each DObject in the list(...)
+    minima <- vapply(list(x,...), function(y) {
+       # Get local minima of every partition
+       localMin <- dmapply(function(part,na.rm) min(part,na.rm=na.rm), parts(y),
+            MoreArgs=list(na.rm=na.rm))
+    
+       # Return minimum of all partitions together
+       min(unlist(collect(localMin)))
+
+    }, FUN.VALUE=numeric(1))    
+
+    # Return minimum of minima
+    min(minima)
+})

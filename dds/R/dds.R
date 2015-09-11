@@ -17,6 +17,8 @@
 
 # Current driving backend package. Package global variable
 dds.env <- new.env(emptyenv())
+# Fix for weird methods bug
+dds.env$gc_performed <- FALSE
 
 # Set Driver 
 #' @export
@@ -31,6 +33,9 @@ useBackend <- function(driver, ...) {
   if(!extends(driver@DArrayClass,"DObject")) stop("The driver DArray class does not extend DDS::Dobject")
 
   init(driver, ...)
+      
+  # Fix for weird methods bug
+  dds.env$gc_performed <- FALSE
   dds.env$driver <- driver
 }
 
@@ -64,6 +69,12 @@ setMethod("shutdown","DDSDriver",
 #' @export
 # dispatches on DDSDriver
 setGeneric("do_dmapply", function(driver,func,...,MoreArgs=list(),output.type="DListClass",nparts=NULL,combine="flatten",.unlistEach=FALSE) {
+  # Fix for weird methods bug
+  ## See: http://r.789695.n4.nabble.com/Reference-class-finalize-fails-with-attempt-to-apply-non-function-td4174697.html
+  if(!dds.env$gc_performed){
+     gc()
+     dds.env$gc_performed <- TRUE
+  }
   standardGeneric("do_dmapply")
 })
 
@@ -186,4 +197,8 @@ getBestOutputPartitioning.DDSDriver <- function(driver, ...,nparts=NULL,type=NUL
   }
 
   nparts 
+}
+
+.onAttach <- function(libname, pkgname) {
+  packageStartupMessage("\nWelcome to DDS! You may want to read the user guide vignette under vignettes/ if this is your first time.")
 }
