@@ -105,7 +105,7 @@ setMethod("colSums", signature(x="DObject"),
                                   columnSumsPerPartition[partitionIds])
                            })
 
-    Reduce("c",colPartitionResults)
+  unlist(colPartitionResults)
 })
 
 #' @export
@@ -134,7 +134,7 @@ setMethod("rowSums", signature(x="DObject"),
                                   rowSumsPerPartition[partitionIds])
                            })
 
-    Reduce("c",rowPartitionResults)
+  unlist(rowPartitionResults)
 })
 
 #' @export
@@ -190,4 +190,111 @@ setMethod("min", "DObject",
 
     # Return minimum of minima
     min(minima)
+})
+
+#' @export
+setReplaceMethod("colnames", signature(x = "DObject", value = "list"), definition = function(x,value) {
+  stopifnot(length(value) == length(dim(x)))
+
+  colBoundaries <- cumsum(x@psize[seq(1,nparts(x)[[1]]),2])
+  colBoundaries <- c(0,colBoundaries) + 1
+  colBoundaries <- colBoundaries[seq(length(colBoundaries) -1)]
+
+  # List of vectors for the colnames per sub-matrix (partition)
+  colNamesPartition <- lapply(1:totalParts(x), function(part) {
+                         partitionCol <- part %% (nparts(x)[[1]])
+                         if(partitionCol == 0) partitionCol <- nparts(x)[[1]]
+                        
+                         start <- colBoundaries[partitionCol]
+                         end <- start + x@psize[part,2] - 1
+
+                         value[[2]][start:end]
+                      })
+
+  dmapply(function(x,y) { colnames(x) <- y; x }, parts(x),colNamesPartition, output.type=x@type, combine="row",nparts=nparts(x))
+})
+
+#' @export
+setReplaceMethod("rownames", signature(x = "DObject", value = "list"), definition = function(x,value) {
+  stopifnot(length(value) == length(dim(x)))
+
+  rowBoundaries <- cumsum(x@psize[seq(1,totalParts(x),by=nparts(x)[[2]]),1])
+  rowBoundaries <- c(0,rowBoundaries) + 1
+  rowBoundaries <- rowBoundaries[seq(length(rowBoundaries) -1)]
+
+  # List of vectors for the rownames per sub-matrix (partition)
+  rowNamesPartition <- lapply(1:totalParts(x), function(part) {
+                         partitionRow <- floor((part-1)/(nparts(x)[[1]])) + 1
+                        
+                         start <- rowBoundaries[partitionRow]
+                         end <- start + x@psize[part,1] - 1
+
+                         value[[1]][start:end]
+                      })
+  
+  dmapply(function(x,y) { rownames(x) <- y; x }, parts(x), rowNamesPartition, output.type=x@type, combine="row",nparts=nparts(x))
+})
+
+# Even though we can implement the below by calling colnames and then rownames,
+# it's more efficient to do them both in one dmapply
+#' @export
+setReplaceMethod("dimnames", signature(x = "DObject", value = "list"), definition = function(x,value) {
+  stopifnot(length(value) == length(dim(x)))
+
+  rowBoundaries <- cumsum(x@psize[seq(1,totalParts(x),by=nparts(x)[[2]]),1])
+  rowBoundaries <- c(0,rowBoundaries) + 1
+  rowBoundaries <- rowBoundaries[seq(length(rowBoundaries) -1)]
+
+  colBoundaries <- cumsum(x@psize[seq(1,nparts(x)[[1]]),2])
+  colBoundaries <- c(0,colBoundaries) + 1
+  colBoundaries <- colBoundaries[seq(length(colBoundaries) -1)]
+
+  # List of vectors for the rownames per sub-matrix (partition)
+  rowNamesPartition <- lapply(1:totalParts(x), function(part) {
+                         partitionRow <- floor((part-1)/(nparts(x)[[1]])) + 1
+                        
+                         start <- rowBoundaries[partitionRow]
+                         end <- start + x@psize[part,1] - 1
+
+                         value[[1]][start:end]
+                      })
+
+  # List of vectors for the colnames per sub-matrix (partition)
+  colNamesPartition <- lapply(1:totalParts(x), function(part) {
+                         partitionCol <- part %% (nparts(x)[[1]])
+                         if(partitionCol == 0) partitionCol <- nparts(x)[[1]]
+                        
+                         start <- colBoundaries[partitionCol]
+                         end <- start + x@psize[part,2] - 1
+
+                         value[[2]][start:end]
+                      })
+
+  dmapply(function(x,y,z) { dimnames(x) <- list(y,z); x }, parts(x), rowNamesPartition, colNamesPartition, output.type=x@type, combine="row",nparts=nparts(x))
+})
+
+#' @export
+setMethod("colnames", "DObject",
+  function(x) {
+    getColNames <- parts(x,seq(1,nparts(x)[[2]]))
+
+    colNames <- dmapply(function(x) colnames(x), getColNames)
+    
+    unlist(collect(colNames))
+})
+
+#' @export
+setMethod("rownames", "DObject",
+  function(x) {
+    getRowNames <- parts(x,seq(1,totalParts(x),by=nparts(x)[[2]]))
+
+    rowNames <- dmapply(function(x) rownames(x), getRowNames)
+   
+    unlist(collect(rowNames))
+})
+
+#' @export
+setMethod("dimnames", "DObject",
+  function(x) {
+    list(rownames(x),colnames(x))
 })

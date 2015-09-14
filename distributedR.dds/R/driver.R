@@ -47,6 +47,9 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
     # ids stores the arguments to splits() and the values of the raw arguments in foreach
     ids <- list()
 
+    if(output.type=="DFrameClass" && combine == "flatten")
+      stop("Cannot flatten a data frame")
+
     pieceSize <- floor(length(margs[[1]])/prod(nparts)) + 1
     remainder <- length(margs[[1]]) %% prod(nparts)
 
@@ -64,11 +67,6 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
     } else {
       .outObj <- distributedR::dlist(npartitions=nparts[[1]])
     }
-
-    # We can't flatten (in a nice way) if it's a dframe, so throw an
-    # error here
-    if(distributedR::is.dframe(.outObj) && combine=="flatten") 
-      stop("Cannot flatten a data frame")
 
     nDobjs = 0
 
