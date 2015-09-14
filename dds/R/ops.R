@@ -17,8 +17,9 @@
 
 #' @export
 unique.DObject <- function(x, ...) {
-  unique.per.partition <- dlapply(parts(x),function(x) { unique(x) },.unlistEach=TRUE)
-  unique(collect(unique.per.partition))
+  unique.per.partition <- dlapply(parts(x),function(x) { unique(x) })
+  result <- collect(unique.per.partition)
+  unique(unlist(result,recursive=FALSE))
 }
 
 #' @export
@@ -40,9 +41,9 @@ setMethod("[", c("DObject", "numeric", "missing","ANY"),
     },
    temp,sequences$lengths,SIMPLIFY=FALSE)
 
-   values <- dmapply(function(x,y) { x[y] }, parts(x, partitionIndices), valueOffsets,.unlistEach=TRUE)
+   values <- dmapply(function(x,y) { x[y] }, parts(x, partitionIndices), valueOffsets)
 }
-   collect(values)
+   unlist(collect(values),recursive=FALSE)
 })
 
 #' @export
@@ -195,6 +196,7 @@ setMethod("min", "DObject",
 #' @export
 setReplaceMethod("colnames", signature(x = "DObject", value = "list"), definition = function(x,value) {
   stopifnot(length(value) == length(dim(x)))
+    if(is.dlist(x)) stop("Cannot use colnames on a DList. Use names() instead.")
 
   colBoundaries <- cumsum(x@psize[seq(1,nparts(x)[[1]]),2])
   colBoundaries <- c(0,colBoundaries) + 1
@@ -217,6 +219,7 @@ setReplaceMethod("colnames", signature(x = "DObject", value = "list"), definitio
 #' @export
 setReplaceMethod("rownames", signature(x = "DObject", value = "list"), definition = function(x,value) {
   stopifnot(length(value) == length(dim(x)))
+    if(is.dlist(x)) stop("Cannot use rownames on a DList. Use names() instead.")
 
   rowBoundaries <- cumsum(x@psize[seq(1,totalParts(x),by=nparts(x)[[2]]),1])
   rowBoundaries <- c(0,rowBoundaries) + 1
@@ -240,6 +243,7 @@ setReplaceMethod("rownames", signature(x = "DObject", value = "list"), definitio
 #' @export
 setReplaceMethod("dimnames", signature(x = "DObject", value = "list"), definition = function(x,value) {
   stopifnot(length(value) == length(dim(x)))
+    if(is.dlist(x)) stop("Cannot use dimnames on a DList. Use names() instead.")
 
   rowBoundaries <- cumsum(x@psize[seq(1,totalParts(x),by=nparts(x)[[2]]),1])
   rowBoundaries <- c(0,rowBoundaries) + 1
@@ -276,6 +280,7 @@ setReplaceMethod("dimnames", signature(x = "DObject", value = "list"), definitio
 #' @export
 setMethod("colnames", "DObject",
   function(x) {
+    if(is.dlist(x)) stop("Cannot use colnames on a DList. Use names() instead.")
     getColNames <- parts(x,seq(1,nparts(x)[[2]]))
 
     colNames <- dmapply(function(x) colnames(x), getColNames)
@@ -286,6 +291,7 @@ setMethod("colnames", "DObject",
 #' @export
 setMethod("rownames", "DObject",
   function(x) {
+    if(is.dlist(x)) stop("Cannot use rownames on a DList. Use names() instead.")
     getRowNames <- parts(x,seq(1,totalParts(x),by=nparts(x)[[2]]))
 
     rowNames <- dmapply(function(x) rownames(x), getRowNames)
@@ -296,5 +302,6 @@ setMethod("rownames", "DObject",
 #' @export
 setMethod("dimnames", "DObject",
   function(x) {
+    if(is.dlist(x)) stop("Cannot use dimnames on a DList. Use names() instead.")
     list(rownames(x),colnames(x))
 })
