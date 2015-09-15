@@ -20,23 +20,24 @@ setClassUnion("ParallelObjUnion", c("list","array","data.frame"))
 
 setClass("ParallelObj",contains="DObject",
     slots=list(pObj = "ParallelObjUnion", splits = "numeric"),
-    prototype = prototype(nparts = 1L, psize = matrix(1,1), 
+    prototype = prototype(nparts = c(1L, 1L), psize = matrix(1,1), 
       dim = c(1L,1L)
 ))
 
 setMethod("initialize", "ParallelObj", function(.Object, ...) {
    .Object <- callNextMethod(.Object, ...)
 
+   numparts<-totalParts(.Object)
    #TODO: Fix for data.frame and arrays
    if(length(.Object@pObj)==0) {
     if(.Object@type == "DListClass")  
-       .Object@pObj <- vector("list", .Object@nparts)
+       .Object@pObj <- vector("list", numparts)
     else if(.Object@type == "DArrayClass")
-       .Object@pObj <- vector("list", .Object@nparts)
+       .Object@pObj <- lapply(1:numparts, function(x) array(0, dim=c(0,0)))
     else
-       .Object@pObj  <- vector("list", .Object@nparts) 
+       .Object@pObj  <- lapply(1:numparts, function(x) data.frame())
   
-   .Object@splits <- 1:(.Object@nparts)
+   .Object@splits <- 1:numparts
   }
 
    .Object
@@ -65,12 +66,43 @@ setMethod("get_parts",signature("ParallelObj","integer"),
 #' @export
 setMethod("do_collect",signature("ParallelObj","integer"),
   function(x, parts) {
-    if(identical(x@splits, parts) && length(parts) > 1) {
-       unlist(x@pObj, recursive=FALSE)
-    } else if(length(parts) > 1) {
-      stop("Cannot getpartition on more than one index at a time")
-    }
-   else {
-      unlist(x@pObj[x@splits[[parts]]], recursive=FALSE)
-   }
+ 
+  xparts<-totalParts(x)
+  #We can combine arbitraty subset of lists but not for other objects
+  plen <- length(parts)
+  if(plen> 1 && plen!=xparts && !is.dlist(x)) stop("Cannot collect more than one index at a time for non-list objects")
+
+  if(plen < xparts){
+    #We are extracting 1 partition (for darrays/dframes) or subset (for dlists)
+    res<-x@pObj[x@splits[parts]]
+    #Unlist only if the output had multiple partitions (i.e., nested list)
+    if(plen > 1) return (unlist(res, recursive= FALSE))
+    
+    #We need to return a single partition
+    return (res[[1]])
+
+  }else{  
+
+  #We have to return the full object 
+  #Case 1: object is dlist
+  if(is.dlist(x)){
+	 #Check if unlist results in an empty list. 
+         #This happens when the DObject has just been declared but not initialized any value
+	 if(dim(x)==0) return (x@pObj)
+	 else return (unlist(x@pObj, recursive=FALSE))
+   } else{
+         #Case 2: Object is darray or dframe
+         #We need to reassemble the full array. We stitch partitions from left to right, and then top to bottom
+         #Note that for empty darray/dframe colect returns data.frame() and 0x0 array()
+	 if(all(dim(x)==0)){
+	  if(is.darray(x)) return (array(0, dim=c(0,0)))
+	  else return (data.frame())
+	 }
+	 res<-NULL
+	 for (index in seq(1, xparts, by=nparts(x)[2])){
+             res<-rbind2(res, do.call(cbind,x@pObj[index:(index+nparts(x)[2]-1)]))
+         }
+    	 return (res)
+   } 
+  }
 })

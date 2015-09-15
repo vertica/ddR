@@ -20,14 +20,40 @@ setClassUnion("DistRObj", c("dlist","darray","dframe"))
 
 setClass("DistributedRObj",contains="DObject",
     slots=list(DRObj = "DistRObj", splits = "numeric"),
-    prototype = prototype(nparts = 1L, psize = matrix(1,1), 
+    prototype = prototype(nparts = c(1L,1L), psize = matrix(1,1), 
       dim = c(1L,1L)
 ))
+
+setMethod("initialize", "DistributedRObj", function(.Object, ...) {
+   .Object <- callNextMethod(.Object, ...)
+    
+  if(is.null(.Object@DRObj@dobject_ptr)) {
+   if(.Object@type == "DListClass")
+       .Object@DRObj <- distributedR::dlist(npartitions=totalParts(.Object))
+   else if(.Object@type == "DArrayClass")
+     if(.Object@dim[1] < 1) {
+       .Object@DRObj <- distributedR::darray(npartitions=totalParts(.Object))
+     } else {
+       .Object@DRObj <- distributedR::darray(dim=.Object@dim,blocks=.Object@psize[1,])
+     }
+   else
+     if(.Object@dim[1] < 1) {
+       .Object@DRObj <- distributedR::dframe(npartitions=totalParts(.Object))
+     } else {
+       .Object@DRObj <- distributedR::dframe(dim=.Object@dim,blocks=.Object@psize[1,])
+     }
+
+   .Object@splits <- seq(npartitions(.Object@DRObj))
+
+   }
+
+   .Object
+})
 
 #' @export
 setMethod("get_parts",signature("DistributedRObj","missing"),
   function(x, ...){
-  index = 1:length(x@splits)
+  index = seq(length(x@splits))
  lapply(index,function(b) {
       new("DistributedRObj",DRObj = x@DRObj, splits = x@splits[b],dim = as.integer(x@psize[b,]),psize=matrix(x@psize[b,],nrow=1,ncol=length(x@psize[b,])))
     })
@@ -55,3 +81,26 @@ setMethod("do_collect",signature("DistributedRObj","integer"),
       getpartition(x@DRObj,x@splits[[parts]])
    }
 })
+
+setMethod("combine",signature(driver="DistributedRDDS",items="list"),
+  function(driver,items){
+    split_indices <- sapply(items,function(x) {
+      x@splits
+    })
+    dims <- sapply(items,function(x) {
+      x@dim
+    })
+
+    psizes <- sapply(items,function(x) {
+      x@psize
+    })
+
+    if(is.matrix(dims)) dims <- colSums(dims)
+    else dims <- sum(dims) 
+
+    psizes <- as.matrix(psizes)
+    rownames(psizes) <- NULL
+
+    new("DistributedRObj",DRObj=items[[1]]@DRObj,splits = unlist(split_indices), dim = dims, psize = psizes)
+  }
+)

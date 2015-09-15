@@ -21,11 +21,11 @@
 #' @export
 collect <- function(dobj, index=NULL) { 
   if(is.null(index)) {
-    index <- 1:nparts(dobj)
+    index <- seq(totalParts(dobj))
   }
 
   index <- as.integer(unlist(index))
-  stopifnot(max(index) <= nparts(dobj) && min(index) > 0)
+  stopifnot(max(index) <= totalParts(dobj) && min(index) > 0)
 
   # Try to get data from backend all at once
   # If the backend does not support this, we'll have to stitch it together by ourselves
@@ -53,12 +53,12 @@ parts <- function(dobj, index=NULL) {
     }
   }
 
-  if(is.null(index)) index = 1:nparts(dobj) 
+  if(is.null(index)) index = seq(totalParts(dobj))
   index <- unlist(index)
   stopifnot(is.numeric(index))
   index <- as.integer(index)
 
-  if(max(index) > dobj@nparts)
+  if(max(index) > totalParts(dobj))
     stop("Partition index must be smaller than total number of partitions.")
  
   if(min(index) < 1)
@@ -66,10 +66,10 @@ parts <- function(dobj, index=NULL) {
 
   partitions <- get_parts(dobj, index)
 
-  psize <- lapply(1:nrow(dobj@psize),function(i) dobj@psize[i,])[index]
+  psize <- lapply(seq(nrow(dobj@psize)),function(i) dobj@psize[i,])[index]
 
   partitions <- mapply(FUN=function(obj,psize) {
-    obj@nparts <- 1L
+    obj@nparts <- c(1L, 1L)
     obj@backend <- dds.env$driver@backendName
     obj@type <- dobj@type 
     obj@psize <- matrix(psize,nrow=1,ncol=length(psize))
@@ -81,6 +81,13 @@ parts <- function(dobj, index=NULL) {
   partitions
 }
 
+#Returns the total number of partitions (i.e., product of all dimensions of obj@nparts)
+#' @export
+totalParts <- function(dobj) {
+  prod(dobj@nparts)
+}
+
+#Returns the vector with partitions in each dimension (currently 2D)
 #' @export
 nparts <- function(dobj) {
   dobj@nparts
@@ -89,20 +96,20 @@ nparts <- function(dobj) {
 #' @export
 # TODO: finish definitions, slots
 setClass("DObject",
-  representation(nparts = "integer", psize = "matrix",
-          dim = "integer", dim.names = "list", backend = "character", type = "character"),
-  prototype = prototype(nparts = 1L,psize = matrix(1,1),
+  representation(nparts = "numeric", psize = "matrix",
+          dim = "numeric", dim.names = "list", backend = "character", type = "character"),
+  prototype = prototype(nparts = c(1L, 1L),psize = matrix(1,1),
               dim = c(1L), dim.names = list()))
 
 #' @export
 dlist <- function(...,nparts = 1L, psize=matrix(1,1)) {
-  nparts = as.integer(nparts)
-  psize = matrix(0L,nparts)
+  nparts = c(as.integer(nparts), 1L) #The second dimension is always 1 for dlists
+  psize = matrix(0L,nparts[1])
   initialize <- list(...)
   if(length(initialize) == 0) {
     new(dds.env$driver@DListClass,backend=dds.env$driver@backendName,type = "DListClass", nparts = nparts, psize = psize, dim = 0L)
   } else{
-    dmapply(function(x){ list(x) }, initialize)
+    dmapply(function(x){ x }, initialize)
   }
 }
 
@@ -119,13 +126,13 @@ as.dlist <- function(items) {
 
   if(is.dobject(items[[1]])) {
     newobj <- combine(dds.env$driver,items)
-    newobj@nparts <- length(items)
+    newobj@nparts <- c(length(items), 1L)
     newobj@backend <- dds.env$driver@backendName
     newobj@type <- "DListClass"
     return(newobj)
-    }
+  }
 
-   dmapply(function(x) { list(x) }, items)
+   dmapply(function(x) { x }, items)
 }
 
 #' @export
@@ -157,33 +164,31 @@ darray <- function(...,nparts = NULL, psize = NULL, dim = NULL) {
     # Test for legality of dim and psize specifications
     stopifnot(length(psize) > 0)
     stopifnot(length(psize) == length(dim))
-    nparts <- 1L
 
-    for(dimension in seq(1,length(psize))) {
-      numdim <- dim[dimension]/psize[dimension]
-
-      # must be an integer value
-      stopifnot(as.integer(numdim) == numdim)
-      nparts <- as.integer(nparts * numdim)
-    }
+    #TODO (iR):Add more sanity checks on dim and psize
+    nparts <-  c(ceiling(dim[1]/psize[1]), ceiling(dim[2]/psize[2]))
 
     # Create number of rows equal to number of parts
     psize <- t(matrix(psize))
-    psize <- psize[rep(seq_len(nrow(psize)), nparts),] 
+    psize <- psize[rep(seq_len(nrow(psize)), prod(nparts)),] 
 
   }
 
  # If all are NULL, then initialize to some default
   if(is.null(nparts)) {
-    nparts <- 1L
+    nparts <- c(1L, 1L)
   }
 
   if(is.null(dim)) {
-    psize <- matrix(0L,nparts,2)
+    psize <- matrix(0L,prod(nparts),2)
     dim <- c(0L,0L)
   }
 
+  #Check that nparts should be two dimensional
+  if(length(nparts)==1) nparts <- c(1L,nparts)
+  if(length(nparts)!=2) stop("length(nparts) should be two: current nparts", nparts)
   nparts <- as.integer(nparts)
+  
   dim <- as.integer(dim)
 
   initialize <- list(...)
@@ -191,7 +196,7 @@ darray <- function(...,nparts = NULL, psize = NULL, dim = NULL) {
   if(length(initialize)==0) {
     new(dds.env$driver@DArrayClass,backend=dds.env$driver@backendName,type = "DArrayClass", nparts = nparts, psize = psize, dim=dim)
   } else{
-    dmapply(function(x){ matrix(x) }, initialize, FUN.VALUE=matrix())
+    dmapply(function(x){ matrix(x) }, initialize, output.type="DArrayClass",nparts=nparts)
   }
 }
 
@@ -217,33 +222,31 @@ dframe <- function(...,nparts = NULL, psize = NULL, dim = NULL) {
     # Test for legality of dim and psize specifications
     stopifnot(length(psize) > 0)
     stopifnot(length(psize) == length(dim))
-    nparts <- 1L
 
-    for(dimension in seq(1,length(psize))) {
-      numdim <- dim[dimension]/psize[dimension]
+    #TODO (iR):Add more sanity checks on dim and psize
+    nparts <-  c(ceiling(dim[1]/psize[1]), ceiling(dim[2]/psize[2]))
 
-      # must be an integer value
-      stopifnot(as.integer(numdim) == numdim)
-      nparts <- as.integer(nparts * numdim)
-    }
-  
     # Create number of rows equal to number of parts
     psize <- t(matrix(psize))
-    psize <- psize[rep(seq_len(nrow(psize)), nparts),] 
+    psize <- psize[rep(seq_len(nrow(psize)), prod(nparts)),] 
 
   }
 
   # If all are NULL, then initialize to some default
   if(is.null(nparts)) {
-    nparts <- 1L
+    nparts <- c(1L, 1L)
   }
 
   if(is.null(dim)) {
-    psize <- matrix(0L,nparts,2)
+    psize <- matrix(0L,prod(nparts),2)
     dim <- c(0L,0L)
   }
 
+  #Check that nparts should be two dimensional
+  if(length(nparts)==1) nparts <- c(1L,nparts)
+  if(length(nparts)!=2) stop("length(nparts) should be two")
   nparts <- as.integer(nparts)
+
   dim <- as.integer(dim)
 
   initialize <- list(...)
@@ -251,7 +254,7 @@ dframe <- function(...,nparts = NULL, psize = NULL, dim = NULL) {
   if(length(initialize)==0) {
     new(dds.env$driver@DFrameClass,backend=dds.env$driver@backendName,type = "DFrameClass", nparts = nparts, psize = psize, dim=dim)
   } else{
-    dmapply(function(x){ data.frame(x) }, initialize, FUN.VALUE=data.frame())
+    dmapply(function(x){ data.frame(x) }, initialize, output.type="DFrameClass",nparts=nparts,combine="col")
   }
 }
 
@@ -274,7 +277,7 @@ setMethod("show",signature("DObject"),function(object) {
 
   limit <- min(10,dim(object@psize)[[1]])
 
-  for(i in 1:limit) {
+  for(i in seq(limit)) {
     if(i>1) partsStr <- paste0(partsStr,", ")
     dims <- paste0("",object@psize[i,],collapse=", ")
     partsStr <- paste0(partsStr,"[",dims,"]")
@@ -284,13 +287,16 @@ setMethod("show",signature("DObject"),function(object) {
     partsStr <- paste0(partsStr,", ...")
   }
 
-  printStr <- paste0("\nType: ", object@type,"\nnparts: ", object@nparts,"\npsize: ", partsStr, "\ndim: ", paste(object@dim,collapse=","), "\nBackend Type: ", object@backend,"\n")
- cat(printStr) 
+  printStr <- paste0("\nType: ", object@type,"\nNo. of Partitions: ", totalParts(object), "\nnparts: ", paste(object@nparts,collapse=","),"\npsize: ", partsStr, "\ndim: ", paste(object@dim,collapse=","), "\nBackend Type: ", object@backend,"\n")
+
+  cat(printStr) 
 })
 
 #' @export
 length.DObject <- function(x) {
-  if(is.dlist(x)) x@dim
+  if(is.dlist(x)) dim(x)[[1]]
+  else if(is.darray(x)) prod(dim(x))
+  else dim(x)[[2]]
 }
 
 #' @export
@@ -303,11 +309,11 @@ names.DObject <- function(x) {
 setReplaceMethod("names", signature(x = "DObject", value = "ANY"), definition = function(x,value) {
   stopifnot(length(value) == length(x))
 
-  lens <- mapply(function(x) { prod(x) }, data.frame(t(x@psize)),SIMPLIFY=FALSE)
+  lens <- sapply(data.frame(t(x@psize)), function(x) { prod(x) })
 
-  limits <- cumsum(unlist(lens)) 
+  limits <- cumsum(lens)
   limits <- c(0,limits) + 1
-  limits <- limits[1:(length(limits)-1)]
+  limits <- limits[seq(length(limits)-1)]
 
   
   namesList <- mapply(function(x,y) {
@@ -315,8 +321,7 @@ setReplaceMethod("names", signature(x = "DObject", value = "ANY"), definition = 
    },
   limits,lens,SIMPLIFY=FALSE)
 
-
-  dmapply(function(x,y) { names(x) <- y; x }, parts(x), namesList) 
+  dmapply(function(x,y) { names(x) <- y; x }, parts(x), namesList,.unlistEach=TRUE, nparts=totalParts(x)) 
 })
 
 #' @export
@@ -333,52 +338,55 @@ repartition <- function(dobj, skeleton) {
 repartition.DObject <- function(dobj,skeleton) {
  
    verticalValues <- NULL
+   horizontalValues <- NULL
    index <- 0
    dims <- length(dim(skeleton))
 
    stopifnot(dim(dobj) == dim(skeleton))
 
-   while(is.null(verticalValues) || tail(verticalValues,n=1L) < dim(dobj)[[1]]) {
-     if(is.null(verticalValues)) prevMax <- 0
-     else prevMax <- verticalValues[index]
-     index <- index + 1
-     verticalValues <- c(verticalValues,dobj@psize[index,][[1]] + prevMax)
-   }
-
-   nparts_per_row <- index
-
-   horizontalValues <- NULL
-    
-   if(dims > 1) {
-     count <- 0
+  if(dims > 1) {
      while(is.null(horizontalValues) || tail(horizontalValues,n=1L) < dim(dobj)[[2]]) {
        if(is.null(horizontalValues)) prevMax <- 0
-       else prevMax <- horizontalValues[count]
+       else prevMax <- horizontalValues[index]
+       index <- index + 1
        horizontalValues <- c(horizontalValues,dobj@psize[index,][[2]] + prevMax)
-       index <- index + nparts_per_row
-       count <- count + 1
      }
+   }
+
+   nparts_per_row <- ifelse(dims > 1, index, 1)
+
+   count <- 0
+   if(index==0) index <- 1
+
+   while(is.null(verticalValues) || tail(verticalValues,n=1L) < dim(dobj)[[1]]) {
+     if(is.null(verticalValues)) prevMax <- 0
+     else prevMax <- verticalValues[count]
+     verticalValues <- c(verticalValues,dobj@psize[index,][[1]] + prevMax)
+     index <- index + nparts_per_row
+     count <- count + 1
    }
 
   cur_row <- 0
   cur_col <- 0
   index <- 0
 
-  starts_and_ends <- matrix(0,nparts(skeleton),4)
+  starts_and_ends <- matrix(0,totalParts(skeleton),4)
 
-  while(index < nparts(skeleton)) {
+  if(dims > 1) {
+    col_end <- dim(skeleton)[[2]]
+  } else {
+    col_end <- 0
+  }
 
-    if(cur_row >= dim(skeleton)[[1]]) {
-      if(dims == 1) break;
-      cur_row <- 0
-      cur_col <- cur_col + skeleton@psize[index,2]
-    }
+  while(index < totalParts(skeleton)) {
 
     index <- index + 1
 
     start_x <- cur_row + 1  
     end_x <- cur_row + skeleton@psize[index,1]
+
     start_y <- cur_col + 1
+
     if(dims > 1) {
       end_y <- cur_col + skeleton@psize[index,2]
     } else {
@@ -386,9 +394,14 @@ repartition.DObject <- function(dobj,skeleton) {
     }
  
     starts_and_ends[index,] <- c(start_x,end_x,start_y,end_y)
-    cur_row <- end_x
-  }
 
+    cur_col <- end_y
+
+    if(cur_col >= col_end) {
+      cur_col <- 0
+      cur_row <- cur_row + skeleton@psize[index,1]
+    }
+  }
 
   if(dims==1) {
     partitionIdsAndOffsets <- mapply(getIdsAndOffsets,starts_and_ends[,1],starts_and_ends[,2],starts_and_ends[,3],starts_and_ends[,4],MoreArgs=list(vertical=verticalValues,psizes=dobj@psize),SIMPLIFY=FALSE)
@@ -405,7 +418,8 @@ repartition.DObject <- function(dobj,skeleton) {
      }
   }
 
-  dmapplyArgs <- lapply(1:(max_parts*3), function(x) {
+
+  dmapplyArgs <- lapply(seq((max_parts*3)), function(x) {
                              ind <- ceiling(x/3)
                              if(x %% 3 == 1) field = "parts"
                              else if (x %% 3 == 2) field = "starts"
@@ -418,6 +432,7 @@ repartition.DObject <- function(dobj,skeleton) {
                                    })
                            })
 
+
   repartitioner <- function(...,psize,type) {
     
     dataPartitions <- list(...)
@@ -429,7 +444,7 @@ repartition.DObject <- function(dobj,skeleton) {
 
     if(type=="DListClass") {
       output <- list()    
-    } else if(type=="DFrameClass"){
+    } else if(type=="DFrameClass") {
       output <- data.frame(matrix(0,psize[[1]],psize[[2]]))
     } else {
       output <- matrix(0,psize[[1]],psize[[2]])
@@ -438,30 +453,32 @@ repartition.DObject <- function(dobj,skeleton) {
     currentPosition <- rep(1,dims)
 
     while(index <= length(dataPartitions) - 2 && !is.na(dataPartitions[[index]])) {
+
       oldPartition <- dataPartitions[[index]]
+  
       start <- dataPartitions[[index+1]]
       end <- dataPartitions[[index+2]]
       endingPosition <- currentPosition + end - start
+
       if(type=="DListClass") {
         output[currentPosition:endingPosition] <- oldPartition[start:end]
       } else {
         output[currentPosition[[1]]:endingPosition[[1]],currentPosition[[2]]:endingPosition[[2]]] <-
         oldPartition[start[[1]]:end[[1]],start[[2]]:end[[2]]]
       }
+
       index <- index + 3
 
       if(dims > 1) {
-        if(psize[[1]] > endingPosition[[1]]) {
-          currentPosition <- c(endingPosition[[1]]+1,currentPosition[[2]])
+        if(psize[[2]] > endingPosition[[2]]) {
+          currentPosition <- c(currentPosition[[1]],endingPosition[[2]]+1)
         } else { 
-          currentPosition <- c(1,endingPosition[[2]]+1)
+          currentPosition <- c(endingPosition[[1]]+1,1)
         }
       } else {
         currentPosition <- endingPosition + 1
       }
-
     }
-
     output 
   }
 
@@ -469,39 +486,47 @@ repartition.DObject <- function(dobj,skeleton) {
   else if(skeleton@type == "DArrayClass") type = matrix(1)
   else type = data.frame(1)
 
-  dmapplyArgs <- c(FUN=repartitioner,dmapplyArgs,psize=list(as.list(data.frame(t(skeleton@psize)))),MoreArgs=list(list(type=skeleton@type)),FUN.VALUE=list(type))
+  if(skeleton@type == "DListClass") .unlistEach=TRUE
+  else .unlistEach=FALSE
+
+  dmapplyArgs <- c(FUN=repartitioner,dmapplyArgs,psize=list(as.list(data.frame(t(skeleton@psize)))),MoreArgs=list(list(type=skeleton@type)),output.type=list(skeleton@type),combine=list("row"),.unlistEach=list(.unlistEach))
 
   do.call(dmapply,dmapplyArgs)
-
 }
 
 # Given a starting x and y range, get the full list of partition ids and offsets
 getIdsAndOffsets <- function(start_x,end_x,start_y,end_y,vertical,horizontal=NULL,psizes) {
 
-   # Top left corner
+  # Top left corner
   start_x_start_y <- getCorners(start_x,start_y,vertical,horizontal)
 
   # Bottom right corner
   end_x_end_y <- getCorners(end_x,end_y,vertical,horizontal)
 
-  lenAcross <- floor((end_x_end_y[[1]]-start_x_start_y[[1]])/length(vertical))
+  if(!is.null(horizontal)) {
+    lenVertical <- floor((end_x_end_y[[1]]-start_x_start_y[[1]])/length(horizontal))
+  } else {
+    lenVertical <- end_x_end_y[[1]]-start_x_start_y[[1]]
+  }
 
   if(is.null(horizontal)) {
     start_x_end_y <- start_x_start_y
     end_x_start_y <- end_x_end_y
   } else {
-    start_x_end_y <- list(lenAcross*length(vertical) + start_x_start_y[[1]], c(start_x_start_y[[2]][[1]],end_x_end_y[[2]][[2]]))
-    end_x_start_y <- list(end_x_end_y[[1]] - lenAcross*length(vertical), c(end_x_end_y[[2]][[1]],start_x_start_y[[2]][[2]]))
+    start_x_end_y <- list(end_x_end_y[[1]] - lenVertical*length(horizontal),c(start_x_start_y[[2]][[1]],end_x_end_y[[2]][[2]]))
+    end_x_start_y <- list(lenVertical*length(horizontal) + start_x_start_y[[1]], c(end_x_end_y[[2]][[1]],start_x_start_y[[2]][[2]])) 
   }
 
-  lenVertical <- end_x_start_y[[1]]-start_x_start_y[[1]]
+  lenHorizontal <- start_x_end_y[[1]]-start_x_start_y[[1]]
 
-  partitions_range <- start_x_start_y[[1]]:end_x_start_y[[1]] 
+  if(is.null(horizontal)) partitions_range <- start_x_start_y[[1]]:end_x_end_y[[1]]
+  else partitions_range <- start_x_start_y[[1]]:start_x_end_y[[1]] 
+  
   partitions <- partitions_range
 
-  if(lenAcross > 0) {
-    for(i in 1:lenAcross) {
-      partitions <- c(partitions,partitions_range+length(vertical)*i)
+  if(lenVertical > 0 && !is.null(horizontal)) {
+    for(i in seq(lenVertical)) {
+      partitions <- c(partitions,partitions_range+length(horizontal)*i)
     }
   }
 
@@ -510,36 +535,41 @@ getIdsAndOffsets <- function(start_x,end_x,start_y,end_y,vertical,horizontal=NUL
   if(is.null(horizontal)) {
     offset_start <- c(offset_start,rep(list(1),lenVertical))
   } else {
-    offset_start <- c(offset_start,rep(list(c(1,start_x_start_y[[2]][[2]])),lenVertical))
+    offset_start <- c(offset_start,rep(list(c(start_x_start_y[[2]][[1]],1)),lenHorizontal))
   }
 
-  if(lenAcross > 0) {
-    for(i in 1:lenAcross) {
-       offset_start <- c(offset_start,list(c(start_x_start_y[[2]][[1]],1)))
-       offset_start <- c(offset_start,rep(list(c(1,1)),lenVertical))
+  if(lenVertical > 0 && !is.null(horizontal)) {
+    for(i in seq(lenVertical)) {
+       offset_start <- c(offset_start,list(c(1,start_x_start_y[[2]][[2]])))
+       offset_start <- c(offset_start,rep(list(c(1,1)),lenHorizontal))
     }
   }
 
   offset_end <- list(end_x_end_y[[2]])
-  partitionIdCol <- seq(end_x_end_y[[1]]-lenVertical,end_x_end_y[[1]]-1)
-  
-  partitionIdCol <- rev(partitionIdCol)
 
-  if(lenVertical > 0) {
+  partitionIdRow <- seq(end_x_end_y[[1]]-lenHorizontal,end_x_end_y[[1]]-1)
+  partitionIdRow <- rev(partitionIdRow)
+
+  partitionIdCol <- rev(seq(start_x_start_y[[1]],end_x_end_y[[1]]-1))
+
+  if(lenHorizontal > 0 || is.null(horizontal)) {
     if(is.null(horizontal)) {
-      offset_end <- c(offset_end,lapply(partitionIdCol,function(x) { psizes[x,1] } ))}  else {
-      offset_end <- c(offset_end,lapply(partitionIdCol,function(x) { c(psizes[x,1],end_x_end_y[[2]][[2]]) }))
+      if(lenVertical > 0) {
+        offset_end <- c(offset_end,lapply(partitionIdCol,function(x) { psizes[x,1] } ))
+      }
+    } else {
+      offset_end <- c(offset_end,lapply(partitionIdRow,function(x) { c(end_x_end_y[[2]][[1]],psizes[x,2]) }))
     } 
   }  
 
-  if(lenAcross > 0) {
-    for(i in 1:lenAcross) {
-      endPartition <- end_x_end_y[[1]] - i*length(vertical)
-      partitionIdCol <- seq(endPartition - lenVertical,endPartition-1)
-      partitionIdCol <- rev(partitionIdCol)
-      offset_end <- c(offset_end,list(c(end_x_end_y[[2]][[1]],psizes[endPartition,2])))
-      if(lenVertical > 0) {
-        offset_end <- c(offset_end,lapply(partitionIdCol,function(x) { psizes[x,] }))
+  if(lenVertical > 0 && !is.null(horizontal)) {
+    for(i in seq(lenVertical)) {
+      endPartition <- end_x_end_y[[1]] - i*length(horizontal)
+      partitionIdRow <- seq(endPartition - lenHorizontal,endPartition-1)
+      partitionIdRow <- rev(partitionIdRow)
+      offset_end <- c(offset_end,list(c(psizes[endPartition,1],end_x_end_y[[2]][[2]])))
+      if(lenHorizontal > 0) {
+        offset_end <- c(offset_end,lapply(partitionIdRow,function(x) { psizes[x,] }))
       }
     }
   }
@@ -556,9 +586,11 @@ getCorners <- function(x,y,vertical,horizontal=NULL) {
   times <- ifelse(is.null(horizontal),1,2)
   indices <- NULL
   offsets <- NULL
-  numPerCol <- length(vertical)
+
+  if(!is.null(horizontal))
+    numPerRow <- length(horizontal)
   
-  for(i in 1:times) {
+  for(i in seq(times)) {
     lower <- 1
     upper <- ifelse(i==1,length(vertical),length(horizontal))
 
@@ -604,7 +636,7 @@ getCorners <- function(x,y,vertical,horizontal=NULL) {
   if(length(indices) == 1) {
     partition_id <- indices[[1]]
   } else {
-    partition_id <- indices[[1]] + (indices[[2]]-1) * numPerCol
+    partition_id <- numPerRow*(indices[[1]]-1) + indices[[2]]
   }
 
   list(partition_id,offsets)
