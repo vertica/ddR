@@ -155,7 +155,7 @@ setMethod("max", "DObject",
 
     if(any(!types)) stop("max is only supported for DArrays and DFrames")    
 
-    # Get maxima for each DObject in the list(...)
+    # Get maxima for each DObject in the list(x,...)
     maxima <- vapply(list(x,...), function(y) {
        # Get local maxima of every partition
        localMax <- dmapply(function(part,na.rm) max(part,na.rm=na.rm), parts(y),
@@ -178,7 +178,7 @@ setMethod("min", "DObject",
 
     if(any(!types)) stop("min is only supported for DArrays and DFrames")    
 
-    # Get minima for each DObject in the list(...)
+    # Get minima for each DObject in the list(x,...)
     minima <- vapply(list(x,...), function(y) {
        # Get local minima of every partition
        localMin <- dmapply(function(part,na.rm) min(part,na.rm=na.rm), parts(y),
@@ -304,4 +304,32 @@ setMethod("dimnames", "DObject",
   function(x) {
     if(is.dlist(x)) stop("Cannot use dimnames on a DList. Use names() instead.")
     list(rownames(x),colnames(x))
+})
+
+#' @export
+setMethod("sum", "DObject",
+  function(x,...,na.rm=FALSE) {
+    types <- vapply(list(x,...),function(y) is.darray(y) || is.dframe(y),
+               FUN.VALUE=logical(1))
+
+    if(any(!types)) stop("sum is only supported for DArrays and DFrames")
+
+    # Get sums of every dobject in the list(x,...) 
+    sums <- vapply(list(x,...), function(y) {
+       curSum <- sum(rowSums(y,na.rm=na.rm))
+
+    }, FUN.VALUE=numeric(1))
+
+    # Return sum of sums
+    sum(sums)
+})
+
+#' @export
+setMethod("mean", "DObject",
+  function(x,trim=0,na.rm=FALSE,...) {
+
+    if(!is.darray(x) && !is.dframe(x)) stop("mean is only supported for DArrays and DFrames")
+    if(trim !=0) stop("non-zero trim is currently not supported")
+
+    mean(rowMeans(x,na.rm=na.rm))
 })
