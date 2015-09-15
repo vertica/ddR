@@ -65,9 +65,10 @@ test_that("parts-wise multimodal dmapply works", {
   answer <- dmapply(function(x,y,z) {
                       list(is.list(x),is.matrix(y),is.data.frame(z),
                            length(x), sum(y), sum(z))
-                    }, parts(test_dlist), parts(test_darray), parts(test_dframe),.unlistEach=TRUE)
+                    }, parts(test_dlist), parts(test_darray), parts(test_dframe),.unlistEach=FALSE)
 
-  expect_equal(collect(answer),list(TRUE,TRUE,TRUE,2,3,10,TRUE,TRUE,TRUE,2,7,26))
+  #expect_equal(collect(answer),list(TRUE,TRUE,TRUE,2,3,10,TRUE,TRUE,TRUE,2,7,26)) #Case when unlistEach=TRUE
+  expect_equal(collect(answer),list(list(TRUE,TRUE,TRUE,2,3,10), list(TRUE,TRUE,TRUE,2,7,26)))
 })
 
 # We will apply columnwise for test_dframe, elementWise (column-major order) for test_darray
