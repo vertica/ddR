@@ -155,7 +155,7 @@ setMethod("max", "DObject",
 
     if(any(!types)) stop("max is only supported for DArrays and DFrames")    
 
-    # Get maxima for each DObject in the list(...)
+    # Get maxima for each DObject in the list(x,...)
     maxima <- vapply(list(x,...), function(y) {
        # Get local maxima of every partition
        localMax <- dmapply(function(part,na.rm) max(part,na.rm=na.rm), parts(y),
@@ -178,7 +178,7 @@ setMethod("min", "DObject",
 
     if(any(!types)) stop("min is only supported for DArrays and DFrames")    
 
-    # Get minima for each DObject in the list(...)
+    # Get minima for each DObject in the list(x,...)
     minima <- vapply(list(x,...), function(y) {
        # Get local minima of every partition
        localMin <- dmapply(function(part,na.rm) min(part,na.rm=na.rm), parts(y),
@@ -304,4 +304,200 @@ setMethod("dimnames", "DObject",
   function(x) {
     if(is.dlist(x)) stop("Cannot use dimnames on a DList. Use names() instead.")
     list(rownames(x),colnames(x))
+})
+
+#' @export
+setMethod("sum", "DObject",
+  function(x,...,na.rm=FALSE) {
+    types <- vapply(list(x,...),function(y) is.darray(y) || is.dframe(y),
+               FUN.VALUE=logical(1))
+
+    if(any(!types)) stop("sum is only supported for DArrays and DFrames")
+
+    # Get sums of every dobject in the list(x,...) 
+    sums <- vapply(list(x,...), function(y) {
+       curSum <- sum(rowSums(y,na.rm=na.rm))
+
+    }, FUN.VALUE=numeric(1))
+
+    # Return sum of sums
+    sum(sums)
+})
+
+#' @export
+setMethod("mean", "DObject",
+  function(x,trim=0,na.rm=FALSE,...) {
+
+    if(!is.darray(x) && !is.dframe(x)) stop("mean is only supported for DArrays and DFrames")
+    if(trim !=0) stop("non-zero trim is currently not supported")
+
+    mean(rowMeans(x,na.rm=na.rm))
+})
+
+#' @export
+setGeneric("rbind",
+    function(..., deparse.level=1) standardGeneric("rbind"),
+    signature = "...")
+
+#' @export
+setGeneric("cbind",
+    function(..., deparse.level=1) standardGeneric("cbind"),
+    signature = "...")
+
+#' @export
+setMethod("rbind", "DObject",
+  function(...,deparse.level = 1) {
+
+   types <- sapply(list(...),function(y) y@type)
+
+   if(any((types!="DArrayClass") & (types != "DFrameClass"))) stop("rbind is only supported for DArrays and DFrames")
+
+   ncols <- vapply(list(...), function(obj) ncol(obj), FUN.VALUE=numeric(1))
+   if(min(ncols) != max(ncols)) stop("All inputs should have the same number of columns")
+
+   x <- list(...)[[1]]
+
+   # The output is a DArray if only DArrays are present. Otherwise,
+   # it is a DFrame.
+   if(any(types=="DFrameClass")) out.type = "DFrameClass"
+   else out.type = "DArrayClass" 
+
+   # Ensure that colwise partitions have the same dimensions
+   # If they don't, repartition the incompatible object to be the 
+   # same colwise partitioning as the first object (x)
+
+   colWidths <- x@psize[seq(nparts(x)[[2]]),2]
+
+   dobjs <- lapply(list(...), function(obj) {
+              if(identical(obj@psize[seq(nparts(obj)[[2]]),2],colWidths))
+                return(obj)
+              else {
+                if(obj@type == "DFrameClass") 
+                  skeleton <- dframe(nparts=c(nparts(obj)[[1]],nparts(x)[[2]]))
+                else 
+                  skeleton <- darray(nparts=c(nparts(obj)[[1]],nparts(x)[[2]]))
+
+                  row_psize <- obj@psize[seq(1,totalParts(obj),by=nparts(obj)[[2]]),1]
+                  col_psize <- x@psize[seq(nparts(x)[[2]]),2]
+                  
+                  skeleton@psize <- t(vapply(seq(totalParts(skeleton)),
+                    function(i) { 
+                      curRow <- floor((i-1)/nparts(x)[[2]]) + 1
+                      curCol <- ((i-1) %% nparts(x)[[2]]) + 1 
+                      c(row_psize[[curRow]],col_psize[[curCol]])                          
+                    }, FUN.VALUE=numeric(2)))
+
+                  skeleton@dim <- obj@dim
+                  repartition(obj,skeleton)
+              }
+            })
+
+   totRowParts <- sum(vapply(dobjs,function(obj) nparts(obj)[[1]],FUN.VALUE=numeric(1)))
+   nPartsResult <- c(totRowParts,nparts(x)[[2]])
+
+   totPartsPerObj <- vapply(dobjs,function(obj) totalParts(obj), FUN.VALUE=numeric(1))
+   totParts <- sum(totPartsPerObj)
+   totPartsPerObj <- c(0,cumsum(totPartsPerObj))
+   
+   # Splitting into multiple separate arguments since currently DistR does not support parts() lists of mixed DObjects...fill blanks with NAs
+   dmapplyArgs <- lapply(seq(length(dobjs)),function(ind) {
+                     start <- totPartsPerObj[[ind]] + 1
+                     end <- totPartsPerObj[[ind+1]]
+                     out <- as.list(rep(NA,start-1))
+                     out <- c(out,parts(dobjs[[ind]]))
+                     c(out,as.list(rep(NA,totParts-end)))
+                  })
+
+   fillFunction <- function(...) {
+     partitions <- list(...)
+     for(i in seq(length(partitions))) {
+       if(!is.na(partitions[[i]])) return(partitions[[i]])
+     }
+   }
+
+   dmapplyArgs <- c(FUN=fillFunction,dmapplyArgs,output.type=list(out.type),combine=list("row"),nparts=list(nPartsResult))
+
+   do.call(dmapply,dmapplyArgs)
+})
+
+#' @export
+setMethod("cbind", "DObject",
+  function(...,deparse.level = 1) {
+
+   types <- sapply(list(...),function(y) y@type)
+
+   if(any((types!="DArrayClass") & (types != "DFrameClass"))) stop("cbind is only supported for DArrays and DFrames")
+   nrows <- vapply(list(...), function(obj) nrow(obj), FUN.VALUE=numeric(1))
+   if(min(nrows) != max(nrows)) stop("All inputs should have the same number of rows")
+
+   x <- list(...)[[1]]
+
+   # The output is a DArray if only DArrays are present. Otherwise,
+   # it is a DFrame.
+   if(any(types=="DFrameClass")) out.type = "DFrameClass"
+   else out.type = "DArrayClass" 
+
+   # Ensure that colwise partitions have the same dimensions
+   # If they don't, repartition the incompatible object to be the 
+   # same colwise partitioning as the first object (x)
+
+   rowWidths <- x@psize[seq(1,totalParts(x),by=nparts(x)[[2]]),1]
+
+   dobjs <- lapply(list(...), function(obj) {
+              if(identical(obj@psize[seq(1,totalParts(obj),by=nparts(obj)[[2]]),1],rowWidths))
+                return(obj)
+              else {
+                if(obj@type == "DFrameClass") 
+                  skeleton <- dframe(nparts=c(nparts(x)[[1]],nparts(obj)[[2]]))
+                else 
+                  skeleton <- darray(nparts=c(nparts(x)[[1]],nparts(obj)[[2]]))
+
+                  col_psize <- obj@psize[seq(nparts(obj)[[2]]),2]
+                  row_psize <- x@psize[seq(1,totalParts(x),by=nparts(x)[[2]]),1]
+
+                  skeleton@psize <- t(vapply(seq(totalParts(skeleton)),
+                    function(i) { 
+                      curRow <- floor((i-1)/nparts(obj)[[2]]) + 1 
+                      curCol <- ((i-1) %% nparts(obj)[[2]]) + 1
+                      c(row_psize[[curRow]],col_psize[[curCol]])                          
+                    }, FUN.VALUE=numeric(2)))
+
+                  skeleton@dim <- obj@dim
+                  repartition(obj,skeleton)
+              }
+            })
+
+   colParts <- vapply(dobjs,function(obj) nparts(obj)[[2]],FUN.VALUE=numeric(1))
+   totColParts <- sum(colParts)
+   nPartsResult <- c(nparts(x)[[1]],totColParts)
+
+   colParts <- c(0,cumsum(colParts))
+   
+   # Splitting into multiple separate arguments since currently DistR does not support parts() lists of mixed DObjects...fill blanks with NAs
+   dmapplyArgs <- lapply(seq(length(dobjs)),function(ind) {
+                    out <- list()
+                    for(a in seq(nparts(x)[[1]])) {
+                       start <- colParts[[ind]] + 1
+                       end <- colParts[[ind+1]]
+                       out <- c(out,as.list(rep(NA,start-1)))
+                       
+                       start_part <- (a-1)*nparts(dobjs[[ind]])[[2]]+1
+                       end_part <- start_part + nparts(dobjs[[ind]])[[2]] - 1
+
+                       out <- c(out,parts(dobjs[[ind]],start_part:end_part))
+                       out <- c(out,as.list(rep(NA,totColParts-end)))
+                    }
+                    out
+                  })
+
+   fillFunction <- function(...) {
+     partitions <- list(...)
+     for(i in seq(length(partitions))) {
+       if(!is.na(partitions[[i]])) return(partitions[[i]])
+     }
+   }
+
+   dmapplyArgs <- c(FUN=fillFunction,dmapplyArgs,output.type=list(out.type),combine=list("row"),nparts=list(nPartsResult))
+
+   do.call(dmapply,dmapplyArgs)
 })

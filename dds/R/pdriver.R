@@ -27,18 +27,37 @@ dds.env$driver <- parallel
 #Note that DetectCores() can return NA. 
 parallel.dds.env <- new.env(emptyenv())
 parallel.dds.env$cores <- detectCores(all.tests=TRUE, logical=FALSE) 
-if(.Platform$OS.type == "windows" || is.na(parallel.dds.env$cores)) parallel.dds.env$cores <- 1 
+parallel.dds.env$clusterType <- "FORK"
+if(is.na(parallel.dds.env$cores)){ parallel.dds.env$cores <- 1 }
 
 #' @export
 # Initialize the no. of cores in parallel backend
+# By default we use the FORK method of parallel which works only on UNIV environments. The "PSOCK" method requires SNOW but works on all OSes.
 setMethod("init","ParallelDDS",
-  function(x, inst=NULL, ...){
+  function(x, inst=NULL, type= "FORK", ...){
     if(!is.null(inst)){
-    #On windows we should only use a single core, which is already the default (limitation of 'parallel')
-    if(.Platform$OS.type == "windows" && inst!=1) {stop("Argument 'inst' should be 1 on Windows\n")}
     if(!((is.numeric(inst) || is.integer(inst)) && floor(inst)==inst && inst>=0)) stop("Argument 'inst' should be a non-negative integral value")
-        parallel.dds.env$cores = inst
+        parallel.dds.env$cores <- inst
   }
+
+  #On windows parallel can use only a single core. We need to use socket based SNOW for more number of cores.
+  if((.Platform$OS.type == "windows" && inst!=1) || type =="PSOCK") {
+     message("Using socket based parallel (SNOW) backend.")
+     cl <- makeCluster(getOption("cl.cores", parallel.dds.env$cores))
+     parallel.dds.env$snowCluster <- cl
+     parallel.dds.env$clusterType <- "PSOCK"
+  }
+})
+
+#' @export
+setMethod("shutdown","ParallelDDS",
+  function(x) {
+    if(!is.null(parallel.dds.env$snowCluster) && parallel.dds.env$clusterType == "PSOCK") {
+        message("Switching out of using 'parallel (SNOW)'. Shutting down SNOW cluster...")
+        stopCluster(parallel.dds.env$snowCluster)
+        parallel.dds.env$clusterType <- "FORK"
+	parallel.dds.env$snowCluster <- NULL
+    }
 })
 
 setMethod("combine",signature(driver="ParallelDDS",items="list"),
@@ -89,8 +108,26 @@ setMethod("do_dmapply",signature(driver="ParallelDDS",func="function",MoreArgs="
     }
    }
 
+   answer <- NULL
    #Now iterate in parallel
+   if(parallel.dds.env$clusterType == "PSOCK"){
+    # We are using the SNOW backend, i.e., clusterMap. Check code with print(clusterMap)
+
+    n <- lengths(dots)
+    vlen <- max(n)
+    if (vlen && min(n) == 0L) 
+        stop("zero-length inputs cannot be mixed with those of non-zero length")
+    if (!all(n == vlen)) 
+         stop("Unequal length of input arguments. Length of largest argument is ", n)
+
+    argfun <- function(i) c(lapply(dots, function(x) x[[i]]), MoreArgs)
+
+    #TODO(iR): For now we only use static scheduling
+    answer <- parallel:::staticClusterApply(parallel.dds.env$snowCluster, func, vlen, argfun)
+
+   } else {
    #We directly call the internal mcmapply function. Check code by print(mcmapply) 
+
    FUN <- match.fun(func)
    if (!length(dots)) 
         stop("Length of dmapply argument is zero")
@@ -102,7 +139,6 @@ setMethod("do_dmapply",signature(driver="ParallelDDS",func="function",MoreArgs="
        .mapply(FUN, dots, MoreArgs)
    else {
         X <- if (!all(lens == n)){ 
-            #lapply(dots, function(x) rep(x, length.out = n))
 	    stop("Unequal length of input arguments. Length of largest argument is ", n)
 	}
         else dots
@@ -115,7 +151,8 @@ setMethod("do_dmapply",signature(driver="ParallelDDS",func="function",MoreArgs="
             mc.cores = parallel.dds.env$cores, mc.cleanup = TRUE)
         do.call(c, answer)
     }
-   
+   }
+
    #Perform a cheap check on whether there was an error since man pages say that an error on one core will result in error messages on all. TODO: Sometimes the class of the error is "character"
    if(class(answer[[1]]) == "try-error") {stop(answer[[1]])}
    if(class(answer[[1]]) == "character" && grepl("Error", answer[[1]])) {stop(answer[[1]])}
