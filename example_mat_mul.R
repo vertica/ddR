@@ -15,7 +15,12 @@
 # Boston, MA 02111-1307 USA.
 ###################################################################
 
+library(methods)
 library(dds)
+
+## Uncomment the following two lines to use Distributed R
+# library(distributedR.dds)
+# useBackend(distributedR)
 
 MatrixMultiply <- function(a,b)
 {
@@ -49,9 +54,15 @@ a<- dmapply(function(i) matrix(i), i = 1:9,
 b<- dmapply(function(i) matrix(i), i = 1:9,
     output.type = "DArrayClass",combine = "row", nparts = c(3,3))
 
+print("Multiplying these two matrices: ")
+print(collect(a))
+print(collect(b))
 
 c<-MatrixMultiply(a,b)
 c<-collect(c)
 
+print("Distributed Computation Answer: ")
 print(c)
+
+print("Local Computation Answer: ")
 print(collect(a) %*% collect(b))
