@@ -81,7 +81,13 @@ parts <- function(dobj, index=NULL) {
   partitions
 }
 
-#Returns the total number of partitions (i.e., product of all dimensions of obj@nparts)
+# Returns the psize of the dobject
+#' @export
+psize <- function(dobj) {
+  dobj@psize
+}
+
+# Returns the total number of partitions (i.e., product of all dimensions of obj@nparts)
 #' @export
 totalParts <- function(dobj) {
   prod(dobj@nparts)
@@ -162,8 +168,9 @@ darray <- function(...,nparts = NULL, psize = NULL, dim = NULL) {
     if(!is.null(nparts)) stop("Cannot supply nparts as well as psize and dimensions")
 
     # Test for legality of dim and psize specifications
-    stopifnot(length(psize) > 0)
-    stopifnot(length(psize) == length(dim))
+    checkDimAndPsize(dim, psize)
+    #stopifnot(length(psize) > 0)
+    #stopifnot(length(psize) == length(dim))
 
     #TODO (iR):Add more sanity checks on dim and psize
     nparts <-  c(ceiling(dim[1]/psize[1]), ceiling(dim[2]/psize[2]))
@@ -220,8 +227,9 @@ dframe <- function(...,nparts = NULL, psize = NULL, dim = NULL) {
     if(!is.null(nparts)) stop("Cannot supply nparts as well as psize and dimensions")
 
     # Test for legality of dim and psize specifications
-    stopifnot(length(psize) > 0)
-    stopifnot(length(psize) == length(dim))
+    checkDimAndPsize(dim, psize)
+    #stopifnot(length(psize) > 0)
+    #stopifnot(length(psize) == length(dim))
 
     #TODO (iR):Add more sanity checks on dim and psize
     nparts <-  c(ceiling(dim[1]/psize[1]), ceiling(dim[2]/psize[2]))
@@ -643,3 +651,15 @@ getCorners <- function(x,y,vertical,horizontal=NULL) {
 
 }
 
+#Helper function to check dimension and psizes when DObjects are initialized
+checkDimAndPsize<-function(dim, psize){
+ 
+ if(class(dim)!="numeric" && class(dim)!="integer") stop("dim should be numeric")
+ if(class(psize)!="numeric" && class(psize)!="integer") stop("psize should be numeric")
+ if(length(dim)!=2||length(psize)!=2) stop("length(dim) and length(psize) should be two")
+ if(!all(dim==floor(dim)))stop("dim should be integral values")
+ if(!all(psize==floor(psize)))stop("psize should be integral values")
+ if(all(psize<=.Machine$integer.max) == FALSE) stop(paste("psize should be less than",.Machine$integer.max))
+ if(dim[1]<=0||dim[2]<=0||psize[1]<=0||psize[2]<=0) stop("dim and psize should be larger than 0")
+ if(dim[1]<psize[1]||dim[2]<psize[2]) stop("psize should be smaller than dim")
+}

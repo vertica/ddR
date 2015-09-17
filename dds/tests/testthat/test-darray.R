@@ -1,3 +1,5 @@
+library(Matrix)
+
 context("DArray metadata and dmapply")
 
  a <- dmapply(function(x) {
@@ -38,3 +40,18 @@ test_that("DArray-based dmapplies work and throw errors accordingly", {
                 }, parts(a),parts(c), MoreArgs=list(z=3), output.type="DArrayClass",combine="row",nparts=c(2,1)))
 
 })
+
+context("Darray argument check")
+
+mx <- matrix(c(1:16), nrow=4,ncol=4)
+test_that("Darray: Invalid arguments", {
+  mx <- matrix(c(1:16), nrow=4,ncol=4)
+  expect_error(darray(dim=c(1,1), psize=c(2,2)))
+  expect_error(darray(dim=c(10,10),psize=c(-1,5)))
+  expect_error(darray(dim=c("a","b"), psize=c(4,4)))
+  expect_error(darray(dim=c(1,2,3),psize=c(4,2)))
+  expect_error(darray(dim=c(10,10),psize=c(10,0)))
+  #expect_error(darray(wrongarg=c(2,4))) TODO: should we allow initialization from any args?
+})
+
+

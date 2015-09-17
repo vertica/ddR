@@ -98,16 +98,34 @@ dlapply <- function(dobj,FUN,...,nparts=NULL,.unlistEach=FALSE) {
 #' @export
 dmapply <- function(FUN,...,MoreArgs=list(),output.type="DListClass",nparts=NULL,combine="flatten",.unlistEach=FALSE) {
   stopifnot(is.function(FUN))
+  
+  # Allow for multiple ways of expressing output.type
+  da_types <- c("da","darray","darrayclass","daclass","a","matrix","dmatrix","array","darr")
+  dl_types <- c("dl","l","dlist","dlistclass","list","dlclass")
+  df_types <- c("df","f","dframe","dframeclass","data.frame","dataframe")
+
+  if(tolower(output.type) %in% da_types) output.type <- "DArrayClass"
+  else if (tolower(output.type) %in% dl_types) output.type <- "DListClass"
+  else if (tolower(output.type) %in% df_types) output.type <- "DFrameClass"
 
   if(output.type != "DListClass" && output.type != "DArrayClass" && output.type != "DFrameClass")
-    stop("Unrecognized output type -- must be one of: {'DListClass', 'DArrayClass', 'DFrameClass'}.")   
+    stop("Unrecognized value for output.type -- try one of: {'dlist', 'darray', 'dframe'}.")   
 
   if(!is.null(nparts))
     if(!is.numeric(nparts) || length(nparts) < 1 || length(nparts) > 2) 
       stop("Invalid nparts vector provided. Must be a 1d or 2d vector")
 
+  # Allow for multiple ways of expressing combine
+  flatten_types <- c("flatten","flat","default","f")
+  row_types <- c("row","r","rbind")
+  col_types <- c("col","column","c","cbind")
+
+  if(tolower(combine) %in% flatten_types) combine <- "flatten"
+  else if (tolower(combine) %in% row_types) combine <- "row"
+  else if (tolower(combine) %in% col_types) combine <- "col"
+
   if(combine != "flatten" && combine != "row" && combine != "col")
-    stop("Unrecognized option for combine -- must be one of: {'flatten', 'row', 'col'}")
+    stop("Unrecognized option for combine -- try one of: {'flatten', 'row', 'col'}")
   
   dargs <- list(...)
   stopifnot(length(dargs) > 0)
