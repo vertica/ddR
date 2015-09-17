@@ -14,65 +14,53 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, 
 # Boston, MA 02111-1307 USA.
 ###################################################################
-
 library(dds)
 
-#Matrix Multiplication function using dlists to hold partial matrices
-#computes c = a %*% b
-#column major format for dlists is assumed similar to R
-#a,b are the dlists containing the partitions of the matrices
-#nrow_partitions_a, nrow_partitions_b indicate how many parts are in each column
-#output is a dlist also in column major format
-MatrixMultiply <- function(a, b, nrow_partitions_a, nrow_partitions_b)
+## Uncomment the following two lines to use Distributed R
+# library(distributedR.dds)
+# useBackend(distributedR)
+
+MatrixMultiply <- function(a,b)
 {
+	if(nparts(a)[2] != nparts(b)[1])
+		stop("'a','b' are not compatible matrices")
+	n <- nparts(a)[1]
+	m <- nparts(a)[2]
+	p <- nparts(b)[2]
 
-                #This function converts x,y indexing of matrix to partition index
-                get_indices <- function(x,y,nrow) 
-                {
-                                as.integer(sapply(x, function(i) sapply(y, function(j)
-                                                i+(j-1)*nrow )))
-                }
+	c <- dlist(nparts = n*p)
+	c <- dmapply(function(c) 0, c,
+	     	output.type = "DArrayClass",
+		combine = "row", nparts = c(n,p))
 
-                #This function multiplies the matrices and adds to previous result
-                local_mult <- function(a,b,c){
-                                        list(c[[1]]+a[[1]]%*%b[[1]])}
-
-                #initialize output matrix
-                c <- dlist(nparts = nrow_partitions_a * nparts(b)/ nrow_partitions_b)
-                c <- dmapply(function(x) {list(0)},parts(c))  
-
-                #C_ik = \sum_j A_ij * B_jk
-                #initializing vectors i,k
-                #there will be multiple iterations (1 iteration per value of j)
-                i = 1:nrow_partitions_a
-                k = 1:(nparts(b)/nrow_partitions_b)
-
-                for(index in 1:nrow_partitions_b)
-                {
-                                j <- rep(index,nrow_partitions_b)
-                                indices <-(get_indices(i,j,nrow_partitions_a))
-                                indices <- cbind(indices,get_indices(j,k,nrow_partitions_b))
-                                indices <- cbind(indices,get_indices(i,k,nrow_partitions_a))
-                                indices <- indices[order(indices[,3]),]
-
-                                c <- dmapply(local_mult, parts(a,indices[,1]),
-                                                                                 parts(b,indices[,2]),
-                                                                                parts(c,indices[,3]))
-                }
-                return(c)
-
+	for(i in 1:m)
+	{
+	      c <- dmapply(function(a,b,c) c+a%*%b, 
+	     		parts(a,sapply(0:(n-1),function(x) rep(x*m+i,p))),
+			parts(b,rep(1:p,n)+p*(i-1)),
+			parts(c),
+			output.type = "DArrayClass", 
+			combine = "row", nparts = nparts(c))
+	}
+	return(c)	
 }
 
+
 #Create two 3x3 matrix:  
-a <- dlist(nparts = 9)
-b <- dlist(nparts = 9)
-a<- dmapply(function(a,i){list(matrix(i))}, parts(a), i = as.list(1:9))
-b<- dmapply(function(b,i){list(matrix(i))}, parts(b), i = as.list(1:9))
-nrow_partitions_a = 3
-nrow_partitions_b = 3
+a<- dmapply(function(i) matrix(i), i = 1:9,
+    output.type = "DArrayClass",combine = "row", nparts = c(3,3))
+b<- dmapply(function(i) matrix(i), i = 1:9,
+    output.type = "DArrayClass",combine = "row", nparts = c(3,3))
 
+print("Multiplying these two matrices: ")
+print(collect(a))
+print(collect(b))
 
-c<-MatrixMultiply(a,b,nrow_partitions_a,nrow_partitions_b)
+c<-MatrixMultiply(a,b)
 c<-collect(c)
 
+print("Distributed Computation Answer: ")
 print(c)
+
+print("Local Computation Answer: ")
+print(collect(a) %*% collect(b))

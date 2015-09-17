@@ -81,7 +81,13 @@ parts <- function(dobj, index=NULL) {
   partitions
 }
 
-#Returns the total number of partitions (i.e., product of all dimensions of obj@nparts)
+# Returns the psize of the dobject
+#' @export
+psize <- function(dobj) {
+  dobj@psize
+}
+
+# Returns the total number of partitions (i.e., product of all dimensions of obj@nparts)
 #' @export
 totalParts <- function(dobj) {
   prod(dobj@nparts)
