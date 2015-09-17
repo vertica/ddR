@@ -4,6 +4,6 @@ Version: 0.0.0.9000
 Author: HP Vertica Analytics Team
 Maintainer: HP Vertica Analytics Team <distributedRTeam@external.groups.hp.com>
 Description: This package contains the classes and code for creating and computing with distributed objects in R.
-Depends: R (>= 3.0.0), parallel
+Depends: methods, R (>= 3.0.0), parallel
 License: GPLv2
 LazyData: true

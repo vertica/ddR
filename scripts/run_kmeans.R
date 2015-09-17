@@ -1,5 +1,5 @@
-library(methods)
 library(dds)
+library(HPdcluster)
 #Uncomment the following lines to use Distributed R 
 #library(distributedR.dds)
 #useBackend(distributedR)
@@ -24,5 +24,4 @@ feature <- dmapply(generateKMeansData,id = 1:nInst,
 		output.type = "DArrayClass", 
 		combine = "row", nparts = c(nInst,1))
 
-library(HPdcluster)
 model <- hpdkmeans(feature,K, trace = TRUE) 

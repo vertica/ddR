@@ -14,8 +14,6 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, 
 # Boston, MA 02111-1307 USA.
 ###################################################################
-
-library(methods)
 library(dds)
 
 ## Uncomment the following two lines to use Distributed R
