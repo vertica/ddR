@@ -155,7 +155,7 @@ is.DList <- is.dlist
 as.DList <- as.dlist
 
 #' @export
-darray <- function(...,nparts = NULL, psize = NULL, dim = NULL) {
+darray <- function(nparts = NULL, dim=NULL, psize = NULL, data = 0) {
  
   if(!is.null(dim) || !is.null(psize)) {
     if(is.null(psize) || is.null(dim)) stop("Need to supply both psize and dim")
@@ -163,16 +163,22 @@ darray <- function(...,nparts = NULL, psize = NULL, dim = NULL) {
 
     # Test for legality of dim and psize specifications
     checkDimAndPsize(dim, psize)
-    #stopifnot(length(psize) > 0)
-    #stopifnot(length(psize) == length(dim))
 
-    #TODO (iR):Add more sanity checks on dim and psize
     nparts <-  c(ceiling(dim[1]/psize[1]), ceiling(dim[2]/psize[2]))
+    totalParts<-prod(nparts)
 
     # Create number of rows equal to number of parts
-    psize <- t(matrix(psize))
-    psize <- psize[rep(seq_len(nrow(psize)), prod(nparts)),] 
-
+    sizes <- t(matrix(psize))
+    sizes <- sizes[rep(seq_len(nrow(sizes)), totalParts),]
+    #Last column of partitions can be smaller if dim is not properly divisible
+    if((dim[2]%%psize[2])!=0){
+	sizes[seq(from=nparts[2], to=totalParts, by=nparts[2]),2] <- (dim[2]%%psize[2])
+    }
+    #Last row of partitions can be smaller if dim is not properly divisible
+    if((dim[1]%%psize[1])!=0){
+	sizes[(totalParts-nparts[2]+1):totalParts,1] <- (dim[1]%%psize[1])
+    }
+    psize<-sizes
   }
 
  # If all are NULL, then initialize to some default
@@ -192,12 +198,11 @@ darray <- function(...,nparts = NULL, psize = NULL, dim = NULL) {
   
   dim <- as.integer(dim)
 
-  initialize <- list(...)
-
-  if(length(initialize)==0) {
+  if(all(dim==0)) {
     new(dds.env$driver@DArrayClass,backend=dds.env$driver@backendName,type = "DArrayClass", nparts = nparts, psize = psize, dim=dim)
   } else{
-    dmapply(function(x){ matrix(x) }, initialize, output.type="DArrayClass",nparts=nparts)
+    sizes<-unlist(apply(psize,1,function(y)list(y)), recursive=FALSE)
+    dmapply(function(d, v){ matrix(data=v,nrow=d[1], ncol=d[2]) }, sizes, MoreArgs=list(v=data), output.type="DArrayClass", combine="row", nparts=nparts)
   }
 }
 
@@ -222,15 +227,22 @@ dframe <- function(...,nparts = NULL, psize = NULL, dim = NULL) {
 
     # Test for legality of dim and psize specifications
     checkDimAndPsize(dim, psize)
-    #stopifnot(length(psize) > 0)
-    #stopifnot(length(psize) == length(dim))
 
-    #TODO (iR):Add more sanity checks on dim and psize
     nparts <-  c(ceiling(dim[1]/psize[1]), ceiling(dim[2]/psize[2]))
+    totalParts<-prod(nparts)
 
     # Create number of rows equal to number of parts
-    psize <- t(matrix(psize))
-    psize <- psize[rep(seq_len(nrow(psize)), prod(nparts)),] 
+    sizes <- t(matrix(psize))
+    sizes <- sizes[rep(seq_len(nrow(sizes)), totalParts),]
+    #Last column of partitions can be smaller if dim is not properly divisible
+    if((dim[2]%%psize[2])!=0){
+	sizes[seq(from=nparts[2], to=totalParts, by=nparts[2]),2] <- (dim[2]%%psize[2])
+    }
+    #Last row of partitions can be smaller if dim is not properly divisible
+    if((dim[1]%%psize[1])!=0){
+	sizes[(totalParts-nparts[2]+1):totalParts,1] <- (dim[1]%%psize[1])
+    }
+    psize<-sizes
 
   }
 
