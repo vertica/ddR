@@ -1,4 +1,4 @@
-*.swp
+*.sw*
 *.Rcheck
 *.o
 *.so

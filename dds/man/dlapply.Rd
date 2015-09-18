@@ -10,7 +10,7 @@ dlapply(X, FUN, ..., nparts = NULL, .unlistEach = FALSE)
 \arguments{
 \item{X}{The vector, matrix, list, data.frame, dlist, darray, or dframe or other iterable object to supply to the function in FUN.}
 
-\item{FUN}{the function to be applied to each element of ‘X’: see ‘Details’.  In the case of functions like ‘+’, ‘%*%’, the function name must be backquoted or quoted.}
+\item{FUN}{the function to be applied to each element of ‘X’.}
 
 \item{...}{optional arguments to 'FUN'.}
 }

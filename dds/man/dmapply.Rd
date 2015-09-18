@@ -29,7 +29,10 @@ Though dmapply is modeled after mapply, there are several important differences,
 \examples{
 \dontrun{
 a <- dmapply(function(x,y) x+y, 1:5, 2:6, nparts=3) # A DList adding two vectors of numbers.
-b <- dmapply(function(x) matrix(x,2,2), 1:4,output.type="darray",combine="row",nparts=c(2,2)) # A DArray with each partition containing the values equal to its partition id (1 to 4). Since combine is set to "row", the contents of each partition will be be vectorized as would be the case if combine=="flatten". Since nparts=c(2,2), the the partitions of the DArray will be stitched in a 2x2 fashion, meaning the overall dims of the DArray will be 4x4.
+
+##The following is a DArray with each partition containing the values equal to its partition id (1 to 4). Since combine is set to "row", the contents of each partition will be be vectorized as would be the case if combine=="flatten". Since nparts=c(2,2), the the partitions of the DArray will be stitched in a 2x2 fashion, meaning the overall dims of the DArray will be 4x4.
+
+b <- dmapply(function(x) matrix(x,2,2), 1:4,output.type="darray",combine="row",nparts=c(2,2))
 }
 }
 

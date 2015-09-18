@@ -18,6 +18,19 @@
 # Defines the base class for a distributed object, as well as their methods
 # DList, DArray, and DFrame inherit from class DObject
 
+#' Moves the data stored in partitions of the distributed object to the local node, and reassembles the data, in the order of the partitions, into the local version of the object.
+#'
+#' Data in partitions are reassembled sequentially for all DObjects; for DArrays and DFrames, this is row-major order.
+#'
+#' @param dobj The DObject (DList, DArray, or DFrame) to collect on.
+#' @param index A numeric value or vector indicating the partition index or indices to collect on. The resultant object will contain a subset of the original data of the dobject's partitions. If a vector, the result is assembled in the same order as the indices provided; though be aware that for DFrames and DArrays the data will lose its structure (it will be vectorized).
+#' @return An R list, matrix, or data frame containing the data stored in all or a subset of the partitions of the input dobject.
+#' @examples
+#' \dontrun{
+#' a <- darray(dim=c(9,9),psize=c(3,3),data=5)
+#' b <- collect(a) # 9x9 matrix filled with 5s
+#' c <- collect(a,1) # First partition of a, which contains a 3x3 matrix of 5s
+#' }
 #' @export
 collect <- function(dobj, index=NULL) { 
   if(is.null(index)) {
