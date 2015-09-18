@@ -441,23 +441,35 @@ fitted.hpdkmeans <- function(object, method = c("centers", "classes"), ...)
                 else    # When X is sparse, class(Xi) == "dgCMatrix"
                     .Call("hpdkmeans_Lloyd", as.matrix(Xi), Ni, centers, cl, nc, PACKAGE="HPdcluster")
 		centers[is.nan(centers)] <- 0
+		return(c(matrix(centers*nc),nc))
 		if(completeModel)
 			return(list(sumOfClusteri = matrix(centers * nc), numOfPointsi = matrix(nc), clusteri =  matrix(cl)))
 		return(list(sumOfClusteri = matrix(centers * nc), numOfPointsi = matrix(nc)))
 	    }
 
-	    clustering_info <- dmapply(kmeansFunc, Xi = parts(X), Ni = parts(Norms),
-	    		    MoreArgs = list(centers=centers, nmeth=nmeth, completeModel=completeModel),
-			    nparts = totalParts(X))
+#	    clustering_info <- dmapply(kmeansFunc, Xi = parts(X), Ni = parts(Norms),
+#	    		    MoreArgs = list(centers=centers, nmeth=nmeth, completeModel=completeModel),
+#			    nparts = totalParts(X))
 
-timing_info <- Sys.time()
-	    size <- dmapply(function(x){ x$numOfPointsi }, clustering_info,
-	    	 output.type="DArrayClass", combine = "col", nparts = c(1,totalParts(clustering_info)))
-	    cent <- dmapply(function(x) x$sumOfClusteri, clustering_info,
-	    	 output.type="DArrayClass", combine = "col", nparts = c(1,totalParts(clustering_info)))
-	    size <- rowSums(collect(size))
-	    cent <- rowSums(collect(cent))
-print(Sys.time() - timing_info)
+
+		    clustering_info <- dmapply(kmeansFunc, Xi = parts(X), Ni = parts(Norms),
+	    		    MoreArgs = list(centers=centers, nmeth=nmeth, completeModel=completeModel),
+			    output.type = "DArrayClass", combine = "col", nparts = c(1,totalParts(X)))
+
+	size <- rowSums(collect(clustering_info))
+	cent <- size[1:(p*k)]
+	size <- size[-(1:(p*k))]
+
+#timing_info <- Sys.time()
+#	    size <- dmapply(function(x){ x$numOfPointsi }, clustering_info,
+#	    	 output.type="DArrayClass", combine = "col", nparts = c(1,totalParts(clustering_info)))
+#	    cent <- dmapply(function(x) x$sumOfClusteri, clustering_info,
+#	    	 output.type="DArrayClass", combine = "col", nparts = c(1,totalParts(clustering_info)))
+#print(collect(cent))
+#print(Sys.time() - timing_info)
+#	    size <- rowSums(collect(size))
+#	    cent <- rowSums(collect(cent))
+#print(Sys.time() - timing_info)
 
             newCenters <- matrix(cent,nrow=k,ncol=p) / matrix(size,nrow=k,ncol=p)
             newCenters[size == 0,] <- centers[size == 0,] # some of the clusters might be empty
@@ -506,6 +518,7 @@ timing_info <- Sys.time()
 	    	 output.type="DArrayClass", combine = "col", nparts = c(1,totalParts(clustering_info)))
 	    cent <- dmapply(function(x) x$sumOfClusteri, clustering_info,
 	    	 output.type="DArrayClass", combine = "col", nparts = c(1,totalParts(clustering_info)))
+print(Sys.time() - timing_info)
 	    size <- rowSums(collect(size))
 	    cent <- rowSums(collect(cent))
 print(Sys.time() - timing_info)
