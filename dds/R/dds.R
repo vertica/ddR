@@ -20,7 +20,22 @@ dds.env <- new.env(emptyenv())
 # Fix for weird methods bug
 dds.env$gc_performed <- FALSE
 
-# Set Driver 
+#' Sets the active backend driver in the DDS environment. The driver object is
+#' responsible for the dispatch of all backend-specific DDS operations, such as
+#' dmapply, collect, and parts. Besides allowing the backend driver to be changed,
+#' initialization parameters may be passed into the ellipsis (...) part of the 
+#' function arguments. 
+#'
+#' The default loaded driver in DDS is parallel.
+#'
+#' @param driver The driver object to load as the active backend for DDS. This object should extend class 'DDSDriver', and the S4 methods for do_dmapply, do_collect, and get_parts should be defined for the class of the driver object. 
+#' @param ... Additional parameters to pass to the initialization function of this driver.
+#' After successfully setting the backend to a new backend with useBackend(), all subsequent dmapply, collect, and parts operations will dispatch on that driver object's class. Note that DObjects created with a different backend prior to switching will be incompatible with these backend-specific functions of the new driver.
+#' @examples
+#' \dontrun{
+#' useBackend(parallel,inst=2)
+#' library(distributedR.dds); useBackend(distributedR)
+#' } 
 #' @export
 useBackend <- function(driver, ...) {
 
@@ -90,13 +105,43 @@ setGeneric("get_parts", function(x,index,...) {
   standardGeneric("get_parts")
 })
 
+#' Like dmapply, but permits only one iterable argument, and the output.type is 
+#' always a dlist. This is the distributed version of 'lapply'. 
+#'
+#' Note that as in lapply vs mapply, the order of arguments (iterable argument and function) supplied to the functions is reversed.
+#'
+#' @param X The vector, matrix, list, data.frame, dlist, darray, or dframe or other iterable object to supply to the function in FUN.
+#' @param FUN the function to be applied to each element of ‘X’: see ‘Details’.  In the case of functions like ‘+’, ‘%*%’, the function name must be backquoted or quoted.
+#' @param ... optional arguments to 'FUN'.
+#' @return a DList with nparts=nparts
+#' @examples
+#' \dontrun{
+#' a <- dlapply(1:5,function(x) x, nparts=3) # A DList with 3 partitions, which in the aggregate contains the elements 1 through 5.
+#' b <- dlapply(a,function(x) x+3) # Adds 3 to each element of dlist a.
+#' } 
 #' @export
-dlapply <- function(dobj,FUN,...,nparts=NULL,.unlistEach=FALSE) {
-   dmapply(FUN,dobj,MoreArgs=list(...),output.type="DListClass",nparts=nparts,.unlistEach=.unlistEach)
+dlapply <- function(X,FUN,...,nparts=NULL,.unlistEach=FALSE) {
+   dmapply(FUN,X,MoreArgs=list(...),output.type="DListClass",nparts=nparts,.unlistEach=.unlistEach)
 }
 
+#' dmapply is the main 'workhorse' function of DDS. Like mapply in R, it allows a multivariate function, FUN, to be applied to several inputs. Unlike standard mapply, it always returns a DDS Distributed Object, or DObject.
+#'
+#' Though dmapply is modeled after mapply, there are several important differences, as are evident in the parameters described below.
+#'
+#' @param FUN function to apply, found via ‘match.fun’.
+#' @param ...  arguments to vectorize over (vectors or lists of strictly positive length, or all of zero length). These may also be distributed objects, such as dlists, darrays, and dframes.
+#' @param a list of other arguments to ‘FUN’.
+#' @param output.type The output DObject type. By default, this is "dlist", which means that the result of dmapply will be stored in a dlist. "darray" will make dmapply return a darray, just as "dframe" will make it return a dframe. 
+#' @param nparts A 1d or 2d numeric value to specify how the output should be partitioned. DLists only have one-dimensional partitioning, whereas DArrays and DFrames have two (representing the number partitions across the vertical and horizontal dimensions). Let 'P' be the number of partitions as determined by getBestOutputPartitioning. The default for DLists is equal to 'P'. The default for DArrays and DFrames is c(1L,P).
+#' @param combine For DFrames and DArrays, this specifies what how the results of dmapply are combined within each partition (if each partition contains more than one result). If "row", the results are rbinded; if "col", they are cbinded. If the value is "flatten", the results are flattened into one column, as is the case with simplify2array(). The default value is "flatten".
+#' @return A DList, DArray, or DFrame (depending on the value of output.type), with nparts=nparts
+#' @examples
+#' \dontrun{
+#' a <- dmapply(function(x,y) x+y, 1:5, 2:6, nparts=3) # A DList adding two vectors of numbers.
+#' b <- dmapply(function(x) matrix(x,2,2), 1:4,output.type="darray",combine="row",nparts=c(2,2)) # A DArray with each partition containing the values equal to its partition id (1 to 4). Since combine is set to "row", the contents of each partition will be be vectorized as would be the case if combine=="flatten". Since nparts=c(2,2), the the partitions of the DArray will be stitched in a 2x2 fashion, meaning the overall dims of the DArray will be 4x4.
+#' }
 #' @export
-dmapply <- function(FUN,...,MoreArgs=list(),output.type="DListClass",nparts=NULL,combine="flatten",.unlistEach=FALSE) {
+dmapply <- function(FUN,...,MoreArgs=list(),output.type="dlist",nparts=NULL,combine="flatten",.unlistEach=FALSE) {
   stopifnot(is.function(FUN))
   
   # Allow for multiple ways of expressing output.type
