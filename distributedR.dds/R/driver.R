@@ -190,7 +190,7 @@ For better performance, please try to partition your inputs compatibly."))
 
     }
 
-    formals(exec_func)[[".funct"]] <- match.fun(func)
+    defineFunction <- ".funct <- NULL"
 
     formals(exec_func)[["MoreArgs"]] <- MoreArgs
     formals(exec_func)[[".newDObj"]] <- substitute(splits(.outObj,index),env=parent.frame())
@@ -205,11 +205,13 @@ For better performance, please try to partition your inputs compatibly."))
                   }"
 
     body(exec_func)[[2]] <- eval(parse(text=paste0("substitute(",insertNAs,")")),envir=new.env())
-    body(exec_func)[[3]] <- eval(parse(text=paste0("substitute(",execLine,")")),envir=new.env())
+    body(exec_func)[[3]] <- eval(parse(text=paste0("substitute(",defineFunction,")")),envir=new.env())
+    body(exec_func)[[3]][[3]] <- match.fun(func)
+    body(exec_func)[[4]] <- eval(parse(text=paste0("substitute(",execLine,")")),envir=new.env())
     
     if(.unlistEach) {
       unlistedResults <- ".newDObj <- unlist(.newDObj,recursive=FALSE)"
-      body(exec_func)[[4]] <- eval(parse(text=paste0("substitute(",unlistedResults,")")),envir=new.env())
+      body(exec_func)[[5]] <- eval(parse(text=paste0("substitute(",unlistedResults,")")),envir=new.env())
     }
 
     nLines <- length(body(exec_func))

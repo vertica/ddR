@@ -1,4 +1,4 @@
-Package: HPdcluster
+Package: HPdclusterv2
 Type: Package
 Title: Distributed Clustering for Big Data
 Version: 1.2.0

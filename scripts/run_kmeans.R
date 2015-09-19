@@ -1,6 +1,6 @@
 library(dds)
 library(methods)
-library(HPdcluster)
+library(HPdclusterv2)
 library(distributedR.dds)
 
 args <- commandArgs(TRUE)
@@ -8,10 +8,11 @@ if(length(args) > 0 & args[1] == "DR")
 	useBackend(distributedR)
 
 #Uncomment the following lines to use Distributed R 
+useBackend(distributedR)
 
 nInst = 4  #determines the no. of  partitions (and hence max cores utilized)
 ncol = 10
-nrow = 10000000
+nrow = 1000000
 K = 10
 centers = 100*matrix(rnorm(K*ncol),nrow = K)
 cat("Generating data with rows=",nrow," and cols=", ncol,"\n")
