@@ -51,7 +51,29 @@ test_that("Darray: Invalid arguments", {
   expect_error(darray(dim=c("a","b"), psize=c(4,4)))
   expect_error(darray(dim=c(1,2,3),psize=c(4,2)))
   expect_error(darray(dim=c(10,10),psize=c(10,0)))
-  #expect_error(darray(wrongarg=c(2,4))) TODO: should we allow initialization from any args?
+  expect_error(darray(wrongarg=c(2,4))) 
 })
 
+
+context("Dense Darray")
+
+da2 <- darray(dim=c(4,4), psize=c(2,4), data=1)
+da3 <- darray(dim=c(4,4), psize=c(4,2), data=2)
+
+test_that("Create and Fetch works", {
+  da2gp <- collect(da2)
+  da2gp2 <- collect(da2, 2)
+  da3gp2 <- collect(da3, 2)
+
+  expect_that(da2gp, is_a("matrix"))
+  expect_equal(c(4,4), dim(da2gp))
+  expect_equal(da2gp[4],1)
+  expect_equal(c(2,4), dim(da2gp2))
+  expect_equal(2, totalParts(da2))
+
+  expect_equal(2, totalParts(da3))
+  expect_equal(da3gp2[2],2)
+  expect_equal(c(4,2), dim(da3gp2))
+
+})
 

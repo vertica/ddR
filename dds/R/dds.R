@@ -17,6 +17,8 @@
 
 # Current driving backend package. Package global variable
 dds.env <- new.env(emptyenv())
+#Track no. of executors in the backend
+dds.env$nexecutors <- 1
 # Fix for weird methods bug
 dds.env$gc_performed <- FALSE
 
