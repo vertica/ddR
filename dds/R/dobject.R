@@ -56,6 +56,24 @@ setGeneric("do_collect", function(x,parts) {
   standardGeneric("do_collect")
 })
 
+#' Retrieves, as a list of independent objects of 'DObject' type, pointers to each individual 
+#' partition of the input dobj.
+#'
+#' @param dobj The DObject to retrieve the parts of in list format.
+#' @param index By default NULL, this is a numeric vector or list or indices referencing the partitions of the 
+#' Dobject to get the parts to. If NULL, then this list contains pointers to all partitions.
+#'
+#' parts() is mainly designed to be used in conjunction with dmapply when functions are written
+#' to be applied over DObjects in a partition-by-partition fashion. In other words, by returning
+#' a list of the individual partitions of a DObject, that list can then be used in dmapply statements
+#' where the apply function goes over every element of that list, (i.e., every partition of the dobject).
+#' @return A list of DObjects, each referring to one partition of the input DObject.
+#' @examples
+#' \dontrun{
+#' a <- darray(psize=c(3,3),dim=c(9,9),data=3) # A darray of 9 partitions, each 3x3
+#' b <- dmapply(function(x) sum(x), parts(a)) # dmapply to each 3x3 partition of 'a'
+#' c <- parts(a,3) # A list containing one DObject, which is the 3rd partition of 'a'
+#' }
 #' @export
 parts <- function(dobj, index=NULL) {
   if(!is(dobj,"DObject")){
@@ -94,19 +112,63 @@ parts <- function(dobj, index=NULL) {
   partitions
 }
 
-# Returns the psize of the dobject
+#' Return the 1d (in the case of DLists) or 2d-matrix (DArrays and DFrames)
+#' containing the sizes of each partition of the DObject.
+#' The ith row of the matrix refers to the ith partition of the DObject.
+#' The 1st column refers to the number of rows, and the 2nd is the number of columns.
+#' @param dobj The DObject to get the partition sizes of
+#' @param index (Default: NULL), a numeric vector or list containing the indices of the
+#' @seealso \code{\link{nparts}}, \code{\link{parts}}
+#' partition ids to get the sizes for.
+#' @return A matrix, which is 1d in the case of DLists, and 2d in the case of DArrays and
+#' DFrames, containing the partition sizes of the specified DObjects (if index is NULL), or
+#' the partition sizes of the provided ids of partitions (if index is not NULL).
+#' @examples 
+#' \dontrun{
+#' a <- darray(psize=c(3,3),dim=c(9,9)) # 9 partitions of 3x3
+#' b <- psize(a) # A 9x2 matrix, with each row containing c(3,3) 
+#' }
 #' @export
-psize <- function(dobj) {
-  dobj@psize
+psize <- function(dobj,index=NULL) {
+  if(is.null(index)) index = seq(totalParts(dobj))
+  index <- unlist(index)
+  stopifnot(is.numeric(index))
+  index <- as.integer(index)
+
+  if(min(index) < 1 || max(index) > totalParts(dobj))
+    stop("Indices must be greater than 1 and smaller than the total number of 
+      partitions in the dobject")
+
+  dobj@psize[index,]
 }
 
-# Returns the total number of partitions (i.e., product of all dimensions of obj@nparts)
+#' Returns the total number of partitions of the DObject.
+#' Note that that this is the same result as prod(nparts(dobj))
+#' @param dobj The DObject of which to get the number of partitions.
+#' @seealso \code{\link{nparts}}
+#' @return The number of partitions the DObject is divided into.
+#' @examples
+#' \dontrun{
+#' a <- darray(psize=c(3,3),dim=c(9,9)) # 9 partitions of 3x3
+#' b <- totalParts(a) # Returns 9
+#' }
 #' @export
 totalParts <- function(dobj) {
   prod(dobj@nparts)
 }
 
-#Returns the vector with partitions in each dimension (currently 2D)
+#' Returns a 2d-vector denoting the number of partitions existing along
+#' each dimension of the DObject, where the vector==c(no_of_partitions_per_column,
+#' no_of_partitions_per_row). Note that for DLists, the value is always
+#' equivalent to c(totalParts(dobj),1).
+#' @param dobj The DObject whose 2d partitioning vector to retrieve.
+#' @seealso \code{\link{totalParts}}
+#' @return A 2d-vectoring containing the number of partitions along each dimension.
+#' @examples
+#' \dontrun{
+#' a <- darray(psize=c(3,3),dim=c(9,9)) # 9 partitions of 3x3
+#' b <- nparts(a) # returns c(3,3)
+#' }
 #' @export
 nparts <- function(dobj) {
   dobj@nparts
@@ -120,25 +182,51 @@ setClass("DObject",
   prototype = prototype(nparts = c(1L, 1L),psize = matrix(1,1),
               dim = c(1L), dim.names = list()))
 
+#' Creates a dlist with the specified partitioning and data.
+#' @param ... Values to initialize the DList with (optional).
+#' @param nparts (Default is 1L) The number of partitions this DList should have.
+#' @return A DList containing the data in ..., or an empty DList, partitioned accordingly based on nparts.
+#' @examples
+#' \dontrun{
+#' a <- dlist(1,2,3,4,nparts=2) # A DList containing 2 partitions, with data 1 to 4.
+#' }
 #' @export
-dlist <- function(...,nparts = 1L, psize=matrix(1,1)) {
-  nparts = c(as.integer(nparts), 1L) #The second dimension is always 1 for dlists
+dlist <- function(...,nparts = 1L) {
+  nparts <- as.integer(nparts)
+  if(length(nparts) == 1)
+    nparts = c(nparts, 1L) #The second dimension is always 1 for dlists
   psize = matrix(0L,nparts[1])
   initialize <- list(...)
   if(length(initialize) == 0) {
     new(dds.env$driver@DListClass,backend=dds.env$driver@backendName,type = "DListClass", nparts = nparts, psize = psize, dim = 0L)
   } else{
-    dmapply(function(x){ x }, initialize)
+    dmapply(function(x){ x }, initialize,nparts=nparts)
   }
 }
 
 #' @export
 DList <- dlist
 
-#' @export
-as.dlist <- function(items) {
+#' Creates a dlist from the input.
+#' @param items The object to convert to a DList
+#' @param nparts The number of partitions for the resulting DList to have.
+#' @seealso \code{\link{dlist}}
+#' @return A DList converted from the input.
+#' Note that a list of partitions (resulting from the use of parts()) may
+#' be used with as.dlist. This will recombine those partitions into a single 
+#' DObject.
+#' @examples
+#' \dontrun{
+#' a <- as.dlist(list(1,2,3,4)) # A DList with elements 1 to 4.
+#' b <- as.dlist(parts(a,c(3,4))) # A new DList with only 2 partitions, which
+#' were partitions 3 and 4 of 'a'.
+#' } 
+#' @export 
+as.dlist <- function(items,nparts=NULL) {
   if(!is.list(items))
   items <- as.list(items)
+
+  if(length(nparts) == 1) nparts <- c(nparts,1L)
 
   # Currently, if this is used on a list of dobjects (i.e., with parts()), they must all belong to the same dobject. 
   # TODO: allow reconstituting of multiple dobject partitions into a new one.
@@ -154,11 +242,34 @@ as.dlist <- function(items) {
    dmapply(function(x) { x }, items)
 }
 
+#' Returns whether the input entity is a DList
+#' @param x The input to test to see whether it is a DList.
+#' @return TRUE if x is a DList, FALSE otherwise
+#' @examples
+#' \dontrun{
+#' is.dlist(3) #FALSE
+#' is.dlist(dlist(1,2,3,nparts=3)) #TRUE
+#' }
 #' @export
 is.dlist <- function(x) {
   is(x,"DObject") && x@type == "DListClass"
 }
 
+#' @export
+is.DList <- is.dlist
+
+#' @export
+as.DList <- as.dlist
+
+#' Returns whether the input entity is a DObject
+#' @param x The input to test to see whether it is a DObject.
+#' @return TRUE if x is a DObject, FALSE otherwise
+#' @examples
+#' \dontrun{
+#' is.dobject(3) # FALSE
+#' is.dobject(dlist(1,2,3,nparts=3)) # TRUE
+#' is.dobject(darray(psize=c(3,3),dim=c(9,9))) # TRUE
+#' }
 #' @export
 is.dobject <- function(x) {
   is(x,"DObject")
@@ -167,12 +278,19 @@ is.dobject <- function(x) {
 #' @export 
 is.DObject <- is.dobject
 
-#' @export
-is.DList <- is.dlist
-
-#' @export
-as.DList <- as.dlist
-
+#' Creates a darray with the specified partitioning and data.
+#' @param nparts The number of partitions this DArray should have. If this is not provided or is NULL, then psize and dim must be provided together.
+#' @param dim The dimensions of the overall DArray to construct. Must be provided together with psize.
+#' @param psize A 2d-vector indicating the size of each partition. In general, each 
+#' dimension of this vector has a value that evenly divides into dim; if not, then the last partition will be smaller. This parameter is provided together with dim.
+#' @param data (Default value: 0) The value to which each element of the DArray should be initialized to.
+#' @return A DArray, with each partition equal to size psize and number of partitions in each dimension equal to nparts, with each element initialized to data.
+#' @examples
+#' \dontrun{
+#' a <- darray(psize=c(3,3),dim=c(9,9),data=5) # A 9 partition (each partition 3x3), 9x9 DArray with each element initialized to 5.
+#' b <- darray(psize=c(3,3),dim=c(9,9)) # Same as 'a', but filled with 0s.
+#' c <- darray(nparts=c(2,3)) # An empty darray with 6 partitions, 2 per column and 3 per row.
+#' }
 #' @export
 darray <- function(nparts = NULL, dim=NULL, psize = NULL, data = 0) {
  
@@ -228,6 +346,14 @@ darray <- function(nparts = NULL, dim=NULL, psize = NULL, data = 0) {
 #' @export
 DArray <- darray
 
+#' Returns whether the input entity is a DArray
+#' @param x The input to test to see whether it is a DArray.
+#' @return TRUE if x is a DArray, FALSE otherwise
+#' @examples
+#' \dontrun{
+#' is.darray(3) # FALSE
+#' is.darray(darray(psize=c(3,3),dim=c(9,9))) # TRUE
+#' }
 #' @export
 is.darray <- function(x) {
   is(x,"DObject") && x@type == "DArrayClass"
@@ -236,9 +362,21 @@ is.darray <- function(x) {
 #' @export
 is.DArray <- is.darray
 
-
+#' Creates a DFrame with the specified partitioning and data.
+#' @param nparts The number of partitions this DFrame should have. If this is not provided or is NULL, then psize and dim must be provided together.
+#' @param dim The dimensions of the overall DFrame to construct. Must be provided together with psize.
+#' @param psize A 2d-vector indicating the size of each partition. In general, each 
+#' dimension of this vector has a value that evenly divides into dim; if not, then the last partition will be smaller. This parameter is provided together with dim.
+#' @param data (Default value: 0) The value to which each element of the DFrame should be intialized to.
+#' @return A DFrame, with each partition equal to size psize and number of partition in each dimension equal to nparts, with each element initialized to data.
+#' @examples
+#' \dontrun{
+#' a <- dframe(psize=c(3,3),dim=c(9,9),data=5) # A 9 partition (each partition 3x3), 9x9 DFrame with each element initialized to 5.
+#' b <- dframe(psize=c(3,3),dim=c(9,9)) # Same as 'a', but filled with 0s.
+#' c <- dframe(nparts=c(2,3)) # An empty DFrame with 6 partitions, 2 per column and 3 per row.
+#' }
 #' @export
-dframe <- function(...,nparts = NULL, psize = NULL, dim = NULL) {
+dframe <- function(nparts = NULL, dim=NULL, psize = NULL, data = 0) {
 
   if(!is.null(dim) || !is.null(psize)) {
     if(is.null(psize) || is.null(dim)) stop("Need to supply both psize and dim")
@@ -282,18 +420,25 @@ dframe <- function(...,nparts = NULL, psize = NULL, dim = NULL) {
 
   dim <- as.integer(dim)
 
-  initialize <- list(...)
-
-  if(length(initialize)==0) {
-    new(dds.env$driver@DFrameClass,backend=dds.env$driver@backendName,type = "DFrameClass", nparts = nparts, psize = psize, dim=dim)
+ if(all(dim==0)) {
+    new(dds.env$driver@DArrayClass,backend=dds.env$driver@backendName,type = "DFrameClass", nparts = nparts, psize = psize, dim=dim)
   } else{
-    dmapply(function(x){ data.frame(x) }, initialize, output.type="DFrameClass",nparts=nparts,combine="col")
+    sizes<-unlist(apply(psize,1,function(y)list(y)), recursive=FALSE)
+    dmapply(function(d, v){ data.frame(matrix(data=v,nrow=d[1], ncol=d[2])) }, sizes, MoreArgs=list(v=data), output.type="DFrameClass", combine="row", nparts=nparts)
   }
 }
 
 #' @export
 DFrame <- dframe
 
+#' Returns whether the input entity is a DFrame
+#' @param x The input to test to see whether it is a DFrame.
+#' @return TRUE if x is a DFrame, FALSE otherwise
+#' @examples
+#' \dontrun{
+#' is.dframe(3) # FALSE
+#' is.dframe(dframe(psize=c(3,3),dim=c(9,9))) # TRUE
+#' }
 #' @export
 is.dframe <- function(x) {
   is(x,"DObject") && x@type == "DFrameClass"
@@ -301,7 +446,6 @@ is.dframe <- function(x) {
 
 #' @export
 is.DFrame <- is.dframe
-
 
 #' @export
 setMethod("show",signature("DObject"),function(object) {
@@ -362,6 +506,18 @@ unlist.DObject <- function(x, recursive, use.names) {
   if(is.dlist(x)) unlist(collect(x),recursive,use.names)
 }
 
+#' Repartitions a DObject.
+#' This function takes two inputs, dobj, and skeleton. These inputs must both be DObjects of the same type and same dimension.
+#' If dobj and skeleton have different internal partitioning, this function will return a new dobject with the same internal data as in dobj but with the partitioning scheme of skeleton.
+#' @param dobj The DObject whose data is to be preserved, but repartitioned.
+#' @param skeleton The DObject whose partitioning is to be emulated in the output.
+#' @return A new DObject with the data of 'dobj' and the partitioning of 'skeleton'. 
+#' @examples
+#' \dontrun{
+#' a <- dlist(1,2,3,4,nparts=2)
+#' b <- dmapply(function(x) x, 10:14,nparts=4)
+#' c <- repartition(a,b) # c will have 4 partitions of length 1 each, containing 1 to 4.
+#' }
 #' @export
 repartition <- function(dobj, skeleton) {
   UseMethod("repartition")
@@ -376,6 +532,9 @@ repartition.DObject <- function(dobj,skeleton) {
    dims <- length(dim(skeleton))
 
    stopifnot(dim(dobj) == dim(skeleton))
+
+   # Don't do anything if partitioning is already the same
+   if(identical(psize(dobj),psize(skeleton))) return(dobj)
 
   if(dims > 1) {
      while(is.null(horizontalValues) || tail(horizontalValues,n=1L) < dim(dobj)[[2]]) {
