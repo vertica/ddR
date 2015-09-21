@@ -47,6 +47,7 @@ setMethod("init","ParallelDDS",
      parallel.dds.env$snowCluster <- cl
      parallel.dds.env$clusterType <- "PSOCK"
   }
+  return (parallel.dds.env$cores)
 })
 
 #' @export

@@ -49,7 +49,8 @@ useBackend <- function(driver, ...) {
   if(!extends(driver@DFrameClass,"DObject")) stop("The driver DFrame class does not extend DDS::Dobject")
   if(!extends(driver@DArrayClass,"DObject")) stop("The driver DArray class does not extend DDS::Dobject")
 
-  init(driver, ...)
+  nexecutors<-init(driver, ...)
+  if(!is.null(nexecutors) && is.numeric(nexecutors) && (nexecutors > 1)) {dds.env$nexecutors <- nexecutors}
       
   # Fix for weird methods bug
   dds.env$gc_performed <- FALSE
@@ -268,5 +269,5 @@ getBestOutputPartitioning.DDSDriver <- function(driver, ...,nparts=NULL,type=NUL
 }
 
 .onAttach <- function(libname, pkgname) {
-  packageStartupMessage("\nWelcome to DDS! You may want to read the user guide vignette under vignettes/ if this is your first time.")
+  packageStartupMessage("\nWelcome to 'dds' (Distributed Data-structures)!\n For more information visit: https://github.com/vertica/Standard-R-API.")
 }

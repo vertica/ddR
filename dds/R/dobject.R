@@ -850,8 +850,18 @@ checkDimAndPsize<-function(dim, psize){
 
 #' @export
 as.darray <- function(input, psize=NULL) {
-    cat("inside dds darray\n")    
-    mdim <- dim(input)
+   convertToDobject(input, psize, type="array") 
+}
+
+#' @export
+as.dframe <- function(input, psize=NULL) {
+   convertToDobject(input, psize, type="data.frame") 
+}
+
+
+convertToDobject<-function(input, psize, type){
+
+   mdim <- dim(input)
     if(is.null(psize)){
 	#Create as many partitions as the no. of executors in the system
 	psize<-mdim
@@ -861,31 +871,37 @@ as.darray <- function(input, psize=NULL) {
 
     if(psize[1]>mdim[1] || psize[2]>mdim[2]){
         ## check if input block dimension is larger than input matrix
-        ## check if input darray dimension is same as input matrix dimension
         stop("input darray and matrix dimensions do not conform")
      }
     
-    matrixList<-lapply(1:prod(numparts), FUN=function(x){get_sub_matrix(input, psize,x)})
-    answer<-dmapply(FUN=function(x){x}, matrixList, output.type="DArrayClass", combine="row", nparts=numparts) 
+    # return subset of matrix or data.frame given the block size and the index
+    # the block is counted from left to right. then top to down
+    # For example, (1,1)(1,2)(2,1)(2,2) is index of 1,2,3,4, respectively
+    get_sub_object <- function(in_mat, b_size, index, type){
+      nrow = dim(in_mat)[1] #number of rows
+      ncol = dim(in_mat)[2]
+      nb_per_r = ceiling(ncol/b_size[2]) #number of blocks in a row
+      if(index>nb_per_r*(ceiling(nrow/b_size[1]))){
+	stop("index out of range")
+      }
+      b_row_idx = 1+(b_size[1])*(floor((index-1)/nb_per_r)) #begin row index of submatrix
+      b_col_idx = 1+(b_size[2])*((index-1)%%nb_per_r)  #begin column index of submatrix
+      e_row_idx = ifelse(b_row_idx+b_size[1]-1<nrow, b_row_idx+b_size[1]-1, nrow)
+      e_col_idx = ifelse(b_col_idx+b_size[2]-1<ncol, b_col_idx+b_size[2]-1, ncol)
+      if(type == "array")
+          return (matrix(in_mat[b_row_idx:e_row_idx, b_col_idx:e_col_idx], nrow=(e_row_idx-b_row_idx+1), ncol=(e_col_idx-b_col_idx+1)))
+      else 
+      	  return (data.frame(in_mat[b_row_idx:e_row_idx, b_col_idx:e_col_idx]))
+      }
+
+    matrixList<-lapply(1:prod(numparts), FUN=function(x){get_sub_object(input, psize,x, type)})
+    answer<-NULL
+    if(type == "array")
+       answer<-dmapply(FUN=function(x){x}, matrixList, output.type="DArrayClass", combine="row", nparts=numparts) 
+    else
+       answer<-dmapply(FUN=function(x){x}, matrixList, output.type="DFrameClass", combine="row", nparts=numparts) 
     
     if(is.null(dimnames(input)) == FALSE)
         dimnames(answer) <- dimnames(input)
     return (answer)
-}
-
-# return subset of matrix given the block size and the index
-# the block is counted from left to right. then top to down
-# For example, (1,1)(1,2)(2,1)(2,2) is index of 1,2,3,4, respectively
-get_sub_matrix <- function(in_mat, b_size, index){
-  nrow = dim(in_mat)[1] #number of rows
-  ncol = dim(in_mat)[2]
-  nb_per_r = ceiling(ncol/b_size[2]) #number of blocks in a row
-  if(index>nb_per_r*(ceiling(nrow/b_size[1]))){
-    stop("index out of range")
-  }
-  b_row_idx = 1+(b_size[1])*(floor((index-1)/nb_per_r)) #begin row index of submatrix
-  b_col_idx = 1+(b_size[2])*((index-1)%%nb_per_r)  #begin column index of submatrix
-  e_row_idx = ifelse(b_row_idx+b_size[1]-1<nrow, b_row_idx+b_size[1]-1, nrow)
-  e_col_idx = ifelse(b_col_idx+b_size[2]-1<ncol, b_col_idx+b_size[2]-1, ncol)
-  return (matrix(in_mat[b_row_idx:e_row_idx, b_col_idx:e_col_idx], nrow=(e_row_idx-b_row_idx+1), ncol=(e_col_idx-b_col_idx+1)))
 }

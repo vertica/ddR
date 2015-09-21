@@ -28,6 +28,7 @@ setMethod("init","DistributedRDDS",
   function(x,...) {
     message("Backend switched to Distributed R. Starting it up...")
     distributedR_start(...)
+    return (sum(distributedR_status()$Inst))
   }
 )
 
