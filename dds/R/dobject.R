@@ -342,6 +342,7 @@ darray <- function(nparts = NULL, dim=NULL, psize = NULL, data = 0) {
   if(all(dim==0)) {
     new(dds.env$driver@DArrayClass,backend=dds.env$driver@backendName,type = "DArrayClass", nparts = nparts, psize = psize, dim=dim)
   } else{
+    if(class(psize) == "numeric") psize<-matrix(psize, nrow=1)
     sizes<-unlist(apply(psize,1,function(y)list(y)), recursive=FALSE)
     dmapply(function(d, v){ matrix(data=v,nrow=d[1], ncol=d[2]) }, sizes, MoreArgs=list(v=data), output.type="DArrayClass", combine="row", nparts=nparts)
   }
@@ -427,6 +428,7 @@ dframe <- function(nparts = NULL, dim=NULL, psize = NULL, data = 0) {
  if(all(dim==0)) {
     new(dds.env$driver@DArrayClass,backend=dds.env$driver@backendName,type = "DFrameClass", nparts = nparts, psize = psize, dim=dim)
   } else{
+    if(class(psize) == "numeric") psize<-matrix(psize, nrow=1)
     sizes<-unlist(apply(psize,1,function(y)list(y)), recursive=FALSE)
     dmapply(function(d, v){ data.frame(matrix(data=v,nrow=d[1], ncol=d[2])) }, sizes, MoreArgs=list(v=data), output.type="DFrameClass", combine="row", nparts=nparts)
   }

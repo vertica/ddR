@@ -84,7 +84,7 @@ mtx<-matrix(c(1:100), nrow=20)
 test_that("Column-partitioned darray: works", {
   da<-as.darray(mtx, psize=dim(mtx))  
   expect_equal(dim(da), c(20,5))
-  expect_equal(psize(da), c(20,5))
+  expect_equal(psize(da)[1,], c(20,5))
   expect_equal(collect(da), mtx)
 
   da<-as.darray(mtx,c(20,1))
@@ -155,7 +155,7 @@ test_that("Dense darrays: works", {
   gpa <- collect(da)
 
   expect_equal(dim(da), c(3000,3000))
-  expect_equal(psize(da), c(3000,3000))
+  expect_equal(psize(da)[1,], c(3000,3000))
   expect_equal(gpa, large_mat)
 
   da<-as.darray(large_mat,c(2900,2800))  # mixture of external transfer and protobuf msg
@@ -174,7 +174,7 @@ test_that("Dense darrays: works", {
   da<-darray(dim=c(r,c), psize=c(rpart, cpart))
   expect_equal(nrow(da), r, info="check darray nrow")
   expect_equal(ncol(da), c, info="check darray col")
-  expect_equal(psize(da,1), c(rpart,cpart), info="check size of partition 1")
+  expect_equal(psize(da)[1,], c(rpart,cpart), info="check size of partition 1")
 })
 
 context("Invalid darrays")
