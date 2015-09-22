@@ -121,3 +121,47 @@ test_that("element-wise dmapply works with vanilla-R variables", {
   expect_equal(collect(test_answer2),vanilla_answer2)
   
 })
+
+context("darray dmapply tests")
+
+library(Matrix)
+
+test_that("dmapply with dense darray: works", {
+  da <- dmapply(function(x) matrix(5,10,1), 1:1, output.type="darray", combine="row",nparts=c(1,1))
+  db <- dmapply(function(x) matrix(10,1,10), 1:1, output.type="darray", combine="row",nparts=c(1,1))
+
+  expect_equal(dim(da), c(10,1))
+  expect_equal(nparts(da), c(1,1))
+  expect_equal(dim(db), c(1,10))
+  expect_equal(nparts(db), c(1,1))
+  expect_equal(collect(da),matrix(5,10,1))
+  expect_equal(collect(db),matrix(10,1,10))
+})
+
+test_that("dmapply with sparse matrices : works", {
+  w <- runif(15)
+  vNum <- 10
+  nColBlock <- 3
+  el <- matrix(nrow=15, ncol=2, c(1,1,1,2,2,2,3,3,4,4,4,4,5,7,9,6,9,2,5,7,3,4,8,1,2,6,9,3,2,1))
+  wGF <- dmapply(function(i,el,v,w) { 
+                     library(Matrix) 
+                     sparseMatrix(i=el[,1],j=el[,2], dims=c(v,v), x=w)
+                     }, 1, output.type="darray",MoreArgs=list(el=el,w=w,v=vNum))
+
+  y <- sparseMatrix(i=el[,1], j=el[,2], dims=c(vNum,vNum), x=w)
+  gy <- collect(wGF)
+  expect_equal(y, gy)
+
+})
+
+context("dmapply error checking")
+
+a <- darray(nparts=5)
+
+test_that("Errors are thrown when they are supposed to be", {
+  expect_error(dmapply(1:10))
+  expect_error(dmapply(NULL,"a"))
+  expect_error(dmapply(function(x) x, parts(a,7)))
+
+  expect_error(dmapply(function(x) matri(5,2,4), 1,output.type="darray"))
+})

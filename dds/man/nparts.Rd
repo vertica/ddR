@@ -13,7 +13,7 @@ nparts(dobj)
 \item{dobj}{The DObject whose 2d partitioning vector to retrieve.}
 }
 \value{
-A 2d-vectoring containing the number of partitions along each dimension.
+A 2d-vector containing the number of partitions along each dimension.
 }
 \description{
 Returns a 2d-vector denoting the number of partitions existing along

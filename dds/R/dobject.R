@@ -159,7 +159,7 @@ psize <- function(dobj,index=NULL) {
 #' equivalent to c(totalParts(dobj),1).
 #' @param dobj The DObject whose 2d partitioning vector to retrieve.
 #' @seealso \code{\link{totalParts}}
-#' @return A 2d-vectoring containing the number of partitions along each dimension.
+#' @return A 2d-vector containing the number of partitions along each dimension.
 #' @examples
 #' \dontrun{
 #' a <- darray(psize=c(3,3),dim=c(9,9)) # 9 partitions of 3x3
