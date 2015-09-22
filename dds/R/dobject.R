@@ -18,6 +18,13 @@
 # Defines the base class for a distributed object, as well as their methods
 # DList, DArray, and DFrame inherit from class DObject
 
+#' @export
+setClass("DObject",
+  representation(nparts = "numeric", psize = "matrix",
+          dim = "numeric", dim.names = "list", backend = "character", type = "character"),
+  prototype = prototype(nparts = c(1L, 1L),psize = matrix(1,1),
+              dim = c(1L), dim.names = list()))
+
 #' Moves the data stored in partitions of the distributed object to the local node, and reassembles the data, in the order of the partitions, into the local version of the object.
 #'
 #' Data in partitions are reassembled sequentially for all DObjects; for DArrays and DFrames, this is row-major order.
@@ -38,7 +45,10 @@ collect <- function(dobj, index=NULL) {
   }
 
   index <- as.integer(unlist(index))
-  stopifnot(max(index) <= totalParts(dobj) && min(index) > 0)
+
+  if(min(index) < 1 || max(index) > totalParts(dobj))
+    stop("Indices must be greater than 0 and smaller than the total number of 
+      partitions in the dobject")
 
   # Try to get data from backend all at once
   # If the backend does not support this, we'll have to stitch it together by ourselves
@@ -50,11 +60,6 @@ collect <- function(dobj, index=NULL) {
       unlist(lapply(index,do_collect,x=dobj),recursive=FALSE)
   }) 
 }
-
-#' @export
-setGeneric("do_collect", function(x,parts) {
-  standardGeneric("do_collect")
-})
 
 #' Retrieves, as a list of independent objects of 'DObject' type, pointers to each individual 
 #' partition of the input dobj.
@@ -76,6 +81,7 @@ setGeneric("do_collect", function(x,parts) {
 #' }
 #' @export
 parts <- function(dobj, index=NULL) {
+  # If the input is already in parts format, just return the input
   if(!is(dobj,"DObject")){
     if(is.list(dobj) && is(dobj[[1]],"DObject")) {
       return(dobj)
@@ -97,7 +103,7 @@ parts <- function(dobj, index=NULL) {
 
   partitions <- get_parts(dobj, index)
 
-  psize <- lapply(seq(nrow(dobj@psize)),function(i) dobj@psize[i,])[index]
+  psize <- lapply(index,function(x) psize(dobj,x))
 
   partitions <- mapply(FUN=function(obj,psize) {
     obj@nparts <- c(1L, 1L)
@@ -136,25 +142,15 @@ psize <- function(dobj,index=NULL) {
   index <- as.integer(index)
 
   if(min(index) < 1 || max(index) > totalParts(dobj))
-    stop("Indices must be greater than 1 and smaller than the total number of 
+    stop("Indices must be greater than 0 and smaller than the total number of 
       partitions in the dobject")
 
-  dobj@psize[index,]
-}
-
-#' Returns the total number of partitions of the DObject.
-#' Note that that this is the same result as prod(nparts(dobj))
-#' @param dobj The DObject of which to get the number of partitions.
-#' @seealso \code{\link{nparts}}
-#' @return The number of partitions the DObject is divided into.
-#' @examples
-#' \dontrun{
-#' a <- darray(psize=c(3,3),dim=c(9,9)) # 9 partitions of 3x3
-#' b <- totalParts(a) # Returns 9
-#' }
-#' @export
-totalParts <- function(dobj) {
-  prod(dobj@nparts)
+  ans <- dobj@psize[index,]
+  if(!is.matrix(ans)) {
+    ans <- as.matrix(ans)
+    if(!is.dlist(dobj)) ans <- t(ans)
+  }
+  ans
 }
 
 #' Returns a 2d-vector denoting the number of partitions existing along
@@ -174,24 +170,32 @@ nparts <- function(dobj) {
   dobj@nparts
 }
 
+#' Returns the total number of partitions of the DObject.
+#' Note that that this is the same result as prod(nparts(dobj))
+#' @param dobj The DObject of which to get the number of partitions.
+#' @seealso \code{\link{nparts}}
+#' @return The number of partitions the DObject is divided into.
+#' @examples
+#' \dontrun{
+#' a <- darray(psize=c(3,3),dim=c(9,9)) # 9 partitions of 3x3
+#' b <- totalParts(a) # Returns 9
+#' }
 #' @export
-# TODO: finish definitions, slots
-setClass("DObject",
-  representation(nparts = "numeric", psize = "matrix",
-          dim = "numeric", dim.names = "list", backend = "character", type = "character"),
-  prototype = prototype(nparts = c(1L, 1L),psize = matrix(1,1),
-              dim = c(1L), dim.names = list()))
+totalParts <- function(dobj) {
+  prod(nparts(dobj))
+}
 
 #' Creates a dlist with the specified partitioning and data.
 #' @param ... Values to initialize the DList with (optional).
-#' @param nparts (Default is 1L) The number of partitions this DList should have.
+#' @param nparts (Default is NULL) The number of partitions this DList should have. If NULL, nparts will equal the length of ...
 #' @return A DList containing the data in ..., or an empty DList, partitioned accordingly based on nparts.
 #' @examples
 #' \dontrun{
 #' a <- dlist(1,2,3,4,nparts=2) # A DList containing 2 partitions, with data 1 to 4.
 #' }
 #' @export
-dlist <- function(...,nparts = 1L) {
+dlist <- function(...,nparts = NULL) {
+  if(is.null(nparts)) nparts <- length(list(...))
   nparts <- as.integer(nparts)
   if(length(nparts) == 1)
     nparts = c(nparts, 1L) #The second dimension is always 1 for dlists
@@ -452,59 +456,22 @@ setMethod("show",signature("DObject"),function(object) {
 
   partsStr <- ""
 
-  limit <- min(10,dim(object@psize)[[1]])
+  limit <- min(5,totalParts(object))
 
   for(i in seq(limit)) {
     if(i>1) partsStr <- paste0(partsStr,", ")
-    dims <- paste0("",object@psize[i,],collapse=", ")
+    dims <- paste0("",psize(object,i),collapse=", ")
     partsStr <- paste0(partsStr,"[",dims,"]")
   }
 
-  if(limit < dim(object@psize)[[1]]){
+  if(limit < totalParts(object)){
     partsStr <- paste0(partsStr,", ...")
   }
 
-  printStr <- paste0("\nType: ", object@type,"\nNo. of Partitions: ", totalParts(object), "\nnparts: ", paste(object@nparts,collapse=","),"\npsize: ", partsStr, "\ndim: ", paste(object@dim,collapse=","), "\nBackend Type: ", object@backend,"\n")
+  printStr <- paste0("\nType: ", object@type,"\nNo. of Partitions: ", totalParts(object), "\nnparts: ", paste(object@nparts,collapse=","),"\npsize: ", partsStr, "\ndim: ", paste(dim(object),collapse=","), "\nBackend Type: ", object@backend,"\n")
 
   cat(printStr) 
 })
-
-#' @export
-length.DObject <- function(x) {
-  if(is.dlist(x)) dim(x)[[1]]
-  else if(is.darray(x)) prod(dim(x))
-  else dim(x)[[2]]
-}
-
-#' @export
-names.DObject <- function(x) {
-   nobj <- dlapply(parts(x),function(x) { as.list(names(x)) })
-   unlist(collect(nobj))
-}
-
-#' @export
-setReplaceMethod("names", signature(x = "DObject", value = "ANY"), definition = function(x,value) {
-  stopifnot(length(value) == length(x))
-
-  lens <- sapply(data.frame(t(x@psize)), function(x) { prod(x) })
-
-  limits <- cumsum(lens)
-  limits <- c(0,limits) + 1
-  limits <- limits[seq(length(limits)-1)]
-
-  
-  namesList <- mapply(function(x,y) {
-      value[x:(x+y-1)]
-   },
-  limits,lens,SIMPLIFY=FALSE)
-
-  dmapply(function(x,y) { names(x) <- y; x }, parts(x), namesList,.unlistEach=TRUE, nparts=totalParts(x)) 
-})
-
-#' @export
-unlist.DObject <- function(x, recursive, use.names) {
-  if(is.dlist(x)) unlist(collect(x),recursive,use.names)
-}
 
 #' Repartitions a DObject.
 #' This function takes two inputs, dobj, and skeleton. These inputs must both be DObjects of the same type and same dimension.
@@ -541,7 +508,7 @@ repartition.DObject <- function(dobj,skeleton) {
        if(is.null(horizontalValues)) prevMax <- 0
        else prevMax <- horizontalValues[index]
        index <- index + 1
-       horizontalValues <- c(horizontalValues,dobj@psize[index,][[2]] + prevMax)
+       horizontalValues <- c(horizontalValues,psize(dobj,index)[[2]] + prevMax)
      }
    }
 
@@ -553,7 +520,7 @@ repartition.DObject <- function(dobj,skeleton) {
    while(is.null(verticalValues) || tail(verticalValues,n=1L) < dim(dobj)[[1]]) {
      if(is.null(verticalValues)) prevMax <- 0
      else prevMax <- verticalValues[count]
-     verticalValues <- c(verticalValues,dobj@psize[index,][[1]] + prevMax)
+     verticalValues <- c(verticalValues,psize(dobj,index)[[1]] + prevMax)
      index <- index + nparts_per_row
      count <- count + 1
    }
@@ -575,12 +542,12 @@ repartition.DObject <- function(dobj,skeleton) {
     index <- index + 1
 
     start_x <- cur_row + 1  
-    end_x <- cur_row + skeleton@psize[index,1]
+    end_x <- cur_row + psize(skeleton,index)[[1]]
 
     start_y <- cur_col + 1
 
     if(dims > 1) {
-      end_y <- cur_col + skeleton@psize[index,2]
+      end_y <- cur_col + psize(skeleton,index)[[2]]
     } else {
       end_y <- 1
     }
@@ -591,14 +558,14 @@ repartition.DObject <- function(dobj,skeleton) {
 
     if(cur_col >= col_end) {
       cur_col <- 0
-      cur_row <- cur_row + skeleton@psize[index,1]
+      cur_row <- cur_row + psize(skeleton,index)[[1]]
     }
   }
 
   if(dims==1) {
-    partitionIdsAndOffsets <- mapply(getIdsAndOffsets,starts_and_ends[,1],starts_and_ends[,2],starts_and_ends[,3],starts_and_ends[,4],MoreArgs=list(vertical=verticalValues,psizes=dobj@psize),SIMPLIFY=FALSE)
+    partitionIdsAndOffsets <- mapply(getIdsAndOffsets,starts_and_ends[,1],starts_and_ends[,2],starts_and_ends[,3],starts_and_ends[,4],MoreArgs=list(vertical=verticalValues,psizes=psize(dobj)),SIMPLIFY=FALSE)
   } else {
-  partitionIdsAndOffsets <- mapply(getIdsAndOffsets,starts_and_ends[,1],starts_and_ends[,2],starts_and_ends[,3],starts_and_ends[,4],MoreArgs=list(vertical=verticalValues,horizontal=horizontalValues,psizes=dobj@psize),SIMPLIFY=FALSE)
+  partitionIdsAndOffsets <- mapply(getIdsAndOffsets,starts_and_ends[,1],starts_and_ends[,2],starts_and_ends[,3],starts_and_ends[,4],MoreArgs=list(vertical=verticalValues,horizontal=horizontalValues,psizes=psize(dobj)),SIMPLIFY=FALSE)
   }
 
   max_parts <- 0
@@ -681,7 +648,7 @@ repartition.DObject <- function(dobj,skeleton) {
   if(skeleton@type == "DListClass") .unlistEach=TRUE
   else .unlistEach=FALSE
 
-  dmapplyArgs <- c(FUN=repartitioner,dmapplyArgs,psize=list(as.list(data.frame(t(skeleton@psize)))),MoreArgs=list(list(type=skeleton@type)),output.type=list(skeleton@type),combine=list("row"),nparts=list(nparts(skeleton)),.unlistEach=list(.unlistEach))
+  dmapplyArgs <- c(FUN=repartitioner,dmapplyArgs,psize=list(as.list(data.frame(t(psize(skeleton))))),MoreArgs=list(list(type=skeleton@type)),output.type=list(skeleton@type),combine=list("row"),nparts=list(nparts(skeleton)),.unlistEach=list(.unlistEach))
 
   do.call(dmapply,dmapplyArgs)
 }

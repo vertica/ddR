@@ -108,6 +108,11 @@ setGeneric("get_parts", function(x,index,...) {
   standardGeneric("get_parts")
 })
 
+#' @export
+setGeneric("do_collect", function(x,parts) {
+  standardGeneric("do_collect")
+})
+
 #' Like dmapply, but permits only one iterable argument, and the output.type is 
 #' always a dlist. This is the distributed version of 'lapply'. 
 #'
@@ -148,7 +153,7 @@ dlapply <- function(X,FUN,...,nparts=NULL,.unlistEach=FALSE) {
 #' }
 #' @export
 dmapply <- function(FUN,...,MoreArgs=list(),output.type="dlist",nparts=NULL,combine="flatten",.unlistEach=FALSE) {
-  stopifnot(is.function(FUN))
+  if(!is.function(FUN)) stop("FUN needs to be a function")
   
   # Allow for multiple ways of expressing output.type
   da_types <- c("da","darray","darrayclass","daclass","a","matrix","dmatrix","array","darr")
@@ -179,7 +184,8 @@ dmapply <- function(FUN,...,MoreArgs=list(),output.type="dlist",nparts=NULL,comb
     stop("Unrecognized option for combine -- try one of: {'flatten', 'row', 'col'}")
   
   dargs <- list(...)
-  stopifnot(length(dargs) > 0)
+
+  if(length(dargs) == 0) stop("Need to supply at least one iterable item for the function.")
 
   # Ensure that ... arguments are of equal length. length() works correctly for data.frame,
   # arrays, and lists
@@ -192,7 +198,7 @@ dmapply <- function(FUN,...,MoreArgs=list(),output.type="dlist",nparts=NULL,comb
      length(x)
    },FUN.VALUE=numeric(1))
 
-  stopifnot(max(lens) == min(lens))
+  if(max(lens) != min(lens)) stop("The lengths of your iterable arguments need to be equal.")
     
   partitioning <- getBestOutputPartitioning(dds.env$driver,...,nparts=nparts,type=output.type)
 
@@ -213,7 +219,8 @@ dmapply <- function(FUN,...,MoreArgs=list(),output.type="dlist",nparts=NULL,comb
 
 # Check object returned by backend
 checkReturnObject <- function(partitioning,result) {
-  stopifnot(partitioning == result@nparts)
+  if(!identical(partitioning,nparts(result))) 
+    stop("The backend returned a result with partitioning that does not match what is expected.")
 }
 
 # Given a list of arguments into dmapply, return a dobject

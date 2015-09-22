@@ -16,6 +16,43 @@
 ###################################################################
 
 #' @export
+length.DObject <- function(x) {
+  if(is.dlist(x)) dim(x)[[1]]
+  else if(is.darray(x)) prod(dim(x))
+  else dim(x)[[2]]
+}
+
+#' @export
+names.DObject <- function(x) {
+   nobj <- dlapply(parts(x),function(x) { as.list(names(x)) })
+   unlist(collect(nobj))
+}
+
+#' @export
+setReplaceMethod("names", signature(x = "DObject", value = "ANY"), definition = function(x,value) { 
+  stopifnot(length(value) == length(x))
+
+  lens <- sapply(data.frame(t(psize(x))), function(x) { prod(x) })
+
+  limits <- cumsum(lens)
+  limits <- c(0,limits) + 1
+  limits <- limits[seq(length(limits)-1)]
+   
+   
+  namesList <- mapply(function(x,y) {
+      value[x:(x+y-1)]
+   },
+  limits,lens,SIMPLIFY=FALSE)
+
+  dmapply(function(x,y) { names(x) <- y; x }, parts(x), namesList,.unlistEach=TRUE, nparts=totalParts(x))
+})
+
+#' @export
+unlist.DObject <- function(x, recursive, use.names) {
+  if(is.dlist(x)) unlist(collect(x),recursive,use.names)
+}
+
+#' @export
 unique.DObject <- function(x, ...) {
   unique.per.partition <- dlapply(parts(x),function(x) { unique(x) })
   result <- collect(unique.per.partition)
@@ -27,7 +64,7 @@ setMethod("[", c("DObject", "numeric", "missing","ANY"),
   function(x, i, j, ..., drop=TRUE) {
   if(is.dlist(x)){
     stopifnot(max(i) <= length(x) && min(i) > 0)
-    indicesAndOffsets <- mapply(findPartitionByIndex,i,MoreArgs=list(cumRowIndex=cumsum(x@psize[,1])))
+    indicesAndOffsets <- mapply(findPartitionByIndex,i,MoreArgs=list(cumRowIndex=cumsum(psize(x)[,1])))
 
     # Use run-length encoding algorithm to determine repeated partition sequences
     sequences <- rle(indicesAndOffsets[1,])
@@ -94,10 +131,9 @@ setMethod("colSums", signature(x="DObject"),
   function(x, na.rm = FALSE, dims = 1L) {
     if(is.dlist(x)) stop("colSums is only supported for DArrays and DFrames")  
 
-    # keep nparts == length(parts(x)) to keep data in place without movement
     columnSumsPerPartition <- 
       collect(dmapply(function(part,na.rm) colSums(part,na.rm=na.rm), parts(x),
-              MoreArgs=list(na.rm=na.rm),nparts=length(parts(x))))
+              MoreArgs=list(na.rm=na.rm),nparts=totalParts(x)))
 
     colPartitionResults <- lapply(1:nparts(x)[[2]], function(col) {
                              partitionIds <- seq(col,col+(nparts(x)[[1]]-1)*nparts(x)[[2]],
@@ -123,10 +159,9 @@ setMethod("rowSums", signature(x="DObject"),
   function(x, na.rm = FALSE, dims = 1L) {
     if(is.dlist(x)) stop("rowSums is only supported for DArrays and DFrames")  
 
-    # keep nparts == length(parts(x)) to keep data in place without movement
     rowSumsPerPartition <- 
       collect(dmapply(function(part,na.rm) rowSums(part,na.rm=na.rm), parts(x),
-              MoreArgs=list(na.rm=na.rm),nparts=length(parts(x))))
+              MoreArgs=list(na.rm=na.rm),nparts=totalParts(x)))
 
     rowPartitionResults <- lapply(seq(1,1+(nparts(x)[[1]]-1)*nparts(x)[[2]],
                                       by=nparts(x)[[2]]), function(rowStart) {
@@ -198,7 +233,7 @@ setReplaceMethod("colnames", signature(x = "DObject", value = "list"), definitio
   stopifnot(length(value) == length(dim(x)))
     if(is.dlist(x)) stop("Cannot use colnames on a DList. Use names() instead.")
 
-  colBoundaries <- cumsum(x@psize[seq(1,nparts(x)[[1]]),2])
+  colBoundaries <- cumsum(psize(x,seq(1,nparts(x)[[1]]))[,2])
   colBoundaries <- c(0,colBoundaries) + 1
   colBoundaries <- colBoundaries[seq(length(colBoundaries) -1)]
 
@@ -208,7 +243,7 @@ setReplaceMethod("colnames", signature(x = "DObject", value = "list"), definitio
                          if(partitionCol == 0) partitionCol <- nparts(x)[[1]]
                         
                          start <- colBoundaries[partitionCol]
-                         end <- start + x@psize[part,2] - 1
+                         end <- start + psize(x,part)[2] - 1
 
                          value[[2]][start:end]
                       })
@@ -221,7 +256,7 @@ setReplaceMethod("rownames", signature(x = "DObject", value = "list"), definitio
   stopifnot(length(value) == length(dim(x)))
     if(is.dlist(x)) stop("Cannot use rownames on a DList. Use names() instead.")
 
-  rowBoundaries <- cumsum(x@psize[seq(1,totalParts(x),by=nparts(x)[[2]]),1])
+  rowBoundaries <- cumsum(psize(x,seq(1,totalParts(x),by=nparts(x)[[2]]))[,1])
   rowBoundaries <- c(0,rowBoundaries) + 1
   rowBoundaries <- rowBoundaries[seq(length(rowBoundaries) -1)]
 
@@ -230,7 +265,7 @@ setReplaceMethod("rownames", signature(x = "DObject", value = "list"), definitio
                          partitionRow <- floor((part-1)/(nparts(x)[[1]])) + 1
                         
                          start <- rowBoundaries[partitionRow]
-                         end <- start + x@psize[part,1] - 1
+                         end <- start + psize(x,part)[1] - 1
 
                          value[[1]][start:end]
                       })
@@ -245,11 +280,11 @@ setReplaceMethod("dimnames", signature(x = "DObject", value = "list"), definitio
   stopifnot(length(value) == length(dim(x)))
     if(is.dlist(x)) stop("Cannot use dimnames on a DList. Use names() instead.")
 
-  rowBoundaries <- cumsum(x@psize[seq(1,totalParts(x),by=nparts(x)[[2]]),1])
+  rowBoundaries <- cumsum(psize(x,seq(1,totalParts(x),by=nparts(x)[[2]]))[,1])
   rowBoundaries <- c(0,rowBoundaries) + 1
   rowBoundaries <- rowBoundaries[seq(length(rowBoundaries) -1)]
 
-  colBoundaries <- cumsum(x@psize[seq(1,nparts(x)[[1]]),2])
+  colBoundaries <- cumsum(psize(x,seq(1,nparts(x)[[1]]))[,2])
   colBoundaries <- c(0,colBoundaries) + 1
   colBoundaries <- colBoundaries[seq(length(colBoundaries) -1)]
 
@@ -258,7 +293,7 @@ setReplaceMethod("dimnames", signature(x = "DObject", value = "list"), definitio
                          partitionRow <- floor((part-1)/(nparts(x)[[1]])) + 1
                         
                          start <- rowBoundaries[partitionRow]
-                         end <- start + x@psize[part,1] - 1
+                         end <- start + psize(x,part)[1] - 1
 
                          value[[1]][start:end]
                       })
@@ -269,7 +304,7 @@ setReplaceMethod("dimnames", signature(x = "DObject", value = "list"), definitio
                          if(partitionCol == 0) partitionCol <- nparts(x)[[1]]
                         
                          start <- colBoundaries[partitionCol]
-                         end <- start + x@psize[part,2] - 1
+                         end <- start + psize(x,part)[2] - 1
 
                          value[[2]][start:end]
                       })
@@ -366,10 +401,10 @@ setMethod("rbind", "DObject",
    # If they don't, repartition the incompatible object to be the 
    # same colwise partitioning as the first object (x)
 
-   colWidths <- x@psize[seq(nparts(x)[[2]]),2]
+   colWidths <- psize(x,seq(nparts(x)[[2]]))[,2]
 
    dobjs <- lapply(list(...), function(obj) {
-              if(identical(obj@psize[seq(nparts(obj)[[2]]),2],colWidths))
+              if(identical(psize(obj,seq(nparts(obj)[[2]]))[,2],colWidths))
                 return(obj)
               else {
                 if(obj@type == "DFrameClass") 
@@ -377,8 +412,8 @@ setMethod("rbind", "DObject",
                 else 
                   skeleton <- darray(nparts=c(nparts(obj)[[1]],nparts(x)[[2]]))
 
-                  row_psize <- obj@psize[seq(1,totalParts(obj),by=nparts(obj)[[2]]),1]
-                  col_psize <- x@psize[seq(nparts(x)[[2]]),2]
+                  row_psize <- psize(obj,seq(1,totalParts(obj),by=nparts(obj)[[2]]))[,1]
+                  col_psize <- psize(x,seq(nparts(x)[[2]]))[,2]
                   
                   skeleton@psize <- t(vapply(seq(totalParts(skeleton)),
                     function(i) { 
@@ -387,7 +422,7 @@ setMethod("rbind", "DObject",
                       c(row_psize[[curRow]],col_psize[[curCol]])                          
                     }, FUN.VALUE=numeric(2)))
 
-                  skeleton@dim <- obj@dim
+                  skeleton@dim <- dim(obj)
                   repartition(obj,skeleton)
               }
             })
@@ -441,10 +476,10 @@ setMethod("cbind", "DObject",
    # If they don't, repartition the incompatible object to be the 
    # same colwise partitioning as the first object (x)
 
-   rowWidths <- x@psize[seq(1,totalParts(x),by=nparts(x)[[2]]),1]
+   rowWidths <- psize(x,seq(1,totalParts(x),by=nparts(x)[[2]]))[,1]
 
    dobjs <- lapply(list(...), function(obj) {
-              if(identical(obj@psize[seq(1,totalParts(obj),by=nparts(obj)[[2]]),1],rowWidths))
+              if(identical(psize(obj,seq(1,totalParts(obj),by=nparts(obj)[[2]]))[,1],rowWidths))
                 return(obj)
               else {
                 if(obj@type == "DFrameClass") 
@@ -452,8 +487,8 @@ setMethod("cbind", "DObject",
                 else 
                   skeleton <- darray(nparts=c(nparts(x)[[1]],nparts(obj)[[2]]))
 
-                  col_psize <- obj@psize[seq(nparts(obj)[[2]]),2]
-                  row_psize <- x@psize[seq(1,totalParts(x),by=nparts(x)[[2]]),1]
+                  col_psize <- psize(obj,seq(nparts(obj)[[2]]))[,2]
+                  row_psize <- psize(x,seq(1,totalParts(x),by=nparts(x)[[2]]))[,1]
 
                   skeleton@psize <- t(vapply(seq(totalParts(skeleton)),
                     function(i) { 
@@ -462,7 +497,7 @@ setMethod("cbind", "DObject",
                       c(row_psize[[curRow]],col_psize[[curCol]])                          
                     }, FUN.VALUE=numeric(2)))
 
-                  skeleton@dim <- obj@dim
+                  skeleton@dim <- dim(obj)
                   repartition(obj,skeleton)
               }
             })

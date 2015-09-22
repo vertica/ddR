@@ -80,7 +80,7 @@ test_that("element-wise multimodal dmapply works", {
   expect_equal(collect(answer),list(8,13,15,20))
 })
 
-  foo <- data.frame(cbind(c(1,2,3),c(4,5,6),c(7,8,9),c(10,11,12)))
+  foo <- data.frame(cbind(c(1,2),c(4,5),c(7,8),c(10,11)))
   bar <- list(13,14,15,16)
   baz <- cbind(c(1,2),c(3,4))
 

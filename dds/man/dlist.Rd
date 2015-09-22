@@ -4,12 +4,12 @@
 \alias{dlist}
 \title{Creates a dlist with the specified partitioning and data.}
 \usage{
-dlist(..., nparts = 1L)
+dlist(..., nparts = NULL)
 }
 \arguments{
 \item{...}{Values to initialize the DList with (optional).}
 
-\item{nparts}{(Default is 1L) The number of partitions this DList should have.}
+\item{nparts}{(Default is NULL) The number of partitions this DList should have. If NULL, nparts will equal the length of ...}
 }
 \value{
 A DList containing the data in ..., or an empty DList, partitioned accordingly based on nparts.
