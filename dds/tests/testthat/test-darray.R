@@ -190,3 +190,149 @@ test_that("Dense darrays: works", {
 })
 
 
+context("Dense darray declared with nparts")
+
+rblocks <- sample(1:8, 1)
+cblocks <- sample(1:8, 1)
+rsize <- sample(1:10, rblocks)
+csize <- sample(1:10, cblocks)
+
+da<-darray(nparts=c(rblocks,cblocks))
+db<-darray(nparts=c(rblocks,cblocks))
+
+test_that("Creation and Fetch works", {
+  expect_equal(nrow(da), 0, info="check darray nrow")
+  expect_equal(ncol(da), 0, info="check darray col")
+})
+
+#Update flex darray
+rblocks<-8
+cblocks<-2
+rsize<-c(9, 1, 2, 4, 7, 5, 6, 3)
+csize<-c(10,7)
+
+mat=NULL
+  mat2=NULL
+  matsize=NULL
+  for(rid in 0:(rblocks-1)){
+    cmat=NULL
+    cmat2=NULL
+    for(cid in 0:(cblocks-1)){
+            index <- (rid*cblocks)+cid
+
+            cmat <-cbind(cmat,matrix(index, nrow=rsize[floor(index/cblocks)+1],ncol=csize[(index%%cblocks)+1]))
+            matsize<-rbind(matsize,c(rsize[floor(index/cblocks)+1],csize[(index%%cblocks)+1]))
+
+            #For mat2
+            v<-NULL
+            if(index%%3 ==0){v<-TRUE}
+            if(index%%3 ==1){v<-NA}
+            if(index%%3 ==2){v<-22}
+            cmat2 <-cbind(cmat2,matrix(v, nrow=rsize[floor(index/cblocks)+1],ncol=csize[(index%%cblocks)+1]))
+    }
+    mat <-rbind(mat,cmat)
+    mat2 <-rbind(mat2,cmat2)
+}
+
+da <- dmapply(function(index, rs, cs, cb) {
+      	     matrix(index, nrow=rs[floor(index/cb)+1],ncol=cs[(index%%cb)+1])
+             }, 0:((rblocks*cblocks)-1), MoreArgs=list(rs=rsize, cs=csize, cb=cblocks), output.type="DArrayClass", combine="row",nparts=c(rblocks,cblocks))
+
+db <- dmapply(function(index, rs, cs, cb) {
+     v<-NULL
+     if(index%%3 ==0){v<-TRUE}
+     if(index%%3 ==1){v<-NA}
+     if(index%%3 ==2){v<-22}
+     matrix(v, nrow=rs[floor(index/cb)+1],ncol=cs[(index%%cb)+1])
+     }, 0:((rblocks*cblocks)-1), MoreArgs=list(rs=rsize, cs=csize, cb=cblocks), output.type="DArrayClass", combine="row",nparts=c(rblocks,cblocks))
+
+test_that("Creation and Fetch works", {
+  expect_equal(nrow(da), nrow(mat), info="check nrow of flex darray")
+  expect_equal(ncol(da), ncol(mat), info="check ncol of flex darray")
+  expect_equal(collect(da), mat, info="check flex darray contents")
+  expect_equal(psize(da,1), matrix(c(rsize[1],csize[1]),nrow=1), info="check size of first partition")
+  expect_equal(psize(da), matsize, info="check size of all partitions")
+  expect_equal(dim(da), dim(mat), info="check dimension of flex darray")
+})
+
+context("Dense darray ops when declared with nparts")
+
+test_that("Operatons: max, min, head, tail works", {
+  expect_equal(max(da), max(mat), info="check max of flex darray")
+  expect_equal(min(da), min(mat), info="check min of flex darray")
+  expect_equal(sum(da), sum(mat), info="check sum of flex darray")
+  expect_equal(mean(da), mean(mat), info="check mean of flex darray")
+  expect_equal(colSums(da), colSums(mat), info="check colSums of flex darray")
+  expect_equal(rowSums(da), rowSums(mat), info="check rowSums of flex darray")
+  expect_equal(colMeans(da), colMeans(mat), info="check colMeans of flex darray")
+  expect_equal(rowMeans(da), rowMeans(mat), info="check rowMeans of flex darray")
+  #expect_equal(head(da), head(mat), info="check head operator on flex darray")
+  #expect_equal(as.numeric(tail(da)), as.numeric(tail(mat)), info="check tail operator on flex darray")
+  #expect_equal(norm(da), norm(mat,"F"), info="check norm operator on flex darray")
+})
+
+
+val<-42
+mat2<-array(val, dim=c(nrow(mat),ncol(mat)))
+
+d1 <- dmapply(function(y, v) {
+            matrix(v, nrow=nrow(y),ncol=ncol(y))
+             }, parts(da), MoreArgs=list(v=val), output.type="DArrayClass", combine="row",nparts=nparts(da))
+
+#test_that("Operations: sum, minus works", {
+#  expect_equal(collect(da1+da1), (mat+mat), info="check self + operator on flex darray")
+#  expect_equal(collect(da), mat2, info="check flex darray contents after update to full array")
+#  expect_equal(collect(da+da1), (mat+mat2), info="check + operator on flex darray")
+#  expect_equal(collect(da1-da), (mat-mat2), info="check - operator on flex darray")
+#  expect_equal(collect(da1+22), (mat+22), info="check - operator on flex darray")
+#})
+
+
+context("Sparse darray with nparts")
+
+rblocks <- sample(1:8, 1)
+cblocks <- sample(1:8, 1)
+rsize <- sample(1:10, rblocks)
+csize <- sample(1:10, cblocks)
+
+da <- dmapply(function(index, rs, cs, cb) {
+        nrow=rs[floor(index/cb)+1]
+        ncol=cs[(index%%cb)+1]
+        y<-sparseMatrix(i=1,
+                        j=1,
+                        x=index+1, 
+                        dims=c(nrow,ncol))
+             }, 0:((rblocks*cblocks)-1), MoreArgs=list(rs=rsize, cs=csize, cb=cblocks), output.type="DArrayClass", combine="row",nparts=c(rblocks,cblocks))
+
+
+rindex<-c(1,(cumsum(rsize)+1)[1:length(rsize)-1])
+rindex<-rep(rindex, each=cblocks)
+cindex<-c(1,(cumsum(csize)+1)[1:length(csize)-1])
+cindex<-rep(cindex, rblocks)
+mat<- sparseMatrix(i=rindex,
+                        j=cindex,
+                        x=1:length(rindex), 
+                        dims=c(sum(rsize),sum(csize)))
+
+test_that("Sparse creation and Fetch works", {
+  expect_equal(nrow(da), nrow(mat), info="check nrow of flex sparse darray")
+  expect_equal(ncol(da), ncol(mat), info="check ncol of flex sparse darray")
+  expect_equal(collect(da), mat, info="check flex sparse darray contents")
+  expect_equal(dim(da), dim(mat), info="check dimension of flex sparse darray")
+  expect_equal(dim(da), dim(mat), info="check dimension of flex sparse darray")
+})
+
+context("Sparse darray ops with nparts")
+
+test_that("Operatons: max, min, head, tail works", {
+  expect_equal(max(da), max(mat), info="check max of flex sparse darray")
+  expect_equal(min(da), min(mat), info="check min of flex sparse darray")
+  expect_equal(sum(da), sum(mat), info="check sum of flex sparse darray")
+  expect_equal(mean(da), mean(mat), info="check mean of flex sparse darray")
+  expect_equal(colSums(da), colSums(mat), info="check colSums of flex sparse darray")
+  expect_equal(rowSums(da), rowSums(mat), info="check rowSums of flex sparse darray")
+  expect_equal(colMeans(da), colMeans(mat), info="check colMeans of flex sparse darray")
+  expect_equal(rowMeans(da), rowMeans(mat), info="check rowMeans of flex sparse darray")
+  #expect_equal(head(da), head(mat), info="check head operator on flex sparse darray")
+  #expect_equal(as.numeric(tail(da)), as.numeric(tail(mat)), info="check tail operator on flex sparse darray")
+})

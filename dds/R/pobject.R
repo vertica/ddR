@@ -100,7 +100,10 @@ setMethod("do_collect",signature("ParallelObj","integer"),
 	 }
 	 res<-NULL
 	 for (index in seq(1, xparts, by=nparts(x)[2])){
-             res<-rbind2(res, do.call(cbind,x@pObj[index:(index+nparts(x)[2]-1)]))
+	     if(is.null(res))  #For sparse array rbind on null does not work
+		res<-do.call(cbind,x@pObj[index:(index+nparts(x)[2]-1)])
+	     else
+	        res<-rbind2(res, do.call(cbind,x@pObj[index:(index+nparts(x)[2]-1)]))
          }
     	 return (res)
    } 

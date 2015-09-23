@@ -820,11 +820,98 @@ checkDimAndPsize<-function(dim, psize){
  if(dim[1]<psize[1]||dim[2]<psize[2]) stop("psize should be smaller than dim")
 }
 
+#' Convert input matrix into a distributed array.
+#' @param input input matrix that will be converted to darray.
+#' @param psize size of each partition as a vector specifying number of rows and columns.
+#' @seealso \code{\link{darray}} \code{\link{psize}}
+#' @return Returns a distributed array with dimensions equal to that of the
+#' input matrix and partitioned according to argument 'psize'.  Data
+#' may reside as partitions on remote nodes.
+#' @details 
+#' If partition size (psize) is missing then the input
+#' matrix is row partitioned and striped across the
+#' cluster, i.e., the returned distributed array has approximately as
+#' many partitions as the number of R instances in the session.
+#'
+#' The last set of partitions may have fewer rows or columns if input
+#' matrix size is not an integer multiple of partition size. If ‘A’
+#' is a 5x5 matrix, then ‘as.darray(A, psize=c(2,5))’ is a
+#' distributed array with three partitions. The first two partitions
+#' have two rows each but the last partition has only one row. All
+#' three partitions have five columns.
+#'
+#' To create a distributed darray with just one partition, pass the
+#' dimension of the input frame, i.e. ‘as.darray(A, psize=dim(A))’
+#' @examples
+#' \dontrun{
+#' ##Create 4x4 matrix
+#' mtx<-matrix(sample(0:1, 16, replace=T), nrow=4)
+#' ##Create distributed array spread across the cluster
+#' da<-as.darray(mtx)
+#' psize(da)
+#' ##Create distributed array with single partition
+#' db<-as.darray(mtx, psize=dim(mtx))
+#' psize(db)
+#' ##Create distributed array with two partitions
+#' dc<- as.darray(mtx, psize=c(2,4))
+#' psize(dc)
+#' ##Fetch first partition
+#' collect(dc,1)
+#' } 
 #' @export
 as.darray <- function(input, psize=NULL) {
    convertToDobject(input, psize, type="array") 
 }
 
+#' Convert input matrix or data.frame into a distributed data.frame.
+#' @param input input matrix or data.frame that will be converted to dframe.
+#' @param psize size of each partition as a vector specifying number of rows and columns.
+#' @seealso \code{\link{dframe}} \code{\link{psize}}
+#' @return Returns a distributed data.frame with dimensions equal to that of the
+#' input matrix and partitioned according to argument 'psize'.  Data
+#' may reside as partitions on remote nodes.
+#' @details 
+#' If partition size (psize) is missing then the input
+#' matrix/data.frame is row partitioned and striped across the
+#' cluster, i.e., the returned distributed frame has approximately as
+#' many partitions as the number of R instances in the session.
+#'
+#' The last set of partitions may have fewer rows or columns if input
+#' matrix size is not an integer multiple of partition size. If ‘A’
+#' is a 5x5 matrix, then ‘as.dframe(A, psize=c(2,5))’ is a
+#' distributed frame with three partitions. The first two partitions
+#' have two rows each but the last partition has only one row. All
+#' three partitions have five columns.
+#'
+#' To create a distributed frame with just one partition, pass the
+#' dimension of the input frame, i.e. ‘as.dframe(A, psize=dim(A))’
+#' @examples
+#' \dontrun{
+#'     ##Create 4x4 matrix
+#'     mtx<-matrix(sample(0:1, 16, replace=T), nrow=4)
+#'     ##Create distributed frame spread across the cluster
+#'     df<-as.dframe(mtx)
+#'     psize(df)
+#'     ##Create distributed frame with single partition
+#'     db<-as.dframe(mtx, psize=dim(mtx))
+#'     psize(db)
+#'     ##Create distributed frame with two partitions
+#'     dc<- as.dframe(mtx, psize=c(2,4))
+#'     psize(dc)
+#'     ##Fetch first partition
+#'     collect(dc,1)
+#'     #creating of dframe with data.frame
+#'     dfa <- c(2,3,4)
+#'     dfb <- c("aa","bb","cc")
+#'     dfc <- c(TRUE,FALSE,TRUE)
+#'     df <- data.frame(dfa,dfb,dfc)
+#'     #creating dframe from data.frame with default block size
+#'     ddf <- as.dframe(df)
+#'     collect(ddf)
+#'     #creating dframe from data.frame with 1x1 block size
+#'     ddf <- as.dframe(df,psize=c(1,1))
+#'     collect(ddf)
+#' } 
 #' @export
 as.dframe <- function(input, psize=NULL) {
    convertToDobject(input, psize, type="data.frame") 
@@ -873,7 +960,8 @@ convertToDobject<-function(input, psize, type){
     else
        answer<-dmapply(FUN=function(x){x}, matrixList, output.type="DFrameClass", combine="row", nparts=numparts) 
     
-    if(is.null(dimnames(input)) == FALSE)
+    dnames<-dimnames(input)
+    if(length(dnames) ==2 && length(dnames[[1]]) == dim(answer)[1] && length(dnames[[2]]) == dim(answer)[2])
         dimnames(answer) <- dimnames(input)
     return (answer)
 }
