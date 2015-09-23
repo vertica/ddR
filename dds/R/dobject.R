@@ -44,6 +44,9 @@ collect <- function(dobj, index=NULL) {
     index <- seq(totalParts(dobj))
   }
 
+  if(!is.numeric(index)) stop("Invalid argument for index")
+  if(!is.dobject(dobj)) stop("Invalid argument for dobj")
+
   index <- as.integer(unlist(index))
 
   if(min(index) < 1 || max(index) > totalParts(dobj))
