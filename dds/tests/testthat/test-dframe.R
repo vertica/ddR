@@ -117,4 +117,114 @@ test_that("Dframes: Row/column name and value setup", {
   expect_true(all(row.names(df2gp6)==name_sample[5:8]))
   df2gp12 <- collect(df2, 12)
   expect_true(all(row.names(df2gp12)==name_sample[9:10]))
+
+})
+
+context("check data.frame operations such as colSums on mixed col. types")
+
+test_that("Dframe: check data.frame operations such as colSums on mixed col. types",{
+  df4<-dmapply(function(x) {
+                if(x==3) 
+                  return(c(1,2,3))
+                else 
+                  return(c(TRUE,FALSE,as.integer(4)))
+               }, 1:4, output.type="dframe", combine="col",nparts=c(4,1))
+
+  df4gp <- collect(df4)
+  expect_equal(as.numeric(colSums(df4gp)), as.numeric(colSums(df4)))
+  expect_equal(as.numeric(rowSums(df4gp)), as.numeric(rowSums(df4)))
+  expect_equal(as.numeric(colMeans(df4gp)), as.numeric(colMeans(df4)))
+  expect_equal(as.numeric(rowMeans(df4gp)), as.numeric(rowMeans(df4)))
+})
+
+  rblocks <- sample(1:8, 1)
+  cblocks <- sample(1:8, 1)
+  rsize <- sample(1:10, rblocks)
+  csize <- sample(1:10, cblocks)
+
+context("Fill a matrix partition-by-partition for later comparison with darray. We fill from left-right and then top-bottom.")
+
+test_that("Dframe: Fill a matrix partition-by-partition for later comparison with darray. We fill from left-right and then top-bottom.",{
+
+  mat=NULL
+  matsize=NULL
+  for(rid in 0:(rblocks-1)){
+    cmat=NULL
+    for(cid in 0:(cblocks-1)){
+            index <- (rid*cblocks)+cid
+            cmat <-cbind(cmat,matrix(index, nrow=rsize[floor(index/cblocks)+1],ncol=csize[(index%%cblocks)+1]))
+            matsize<-rbind(matsize,c(rsize[floor(index/cblocks)+1],csize[(index%%cblocks)+1]))
+    }
+    mat <-rbind(mat,cmat)
+  }
+  mat<-data.frame(mat)
+
+  da <- dmapply(function(index,rs,cs,cb) { 
+                  data.frame(matrix(index, nrow=rs[floor(index/cb)+1],ncol=cs[(index%%cb)+1]))
+                }, 1:(rblocks*cblocks)-1, MoreArgs=list(rs=rsize,cs=csize,cb=cblocks),output.type="dframe", combine="row", nparts=c(rblocks,cblocks))
+
+  cnames<-as.character(sample(1:ncol(mat)))
+  expect_equal(nrow(da), nrow(mat))
+  expect_equal(ncol(da), ncol(mat))
+  expect_true(all(collect(da)== mat))
+  expect_equal(psize(da,1), matrix(c(rsize[1],csize[1]),nrow=1))
+  expect_equal(psize(da), matsize)
+  colnames(da)<-cnames
+  expect_true(all(colnames(collect(da))== cnames))
+
+  expect_equal(dim(da), dim(mat))
+  expect_equal(max(da), max(mat))
+  expect_equal(min(da), min(mat))
+  expect_equal(sum(da), sum(mat))
+  expect_equal(as.numeric(colSums(da)), as.numeric(colSums(mat)))
+  expect_equal(as.numeric(rowSums(da)), as.numeric(rowSums(mat)))
+  expect_equal(as.numeric(rowMeans(da)), as.numeric(rowMeans(mat)))
+  expect_equal(as.numeric(colMeans(da)), as.numeric(colMeans(mat)))
+})
+
+context("Testing as.dframe")
+
+test_that("Dframe: Testing as.dframe",{
+mtx <- matrix(c(1:100),nrow=20)
+
+  #checking base case with giving dframe dimensions
+  df <- as.dframe(mtx,psize=dim(mtx))
+  expect_equal(dim(df), c(20,5))
+  expect_true(all(as.matrix(collect(df))==mtx))
+  expect_error(as.dframe(mtx,psize=c(20,10)))
+
+  #checking base case without giving dframe dimensions
+  df <- as.dframe(mtx)
+  expect_equal(dim(df), c(20,5))
+  expect_true(all(as.matrix(collect(df))==mtx))
+
+  #testing creating of dframe with data.frame
+  dfa <- c(2,3,4)
+  dfb <- c("aa","bb","cc")
+  dfc <- c(TRUE,FALSE,TRUE)
+  df <- data.frame(dfa,dfb,dfc)
+
+  # creating dframe with default block size
+  ddf <- as.dframe(df)
+  expect_equal(dim(ddf), c(3,3))
+  expect_equal(colnames(ddf), colnames(df))
+
+  # creating dframe with 1x1 block size
+  ddf <- as.dframe(df,psize=c(1,1))
+  expect_equal(dim(ddf), c(3,3))
+  expect_equal(psize(ddf)[1,], c(1,1))
+  expect_equal(colnames(ddf), colnames(df))
+
+  # testing large darray
+  large_mat <- matrix(runif(3000*3000), 3000,3000)
+  df <- as.dframe(large_mat, psize=dim(large_mat))
+  gpdf <- collect(df)
+
+  expect_equal(dim(df), c(3000,3000))
+  expect_equal(psize(df)[1,], c(3000,3000))
+  expect_true(all(as.matrix(gpdf)== large_mat))
+
+  df <- as.dframe(large_mat, c(2900,2800))
+  gpdf <- collect(df)
+  expect_true(all(as.matrix(gpdf)== large_mat))
 })
