@@ -2,20 +2,20 @@
 % Please edit documentation in R/dobject.R
 \name{totalParts}
 \alias{totalParts}
-\title{Returns the total number of partitions of the DObject.
-Note that that this is the same result as prod(nparts(dobj))}
+\title{Returns the total number of partitions of the distributed object.
+The result is same as prod(nparts(dobj))}
 \usage{
 totalParts(dobj)
 }
 \arguments{
-\item{dobj}{The DObject of which to get the number of partitions.}
+\item{dobj}{input distributed array, data.frame, or list.}
 }
 \value{
-The number of partitions the DObject is divided into.
+The total number of partitions in the distributed object.
 }
 \description{
-Returns the total number of partitions of the DObject.
-Note that that this is the same result as prod(nparts(dobj))
+Returns the total number of partitions of the distributed object.
+The result is same as prod(nparts(dobj))
 }
 \examples{
 \dontrun{

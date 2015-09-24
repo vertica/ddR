@@ -63,6 +63,17 @@ dimension of the input frame, i.e. ‘as.dframe(A, psize=dim(A))’
     collect(ddf)
 }
 }
+\references{
+Prasad, S., Fard, A., Gupta, V., Martinez, J., LeFevre, J., Xu, V., Hsu, M., Roy, I.
+Large scale predictive analytics in Vertica: Fast data transfer, distributed model creation
+and in-database prediction. _Sigmod 2015_, 1657-1668.
+
+Venkataraman, S., Bodzsar, E., Roy, I., AuYoung, A., and
+Schreiber, R. (2013) Presto: Distributed Machine Learning and
+Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
+
+Homepage: https://github.com/vertica/DistributedR
+}
 \seealso{
 \code{\link{dframe}} \code{\link{psize}}
 }

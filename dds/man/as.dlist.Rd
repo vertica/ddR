@@ -2,30 +2,41 @@
 % Please edit documentation in R/dobject.R
 \name{as.dlist}
 \alias{as.dlist}
-\title{Creates a dlist from the input.}
+\title{Creates a distributed list from the input.}
 \usage{
 as.dlist(items, nparts = NULL)
 }
 \arguments{
-\item{items}{The object to convert to a DList}
+\item{items}{The object to convert to a dlist.}
 
-\item{nparts}{The number of partitions for the resulting DList to have.}
+\item{nparts}{The number of partitions for in the resulting dlist.}
 }
 \value{
-A DList converted from the input.
+A dlist converted from the input.
 Note that a list of partitions (resulting from the use of parts()) may
 be used with as.dlist. This will recombine those partitions into a single
-DObject.
+distributed object.
 }
 \description{
-Creates a dlist from the input.
+Creates a distributed list from the input.
 }
 \examples{
 \dontrun{
-a <- as.dlist(list(1,2,3,4)) # A DList with elements 1 to 4.
-b <- as.dlist(parts(a,c(3,4))) # A new DList with only 2 partitions, which
-were partitions 3 and 4 of 'a'.
+a <- as.dlist(list(1,2,3,4)) # A dlist with elements 1 to 4.
+## A new dlist with only 2 partitions, which were partitions 3 and 4 of 'a'.
+b <- as.dlist(parts(a,c(3,4)))
 }
+}
+\references{
+Prasad, S., Fard, A., Gupta, V., Martinez, J., LeFevre, J., Xu, V., Hsu, M., Roy, I.
+Large scale predictive analytics in Vertica: Fast data transfer, distributed model creation
+and in-database prediction. _Sigmod 2015_, 1657-1668.
+
+Venkataraman, S., Bodzsar, E., Roy, I., AuYoung, A., and
+Schreiber, R. (2013) Presto: Distributed Machine Learning and
+Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
+
+Homepage: https://github.com/vertica/DistributedR
 }
 \seealso{
 \code{\link{dlist}}

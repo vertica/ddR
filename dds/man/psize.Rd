@@ -2,28 +2,21 @@
 % Please edit documentation in R/dobject.R
 \name{psize}
 \alias{psize}
-\title{Return the 1d (in the case of DLists) or 2d-matrix (DArrays and DFrames)
-containing the sizes of each partition of the DObject.
-The ith row of the matrix refers to the ith partition of the DObject.
-The 1st column refers to the number of rows, and the 2nd is the number of columns.}
+\title{Return sizes of each partition of the input distributed object.}
 \usage{
 psize(dobj, index = NULL)
 }
 \arguments{
-\item{dobj}{The DObject to get the partition sizes of}
+\item{dobj}{input distributed object}
 
-\item{index}{(Default: NULL), a numeric vector or list containing the indices of the}
+\item{index}{a numeric vector or list containing the indices of the partitions. Default is NULL.}
 }
 \value{
-A matrix, which is 1d in the case of DLists, and 2d in the case of DArrays and
-DFrames, containing the partition sizes of the specified DObjects (if index is NULL), or
-the partition sizes of the provided ids of partitions (if index is not NULL).
+A matrix that denotes the number of rows and columns in the
+partition. Row i of the matrix corresponds or size of i'th partition. For dlist, the returned matrix has only 1 column.
 }
 \description{
-Return the 1d (in the case of DLists) or 2d-matrix (DArrays and DFrames)
-containing the sizes of each partition of the DObject.
-The ith row of the matrix refers to the ith partition of the DObject.
-The 1st column refers to the number of rows, and the 2nd is the number of columns.
+Return sizes of each partition of the input distributed object.
 }
 \examples{
 \dontrun{
@@ -31,8 +24,18 @@ a <- darray(psize=c(3,3),dim=c(9,9)) # 9 partitions of 3x3
 b <- psize(a) # A 9x2 matrix, with each row containing c(3,3)
 }
 }
+\references{
+Prasad, S., Fard, A., Gupta, V., Martinez, J., LeFevre, J., Xu, V., Hsu, M., Roy, I.
+Large scale predictive analytics in Vertica: Fast data transfer, distributed model creation
+and in-database prediction. _Sigmod 2015_, 1657-1668.
+
+Venkataraman, S., Bodzsar, E., Roy, I., AuYoung, A., and
+Schreiber, R. (2013) Presto: Distributed Machine Learning and
+Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
+
+Homepage: https://github.com/vertica/DistributedR
+}
 \seealso{
 \code{\link{nparts}}, \code{\link{parts}}
-partition ids to get the sizes for.
 }
 

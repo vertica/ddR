@@ -2,24 +2,24 @@
 % Please edit documentation in R/dobject.R
 \name{repartition}
 \alias{repartition}
-\title{Repartitions a DObject.
-This function takes two inputs, dobj, and skeleton. These inputs must both be DObjects of the same type and same dimension.
-If dobj and skeleton have different internal partitioning, this function will return a new dobject with the same internal data as in dobj but with the partitioning scheme of skeleton.}
+\title{Repartitions a distributed object.
+This function takes two inputs, a distributed object and a skeleton. These inputs must both be distributed objects of the same type and same dimension.
+If 'dobj' and 'skeleton' have different internal partitioning, this function will return a new distributed object with the same internal data as in 'dobj' but with the partitioning scheme of 'skeleton'.}
 \usage{
 repartition(dobj, skeleton)
 }
 \arguments{
-\item{dobj}{The DObject whose data is to be preserved, but repartitioned.}
+\item{dobj}{distributed object whose data is to be preserved, but repartitioned.}
 
-\item{skeleton}{The DObject whose partitioning is to be emulated in the output.}
+\item{skeleton}{distributed Object whose partitioning is to be emulated in the output.}
 }
 \value{
-A new DObject with the data of 'dobj' and the partitioning of 'skeleton'.
+A new distributed object with the data of 'dobj' and the partitioning of 'skeleton'.
 }
 \description{
-Repartitions a DObject.
-This function takes two inputs, dobj, and skeleton. These inputs must both be DObjects of the same type and same dimension.
-If dobj and skeleton have different internal partitioning, this function will return a new dobject with the same internal data as in dobj but with the partitioning scheme of skeleton.
+Repartitions a distributed object.
+This function takes two inputs, a distributed object and a skeleton. These inputs must both be distributed objects of the same type and same dimension.
+If 'dobj' and 'skeleton' have different internal partitioning, this function will return a new distributed object with the same internal data as in 'dobj' but with the partitioning scheme of 'skeleton'.
 }
 \examples{
 \dontrun{
@@ -27,5 +27,16 @@ a <- dlist(1,2,3,4,nparts=2)
 b <- dmapply(function(x) x, 10:14,nparts=4)
 c <- repartition(a,b) # c will have 4 partitions of length 1 each, containing 1 to 4.
 }
+}
+\references{
+Prasad, S., Fard, A., Gupta, V., Martinez, J., LeFevre, J., Xu, V., Hsu, M., Roy, I.
+Large scale predictive analytics in Vertica: Fast data transfer, distributed model creation
+and in-database prediction. _Sigmod 2015_, 1657-1668.
+
+Venkataraman, S., Bodzsar, E., Roy, I., AuYoung, A., and
+Schreiber, R. (2013) Presto: Distributed Machine Learning and
+Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
+
+Homepage: https://github.com/vertica/DistributedR
 }
 

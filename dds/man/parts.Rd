@@ -2,28 +2,27 @@
 % Please edit documentation in R/dobject.R
 \name{parts}
 \alias{parts}
-\title{Retrieves, as a list of independent objects of 'DObject' type, pointers to each individual
-partition of the input dobj.}
+\title{Retrieves, as a list of independent objects, pointers to each individual
+partition of the input.}
 \usage{
 parts(dobj, index = NULL)
 }
 \arguments{
-\item{dobj}{The DObject to retrieve the parts of in list format.}
+\item{dobj}{input object.}
 
-\item{index}{By default NULL, this is a numeric vector or list or indices referencing the partitions of the
-Dobject to get the parts to. If NULL, then this list contains pointers to all partitions.
-
-parts() is mainly designed to be used in conjunction with dmapply when functions are written
-to be applied over DObjects in a partition-by-partition fashion. In other words, by returning
-a list of the individual partitions of a DObject, that list can then be used in dmapply statements
-where the apply function goes over every element of that list, (i.e., every partition of the dobject).}
+\item{index}{numeric vector or list of indices referencing the partitions of the
+distributed object. If NULL, the returned list contains pointers to all partitions.}
 }
 \value{
-A list of DObjects, each referring to one partition of the input DObject.
+a list of distributed objects, each referring to one partition of the input.
 }
 \description{
-Retrieves, as a list of independent objects of 'DObject' type, pointers to each individual
-partition of the input dobj.
+Retrieves, as a list of independent objects, pointers to each individual
+partition of the input.
+}
+\details{
+parts() is primarily used in conjunction with dmapply when functions are written
+to be applied over partitions of distributed objects.
 }
 \examples{
 \dontrun{
@@ -31,5 +30,16 @@ a <- darray(psize=c(3,3),dim=c(9,9),data=3) # A darray of 9 partitions, each 3x3
 b <- dmapply(function(x) sum(x), parts(a)) # dmapply to each 3x3 partition of 'a'
 c <- parts(a,3) # A list containing one DObject, which is the 3rd partition of 'a'
 }
+}
+\references{
+Prasad, S., Fard, A., Gupta, V., Martinez, J., LeFevre, J., Xu, V., Hsu, M., Roy, I.
+Large scale predictive analytics in Vertica: Fast data transfer, distributed model creation
+and in-database prediction. _Sigmod 2015_, 1657-1668.
+
+Venkataraman, S., Bodzsar, E., Roy, I., AuYoung, A., and
+Schreiber, R. (2013) Presto: Distributed Machine Learning and
+Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
+
+Homepage: https://github.com/vertica/DistributedR
 }
 

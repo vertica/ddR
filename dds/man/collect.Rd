@@ -2,20 +2,20 @@
 % Please edit documentation in R/dobject.R
 \name{collect}
 \alias{collect}
-\title{Moves the data stored in partitions of the distributed object to the local node, and reassembles the data, in the order of the partitions, into the local version of the object.}
+\title{Fetch partition(s) of ‘darray’, ‘dframe’ or ‘dlist’ from remote workers.}
 \usage{
 collect(dobj, index = NULL)
 }
 \arguments{
-\item{dobj}{The DObject (DList, DArray, or DFrame) to collect on.}
+\item{dobj}{input distributed array, distributed data frame or distributed list.}
 
-\item{index}{A numeric value or vector indicating the partition index or indices to collect on. The resultant object will contain a subset of the original data of the dobject's partitions. If a vector, the result is assembled in the same order as the indices provided; though be aware that for DFrames and DArrays the data will lose its structure (it will be vectorized).}
+\item{index}{a vector indicating partitions to fetch. If multiple indices are provided, the result is assembled in the same order as the indices provided; though be aware that for dframes and darrays the result may lose its structure.}
 }
 \value{
-An R list, matrix, or data frame containing the data stored in all or a subset of the partitions of the input dobject.
+An R list, array, or data.frame containing data stored in the partitions of the input.
 }
 \description{
-Data in partitions are reassembled sequentially for all DObjects; for DArrays and DFrames, this is row-major order.
+Fetch partition(s) of ‘darray’, ‘dframe’ or ‘dlist’ from remote workers.
 }
 \examples{
 \dontrun{
@@ -23,5 +23,16 @@ a <- darray(dim=c(9,9),psize=c(3,3),data=5)
 b <- collect(a) # 9x9 matrix filled with 5s
 c <- collect(a,1) # First partition of a, which contains a 3x3 matrix of 5s
 }
+}
+\references{
+Prasad, S., Fard, A., Gupta, V., Martinez, J., LeFevre, J., Xu, V., Hsu, M., Roy, I.
+Large scale predictive analytics in Vertica: Fast data transfer, distributed model creation
+and in-database prediction. _Sigmod 2015_, 1657-1668.
+
+Venkataraman, S., Bodzsar, E., Roy, I., AuYoung, A., and
+Schreiber, R. (2013) Presto: Distributed Machine Learning and
+Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
+
+Homepage: https://github.com/vertica/DistributedR
 }
 

@@ -19,6 +19,22 @@ may reside as partitions on remote nodes.
 \description{
 Convert input matrix into a distributed array.
 }
+\details{
+If partition size (psize) is missing then the input
+matrix is row partitioned and striped across the
+cluster, i.e., the returned distributed array has approximately as
+many partitions as the number of R instances in the session.
+
+The last set of partitions may have fewer rows or columns if input
+matrix size is not an integer multiple of partition size. If ‘A’
+is a 5x5 matrix, then ‘as.darray(A, psize=c(2,5))’ is a
+distributed array with three partitions. The first two partitions
+have two rows each but the last partition has only one row. All
+three partitions have five columns.
+
+To create a distributed darray with just one partition, pass the
+dimension of the input frame, i.e. ‘as.darray(A, psize=dim(A))’
+}
 \examples{
 \dontrun{
 ##Create 4x4 matrix
@@ -35,6 +51,17 @@ psize(dc)
 ##Fetch first partition
 collect(dc,1)
 }
+}
+\references{
+Prasad, S., Fard, A., Gupta, V., Martinez, J., LeFevre, J., Xu, V., Hsu, M., Roy, I.
+Large scale predictive analytics in Vertica: Fast data transfer, distributed model creation
+and in-database prediction. _Sigmod 2015_, 1657-1668.
+
+Venkataraman, S., Bodzsar, E., Roy, I., AuYoung, A., and
+Schreiber, R. (2013) Presto: Distributed Machine Learning and
+Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
+
+Homepage: https://github.com/vertica/DistributedR
 }
 \seealso{
 \code{\link{darray}} \code{\link{psize}}

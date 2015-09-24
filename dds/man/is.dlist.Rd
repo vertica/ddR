@@ -2,18 +2,18 @@
 % Please edit documentation in R/dobject.R
 \name{is.dlist}
 \alias{is.dlist}
-\title{Returns whether the input entity is a DList}
+\title{Returns whether the input is a dlist}
 \usage{
 is.dlist(x)
 }
 \arguments{
-\item{x}{The input to test to see whether it is a DList.}
+\item{x}{Input object.}
 }
 \value{
-TRUE if x is a DList, FALSE otherwise
+TRUE if x is a dlist, FALSE otherwise
 }
 \description{
-Returns whether the input entity is a DList
+Returns whether the input is a dlist
 }
 \examples{
 \dontrun{

@@ -2,18 +2,18 @@
 % Please edit documentation in R/dobject.R
 \name{is.darray}
 \alias{is.darray}
-\title{Returns whether the input entity is a DArray}
+\title{Returns whether the input is a darray}
 \usage{
 is.darray(x)
 }
 \arguments{
-\item{x}{The input to test to see whether it is a DArray.}
+\item{x}{input object.}
 }
 \value{
-TRUE if x is a DArray, FALSE otherwise
+TRUE if x is a darray, FALSE otherwise.
 }
 \description{
-Returns whether the input entity is a DArray
+Returns whether the input is a darray
 }
 \examples{
 \dontrun{

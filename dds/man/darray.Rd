@@ -2,31 +2,70 @@
 % Please edit documentation in R/dobject.R
 \name{darray}
 \alias{darray}
-\title{Creates a darray with the specified partitioning and data.}
+\title{Creates a distributed array with the specified partitioning and contents.}
 \usage{
 darray(nparts = NULL, dim = NULL, psize = NULL, data = 0)
 }
 \arguments{
-\item{nparts}{The number of partitions this DArray should have. If this is not provided or is NULL, then psize and dim must be provided together.}
+\item{nparts}{vector specifying number of partitions. If missing, 'psize' and 'dim' must be provided.}
 
-\item{dim}{The dimensions of the overall DArray to construct. Must be provided together with psize.}
+\item{dim}{the dim attribute for the array to be created. A vector specifying number of rows and columns.}
 
-\item{psize}{A 2d-vector indicating the size of each partition. In general, each
-dimension of this vector has a value that evenly divides into dim; if not, then the last partition will be smaller. This parameter is provided together with dim.}
+\item{psize}{size of each partition as a vector specifying number of rows and columns.
+This parameter is provided together with dim.}
 
-\item{data}{(Default value: 0) The value to which each element of the DArray should be initialized to.}
+\item{data}{initial value of all elements in array. Default is 0.}
 }
 \value{
-A DArray, with each partition equal to size psize and number of partitions in each dimension equal to nparts, with each element initialized to data.
+Returns a distributed array with the specified dimensions. Data may reside as partitions in remote nodes.
 }
 \description{
-Creates a darray with the specified partitioning and data.
+Creates a distributed array with the specified partitioning and contents.
+}
+\details{
+Array partitions are internally stored as dense
+ matrices. Last set of partitions may have fewer
+ rows or columns if the array size is not an integer
+ multiple of partition size. For example, the distributed array
+ ‘darray(dim=c(5,5), psize=c(2,5))’ has three partitions. The
+ first two partitions have two rows each but the last partition has
+ only one row. All three partitions have five columns.
+
+ Distributed arrays can also be defined by specifying just the
+ number of partitions, but not their sizes. This flexibility is
+ useful when the size of an array is not known apriori. For
+ example, ‘darray(nparts=c(5,1))’ is a dense array with five
+ partitions.  Each partition can contain any number of rows, though
+ the number of columns should be same to conform to a well formed array.
+
+Distributed arrays can be fetched at the master using
+\code{\link{collect}}. Number of partitions can be obtained by
+\code{nparts}. Partitions are numbered from left to right, and
+then top to bottom, i.e., row major order. Dimension of each
+partition can be obtained using \code{psize}.
 }
 \examples{
 \dontrun{
-a <- darray(psize=c(3,3),dim=c(9,9),data=5) # A 9 partition (each partition 3x3), 9x9 DArray with each element initialized to 5.
+## A 9 partition (each partition 3x3), 9x9 DArray with each element initialized to 5.
+a <- darray(psize=c(3,3),dim=c(9,9),data=5)
+collect(a)
 b <- darray(psize=c(3,3),dim=c(9,9)) # Same as 'a', but filled with 0s.
-c <- darray(nparts=c(2,3)) # An empty darray with 6 partitions, 2 per column and 3 per row.
+## An empty darray with 6 partitions, 2 per column and 3 per row.
+c <- darray(nparts=c(2,3))
 }
+}
+\references{
+Prasad, S., Fard, A., Gupta, V., Martinez, J., LeFevre, J., Xu, V., Hsu, M., Roy, I.
+Large scale predictive analytics in Vertica: Fast data transfer, distributed model creation
+and in-database prediction. _Sigmod 2015_, 1657-1668.
+
+Venkataraman, S., Bodzsar, E., Roy, I., AuYoung, A., and
+Schreiber, R. (2013) Presto: Distributed Machine Learning and
+Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
+
+Homepage: https://github.com/vertica/DistributedR
+}
+\seealso{
+\code{\link{collect}} \code{\link{psize}} \code{\link{dmapply}}
 }
 

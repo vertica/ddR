@@ -3,22 +3,22 @@
 \name{nparts}
 \alias{nparts}
 \title{Returns a 2d-vector denoting the number of partitions existing along
-each dimension of the DObject, where the vector==c(no_of_partitions_per_column,
-no_of_partitions_per_row). Note that for DLists, the value is always
+each dimension of the distributed object, where the vector==c(partitions_per_column,
+partitions_per_row). For dlist, the value is
 equivalent to c(totalParts(dobj),1).}
 \usage{
 nparts(dobj)
 }
 \arguments{
-\item{dobj}{The DObject whose 2d partitioning vector to retrieve.}
+\item{dobj}{input distributed array, data.frame or list.}
 }
 \value{
 A 2d-vector containing the number of partitions along each dimension.
 }
 \description{
 Returns a 2d-vector denoting the number of partitions existing along
-each dimension of the DObject, where the vector==c(no_of_partitions_per_column,
-no_of_partitions_per_row). Note that for DLists, the value is always
+each dimension of the distributed object, where the vector==c(partitions_per_column,
+partitions_per_row). For dlist, the value is
 equivalent to c(totalParts(dobj),1).
 }
 \examples{
@@ -26,6 +26,17 @@ equivalent to c(totalParts(dobj),1).
 a <- darray(psize=c(3,3),dim=c(9,9)) # 9 partitions of 3x3
 b <- nparts(a) # returns c(3,3)
 }
+}
+\references{
+Prasad, S., Fard, A., Gupta, V., Martinez, J., LeFevre, J., Xu, V., Hsu, M., Roy, I.
+Large scale predictive analytics in Vertica: Fast data transfer, distributed model creation
+and in-database prediction. _Sigmod 2015_, 1657-1668.
+
+Venkataraman, S., Bodzsar, E., Roy, I., AuYoung, A., and
+Schreiber, R. (2013) Presto: Distributed Machine Learning and
+Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
+
+Homepage: https://github.com/vertica/DistributedR
 }
 \seealso{
 \code{\link{totalParts}}

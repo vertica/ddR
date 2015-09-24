@@ -2,18 +2,18 @@
 % Please edit documentation in R/dobject.R
 \name{is.dframe}
 \alias{is.dframe}
-\title{Returns whether the input entity is a DFrame}
+\title{Returns whether the input is a dframe}
 \usage{
 is.dframe(x)
 }
 \arguments{
-\item{x}{The input to test to see whether it is a DFrame.}
+\item{x}{input object.}
 }
 \value{
-TRUE if x is a DFrame, FALSE otherwise
+TRUE if x is a dframe, FALSE otherwise.
 }
 \description{
-Returns whether the input entity is a DFrame
+Returns whether the input is a dframe
 }
 \examples{
 \dontrun{

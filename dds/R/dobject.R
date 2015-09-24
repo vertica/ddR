@@ -25,13 +25,20 @@ setClass("DObject",
   prototype = prototype(nparts = c(1L, 1L),psize = matrix(1,1),
               dim = c(1L), dim.names = list()))
 
-#' Moves the data stored in partitions of the distributed object to the local node, and reassembles the data, in the order of the partitions, into the local version of the object.
+#' Fetch partition(s) of ‘darray’, ‘dframe’ or ‘dlist’ from remote workers.
+#' @param dobj input distributed array, distributed data frame or distributed list.
+#' @param index a vector indicating partitions to fetch. If multiple indices are provided, the result is assembled in the same order as the indices provided; though be aware that for dframes and darrays the result may lose its structure.
+#' @return An R list, array, or data.frame containing data stored in the partitions of the input.
+#' @references 
+#' Prasad, S., Fard, A., Gupta, V., Martinez, J., LeFevre, J., Xu, V., Hsu, M., Roy, I. 
+#' Large scale predictive analytics in Vertica: Fast data transfer, distributed model creation 
+#' and in-database prediction. _Sigmod 2015_, 1657-1668.
 #'
-#' Data in partitions are reassembled sequentially for all DObjects; for DArrays and DFrames, this is row-major order.
+#' Venkataraman, S., Bodzsar, E., Roy, I., AuYoung, A., and
+#' Schreiber, R. (2013) Presto: Distributed Machine Learning and
+#' Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
 #'
-#' @param dobj The DObject (DList, DArray, or DFrame) to collect on.
-#' @param index A numeric value or vector indicating the partition index or indices to collect on. The resultant object will contain a subset of the original data of the dobject's partitions. If a vector, the result is assembled in the same order as the indices provided; though be aware that for DFrames and DArrays the data will lose its structure (it will be vectorized).
-#' @return An R list, matrix, or data frame containing the data stored in all or a subset of the partitions of the input dobject.
+#' Homepage: https://github.com/vertica/DistributedR
 #' @examples
 #' \dontrun{
 #' a <- darray(dim=c(9,9),psize=c(3,3),data=5)
@@ -64,18 +71,26 @@ collect <- function(dobj, index=NULL) {
   }) 
 }
 
-#' Retrieves, as a list of independent objects of 'DObject' type, pointers to each individual 
-#' partition of the input dobj.
+#' Retrieves, as a list of independent objects, pointers to each individual 
+#' partition of the input.
 #'
-#' @param dobj The DObject to retrieve the parts of in list format.
-#' @param index By default NULL, this is a numeric vector or list or indices referencing the partitions of the 
-#' Dobject to get the parts to. If NULL, then this list contains pointers to all partitions.
+#' @param dobj input object.
+#' @param index numeric vector or list of indices referencing the partitions of the 
+#' distributed object. If NULL, the returned list contains pointers to all partitions.
+#' @details
+#' parts() is primarily used in conjunction with dmapply when functions are written
+#' to be applied over partitions of distributed objects. 
+#' @return a list of distributed objects, each referring to one partition of the input.
+#' @references 
+#' Prasad, S., Fard, A., Gupta, V., Martinez, J., LeFevre, J., Xu, V., Hsu, M., Roy, I. 
+#' Large scale predictive analytics in Vertica: Fast data transfer, distributed model creation 
+#' and in-database prediction. _Sigmod 2015_, 1657-1668.
 #'
-#' parts() is mainly designed to be used in conjunction with dmapply when functions are written
-#' to be applied over DObjects in a partition-by-partition fashion. In other words, by returning
-#' a list of the individual partitions of a DObject, that list can then be used in dmapply statements
-#' where the apply function goes over every element of that list, (i.e., every partition of the dobject).
-#' @return A list of DObjects, each referring to one partition of the input DObject.
+#' Venkataraman, S., Bodzsar, E., Roy, I., AuYoung, A., and
+#' Schreiber, R. (2013) Presto: Distributed Machine Learning and
+#' Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
+#'
+#' Homepage: https://github.com/vertica/DistributedR
 #' @examples
 #' \dontrun{
 #' a <- darray(psize=c(3,3),dim=c(9,9),data=3) # A darray of 9 partitions, each 3x3
@@ -121,17 +136,22 @@ parts <- function(dobj, index=NULL) {
   partitions
 }
 
-#' Return the 1d (in the case of DLists) or 2d-matrix (DArrays and DFrames)
-#' containing the sizes of each partition of the DObject.
-#' The ith row of the matrix refers to the ith partition of the DObject.
-#' The 1st column refers to the number of rows, and the 2nd is the number of columns.
-#' @param dobj The DObject to get the partition sizes of
-#' @param index (Default: NULL), a numeric vector or list containing the indices of the
+#' Return sizes of each partition of the input distributed object.
+#' @param dobj input distributed object
+#' @param index a numeric vector or list containing the indices of the partitions. Default is NULL.
+#' @return A matrix that denotes the number of rows and columns in the
+#' partition. Row i of the matrix corresponds or size of i'th partition. For dlist, the returned matrix has only 1 column.
 #' @seealso \code{\link{nparts}}, \code{\link{parts}}
-#' partition ids to get the sizes for.
-#' @return A matrix, which is 1d in the case of DLists, and 2d in the case of DArrays and
-#' DFrames, containing the partition sizes of the specified DObjects (if index is NULL), or
-#' the partition sizes of the provided ids of partitions (if index is not NULL).
+#' @references 
+#' Prasad, S., Fard, A., Gupta, V., Martinez, J., LeFevre, J., Xu, V., Hsu, M., Roy, I. 
+#' Large scale predictive analytics in Vertica: Fast data transfer, distributed model creation 
+#' and in-database prediction. _Sigmod 2015_, 1657-1668.
+#'
+#' Venkataraman, S., Bodzsar, E., Roy, I., AuYoung, A., and
+#' Schreiber, R. (2013) Presto: Distributed Machine Learning and
+#' Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
+#'
+#' Homepage: https://github.com/vertica/DistributedR
 #' @examples 
 #' \dontrun{
 #' a <- darray(psize=c(3,3),dim=c(9,9)) # 9 partitions of 3x3
@@ -157,12 +177,22 @@ psize <- function(dobj,index=NULL) {
 }
 
 #' Returns a 2d-vector denoting the number of partitions existing along
-#' each dimension of the DObject, where the vector==c(no_of_partitions_per_column,
-#' no_of_partitions_per_row). Note that for DLists, the value is always
+#' each dimension of the distributed object, where the vector==c(partitions_per_column,
+#' partitions_per_row). For dlist, the value is 
 #' equivalent to c(totalParts(dobj),1).
-#' @param dobj The DObject whose 2d partitioning vector to retrieve.
+#' @param dobj input distributed array, data.frame or list.
 #' @seealso \code{\link{totalParts}}
 #' @return A 2d-vector containing the number of partitions along each dimension.
+#' @references 
+#' Prasad, S., Fard, A., Gupta, V., Martinez, J., LeFevre, J., Xu, V., Hsu, M., Roy, I. 
+#' Large scale predictive analytics in Vertica: Fast data transfer, distributed model creation 
+#' and in-database prediction. _Sigmod 2015_, 1657-1668.
+#'
+#' Venkataraman, S., Bodzsar, E., Roy, I., AuYoung, A., and
+#' Schreiber, R. (2013) Presto: Distributed Machine Learning and
+#' Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
+#'
+#' Homepage: https://github.com/vertica/DistributedR
 #' @examples
 #' \dontrun{
 #' a <- darray(psize=c(3,3),dim=c(9,9)) # 9 partitions of 3x3
@@ -173,11 +203,11 @@ nparts <- function(dobj) {
   dobj@nparts
 }
 
-#' Returns the total number of partitions of the DObject.
-#' Note that that this is the same result as prod(nparts(dobj))
-#' @param dobj The DObject of which to get the number of partitions.
+#' Returns the total number of partitions of the distributed object.
+#' The result is same as prod(nparts(dobj))
+#' @param dobj input distributed array, data.frame, or list.
 #' @seealso \code{\link{nparts}}
-#' @return The number of partitions the DObject is divided into.
+#' @return The total number of partitions in the distributed object.
 #' @examples
 #' \dontrun{
 #' a <- darray(psize=c(3,3),dim=c(9,9)) # 9 partitions of 3x3
@@ -188,13 +218,25 @@ totalParts <- function(dobj) {
   prod(nparts(dobj))
 }
 
-#' Creates a dlist with the specified partitioning and data.
-#' @param ... Values to initialize the DList with (optional).
-#' @param nparts (Default is NULL) The number of partitions this DList should have. If NULL, nparts will equal the length of ...
-#' @return A DList containing the data in ..., or an empty DList, partitioned accordingly based on nparts.
+#' Creates a distributed list with the specified partitioning and data.
+#' @param ... values to initialize the dlist (optional).
+#' @param nparts number of partitions in the dlist. If NULL, nparts will equal the length of ...
+#' @return A dlist containing the data in ..., or an empty dlist, partitioned according to \code{\link{nparts}}.
+#' @references 
+#' Prasad, S., Fard, A., Gupta, V., Martinez, J., LeFevre, J., Xu, V., Hsu, M., Roy, I. 
+#' Large scale predictive analytics in Vertica: Fast data transfer, distributed model creation 
+#' and in-database prediction. _Sigmod 2015_, 1657-1668.
+#'
+#' Venkataraman, S., Bodzsar, E., Roy, I., AuYoung, A., and
+#' Schreiber, R. (2013) Presto: Distributed Machine Learning and
+#' Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
+#'
+#' Homepage: https://github.com/vertica/DistributedR
 #' @examples
 #' \dontrun{
-#' a <- dlist(1,2,3,4,nparts=2) # A DList containing 2 partitions, with data 1 to 4.
+#' ## A dlist containing 2 partitions, with data 1 to 4.
+#' a <- dlist(1,2,3,4,nparts=2) 
+#' collect(a)
 #' }
 #' @export
 dlist <- function(...,nparts = NULL) {
@@ -214,19 +256,29 @@ dlist <- function(...,nparts = NULL) {
 #' @export
 DList <- dlist
 
-#' Creates a dlist from the input.
-#' @param items The object to convert to a DList
-#' @param nparts The number of partitions for the resulting DList to have.
+#' Creates a distributed list from the input.
+#' @param items The object to convert to a dlist.
+#' @param nparts The number of partitions for in the resulting dlist.
 #' @seealso \code{\link{dlist}}
-#' @return A DList converted from the input.
+#' @return A dlist converted from the input.
 #' Note that a list of partitions (resulting from the use of parts()) may
 #' be used with as.dlist. This will recombine those partitions into a single 
-#' DObject.
+#' distributed object.
+#' @references 
+#' Prasad, S., Fard, A., Gupta, V., Martinez, J., LeFevre, J., Xu, V., Hsu, M., Roy, I. 
+#' Large scale predictive analytics in Vertica: Fast data transfer, distributed model creation 
+#' and in-database prediction. _Sigmod 2015_, 1657-1668.
+#'
+#' Venkataraman, S., Bodzsar, E., Roy, I., AuYoung, A., and
+#' Schreiber, R. (2013) Presto: Distributed Machine Learning and
+#' Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
+#'
+#' Homepage: https://github.com/vertica/DistributedR
 #' @examples
 #' \dontrun{
-#' a <- as.dlist(list(1,2,3,4)) # A DList with elements 1 to 4.
-#' b <- as.dlist(parts(a,c(3,4))) # A new DList with only 2 partitions, which
-#' were partitions 3 and 4 of 'a'.
+#' a <- as.dlist(list(1,2,3,4)) # A dlist with elements 1 to 4.
+#' ## A new dlist with only 2 partitions, which were partitions 3 and 4 of 'a'.
+#' b <- as.dlist(parts(a,c(3,4))) 
 #' } 
 #' @export 
 as.dlist <- function(items,nparts=NULL) {
@@ -249,9 +301,9 @@ as.dlist <- function(items,nparts=NULL) {
    dmapply(function(x) { x }, items)
 }
 
-#' Returns whether the input entity is a DList
-#' @param x The input to test to see whether it is a DList.
-#' @return TRUE if x is a DList, FALSE otherwise
+#' Returns whether the input is a dlist
+#' @param x Input object.
+#' @return TRUE if x is a dlist, FALSE otherwise
 #' @examples
 #' \dontrun{
 #' is.dlist(3) #FALSE
@@ -285,18 +337,53 @@ is.dobject <- function(x) {
 #' @export 
 is.DObject <- is.dobject
 
-#' Creates a darray with the specified partitioning and data.
-#' @param nparts The number of partitions this DArray should have. If this is not provided or is NULL, then psize and dim must be provided together.
-#' @param dim The dimensions of the overall DArray to construct. Must be provided together with psize.
-#' @param psize A 2d-vector indicating the size of each partition. In general, each 
-#' dimension of this vector has a value that evenly divides into dim; if not, then the last partition will be smaller. This parameter is provided together with dim.
-#' @param data (Default value: 0) The value to which each element of the DArray should be initialized to.
-#' @return A DArray, with each partition equal to size psize and number of partitions in each dimension equal to nparts, with each element initialized to data.
+#' Creates a distributed array with the specified partitioning and contents.
+#' @param nparts vector specifying number of partitions. If missing, 'psize' and 'dim' must be provided.
+#' @param dim the dim attribute for the array to be created. A vector specifying number of rows and columns. 
+#' @param psize size of each partition as a vector specifying number of rows and columns. 
+#' This parameter is provided together with dim.
+#' @param data initial value of all elements in array. Default is 0.
+#' @return Returns a distributed array with the specified dimensions. Data may reside as partitions in remote nodes.
+#' @seealso \code{\link{collect}} \code{\link{psize}} \code{\link{dmapply}}
+#' @details 
+#'  Array partitions are internally stored as dense
+#'  matrices. Last set of partitions may have fewer 
+#'  rows or columns if the array size is not an integer
+#'  multiple of partition size. For example, the distributed array
+#'  ‘darray(dim=c(5,5), psize=c(2,5))’ has three partitions. The
+#'  first two partitions have two rows each but the last partition has
+#'  only one row. All three partitions have five columns.
+#'
+#'  Distributed arrays can also be defined by specifying just the
+#'  number of partitions, but not their sizes. This flexibility is
+#'  useful when the size of an array is not known apriori. For
+#'  example, ‘darray(nparts=c(5,1))’ is a dense array with five
+#'  partitions.  Each partition can contain any number of rows, though
+#'  the number of columns should be same to conform to a well formed array.
+#'
+#' Distributed arrays can be fetched at the master using
+#' \code{\link{collect}}. Number of partitions can be obtained by
+#' \code{nparts}. Partitions are numbered from left to right, and
+#' then top to bottom, i.e., row major order. Dimension of each
+#' partition can be obtained using \code{psize}.
+#' @references 
+#' Prasad, S., Fard, A., Gupta, V., Martinez, J., LeFevre, J., Xu, V., Hsu, M., Roy, I. 
+#' Large scale predictive analytics in Vertica: Fast data transfer, distributed model creation 
+#' and in-database prediction. _Sigmod 2015_, 1657-1668.
+#'
+#' Venkataraman, S., Bodzsar, E., Roy, I., AuYoung, A., and
+#' Schreiber, R. (2013) Presto: Distributed Machine Learning and
+#' Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
+#'
+#' Homepage: https://github.com/vertica/DistributedR
 #' @examples
 #' \dontrun{
-#' a <- darray(psize=c(3,3),dim=c(9,9),data=5) # A 9 partition (each partition 3x3), 9x9 DArray with each element initialized to 5.
+#' ## A 9 partition (each partition 3x3), 9x9 DArray with each element initialized to 5.
+#' a <- darray(psize=c(3,3),dim=c(9,9),data=5) 
+#' collect(a)
 #' b <- darray(psize=c(3,3),dim=c(9,9)) # Same as 'a', but filled with 0s.
-#' c <- darray(nparts=c(2,3)) # An empty darray with 6 partitions, 2 per column and 3 per row.
+#' ## An empty darray with 6 partitions, 2 per column and 3 per row.
+#' c <- darray(nparts=c(2,3)) 
 #' }
 #' @export
 darray <- function(nparts = NULL, dim=NULL, psize = NULL, data = 0) {
@@ -354,9 +441,9 @@ darray <- function(nparts = NULL, dim=NULL, psize = NULL, data = 0) {
 #' @export
 DArray <- darray
 
-#' Returns whether the input entity is a DArray
-#' @param x The input to test to see whether it is a DArray.
-#' @return TRUE if x is a DArray, FALSE otherwise
+#' Returns whether the input is a darray
+#' @param x input object.
+#' @return TRUE if x is a darray, FALSE otherwise.
 #' @examples
 #' \dontrun{
 #' is.darray(3) # FALSE
@@ -370,18 +457,53 @@ is.darray <- function(x) {
 #' @export
 is.DArray <- is.darray
 
-#' Creates a DFrame with the specified partitioning and data.
-#' @param nparts The number of partitions this DFrame should have. If this is not provided or is NULL, then psize and dim must be provided together.
-#' @param dim The dimensions of the overall DFrame to construct. Must be provided together with psize.
-#' @param psize A 2d-vector indicating the size of each partition. In general, each 
-#' dimension of this vector has a value that evenly divides into dim; if not, then the last partition will be smaller. This parameter is provided together with dim.
-#' @param data (Default value: 0) The value to which each element of the DFrame should be intialized to.
-#' @return A DFrame, with each partition equal to size psize and number of partition in each dimension equal to nparts, with each element initialized to data.
+#' Creates a distributed data.frame with the specified partitioning and data.
+#' @param nparts vector specifying number of partitions. If missing, 'psize' and 'dim' must be provided.
+#' @param dim the dim attribute for the data.frame to be created. A vector specifying number of rows and columns. 
+#' @param psize size of each partition as a vector specifying number of rows and columns. 
+#' This parameter is provided together with dim.
+#' @param data initial value of all elements in array. Default is 0.
+#' @return Returns a distributed data.frame with the specified dimensions. Data may reside as partitions in remote nodes.
+#' @seealso \code{\link{collect}} \code{\link{psize}} \code{\link{dmapply}}
+#' @details 
+#'  Data frame partitions are internally stored as data.frame
+#'  objects. Last set of partitions may have fewer 
+#'  rows or columns if the dframe dimension is not an integer
+#'  multiple of partition size. For example, the distributed data.frame
+#'  ‘dframe(dim=c(5,5), psize=c(2,5))’ has three partitions. The
+#'  first two partitions have two rows each but the last partition has
+#'  only one row. All three partitions have five columns.
+#'
+#'  Distributed data.frames can also be defined by specifying just the
+#'  number of partitions, but not their sizes. This flexibility is
+#'  useful when the size of an dframe is not known apriori. For
+#'  example, ‘dframe(nparts=c(5,1))’ is a dense array with five
+#'  partitions.  Each partition can contain any number of rows, though
+#'  the number of columns should be same to conform to a well formed array.
+#'
+#' Distributed data.frames can be fetched at the master using
+#' \code{\link{collect}}. Number of partitions can be obtained by
+#' \code{nparts}. Partitions are numbered from left to right, and
+#' then top to bottom, i.e., row major order. Dimension of each
+#' partition can be obtained using \code{psize}.
+#' @references 
+#' Prasad, S., Fard, A., Gupta, V., Martinez, J., LeFevre, J., Xu, V., Hsu, M., Roy, I. 
+#' Large scale predictive analytics in Vertica: Fast data transfer, distributed model creation 
+#' and in-database prediction. _Sigmod 2015_, 1657-1668.
+#'
+#' Venkataraman, S., Bodzsar, E., Roy, I., AuYoung, A., and
+#' Schreiber, R. (2013) Presto: Distributed Machine Learning and
+#' Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
+#'
+#' Homepage: https://github.com/vertica/DistributedR
 #' @examples
 #' \dontrun{
-#' a <- dframe(psize=c(3,3),dim=c(9,9),data=5) # A 9 partition (each partition 3x3), 9x9 DFrame with each element initialized to 5.
+#' ## A 9 partition (each partition 3x3), 9x9 dframe with each element initialized to 5.
+#' a <- dframe(psize=c(3,3),dim=c(9,9),data=5) 
+#' collect(a)
 #' b <- dframe(psize=c(3,3),dim=c(9,9)) # Same as 'a', but filled with 0s.
-#' c <- dframe(nparts=c(2,3)) # An empty DFrame with 6 partitions, 2 per column and 3 per row.
+#' ## An empty dframe with 6 partitions, 2 per column and 3 per row.
+#' c <- dframe(nparts=c(2,3)) 
 #' }
 #' @export
 dframe <- function(nparts = NULL, dim=NULL, psize = NULL, data = 0) {
@@ -440,9 +562,9 @@ dframe <- function(nparts = NULL, dim=NULL, psize = NULL, data = 0) {
 #' @export
 DFrame <- dframe
 
-#' Returns whether the input entity is a DFrame
-#' @param x The input to test to see whether it is a DFrame.
-#' @return TRUE if x is a DFrame, FALSE otherwise
+#' Returns whether the input is a dframe
+#' @param x input object.
+#' @return TRUE if x is a dframe, FALSE otherwise.
 #' @examples
 #' \dontrun{
 #' is.dframe(3) # FALSE
@@ -478,12 +600,22 @@ setMethod("show",signature("DObject"),function(object) {
   cat(printStr) 
 })
 
-#' Repartitions a DObject.
-#' This function takes two inputs, dobj, and skeleton. These inputs must both be DObjects of the same type and same dimension.
-#' If dobj and skeleton have different internal partitioning, this function will return a new dobject with the same internal data as in dobj but with the partitioning scheme of skeleton.
-#' @param dobj The DObject whose data is to be preserved, but repartitioned.
-#' @param skeleton The DObject whose partitioning is to be emulated in the output.
-#' @return A new DObject with the data of 'dobj' and the partitioning of 'skeleton'. 
+#' Repartitions a distributed object.
+#' This function takes two inputs, a distributed object and a skeleton. These inputs must both be distributed objects of the same type and same dimension.
+#' If 'dobj' and 'skeleton' have different internal partitioning, this function will return a new distributed object with the same internal data as in 'dobj' but with the partitioning scheme of 'skeleton'.
+#' @param dobj distributed object whose data is to be preserved, but repartitioned.
+#' @param skeleton distributed Object whose partitioning is to be emulated in the output.
+#' @return A new distributed object with the data of 'dobj' and the partitioning of 'skeleton'. 
+#' @references 
+#' Prasad, S., Fard, A., Gupta, V., Martinez, J., LeFevre, J., Xu, V., Hsu, M., Roy, I. 
+#' Large scale predictive analytics in Vertica: Fast data transfer, distributed model creation 
+#' and in-database prediction. _Sigmod 2015_, 1657-1668.
+#'
+#' Venkataraman, S., Bodzsar, E., Roy, I., AuYoung, A., and
+#' Schreiber, R. (2013) Presto: Distributed Machine Learning and
+#' Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
+#'
+#' Homepage: https://github.com/vertica/DistributedR
 #' @examples
 #' \dontrun{
 #' a <- dlist(1,2,3,4,nparts=2)
@@ -842,6 +974,16 @@ checkDimAndPsize<-function(dim, psize){
 #'
 #' To create a distributed darray with just one partition, pass the
 #' dimension of the input frame, i.e. ‘as.darray(A, psize=dim(A))’
+#' @references 
+#' Prasad, S., Fard, A., Gupta, V., Martinez, J., LeFevre, J., Xu, V., Hsu, M., Roy, I. 
+#' Large scale predictive analytics in Vertica: Fast data transfer, distributed model creation 
+#' and in-database prediction. _Sigmod 2015_, 1657-1668.
+#'
+#' Venkataraman, S., Bodzsar, E., Roy, I., AuYoung, A., and
+#' Schreiber, R. (2013) Presto: Distributed Machine Learning and
+#' Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
+#'
+#' Homepage: https://github.com/vertica/DistributedR
 #' @examples
 #' \dontrun{
 #' ##Create 4x4 matrix
@@ -885,6 +1027,16 @@ as.darray <- function(input, psize=NULL) {
 #'
 #' To create a distributed frame with just one partition, pass the
 #' dimension of the input frame, i.e. ‘as.dframe(A, psize=dim(A))’
+#' @references 
+#' Prasad, S., Fard, A., Gupta, V., Martinez, J., LeFevre, J., Xu, V., Hsu, M., Roy, I. 
+#' Large scale predictive analytics in Vertica: Fast data transfer, distributed model creation 
+#' and in-database prediction. _Sigmod 2015_, 1657-1668.
+#'
+#' Venkataraman, S., Bodzsar, E., Roy, I., AuYoung, A., and
+#' Schreiber, R. (2013) Presto: Distributed Machine Learning and
+#' Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
+#'
+#' Homepage: https://github.com/vertica/DistributedR
 #' @examples
 #' \dontrun{
 #'     ##Create 4x4 matrix

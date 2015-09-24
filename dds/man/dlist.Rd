@@ -2,24 +2,37 @@
 % Please edit documentation in R/dobject.R
 \name{dlist}
 \alias{dlist}
-\title{Creates a dlist with the specified partitioning and data.}
+\title{Creates a distributed list with the specified partitioning and data.}
 \usage{
 dlist(..., nparts = NULL)
 }
 \arguments{
-\item{...}{Values to initialize the DList with (optional).}
+\item{...}{values to initialize the dlist (optional).}
 
-\item{nparts}{(Default is NULL) The number of partitions this DList should have. If NULL, nparts will equal the length of ...}
+\item{nparts}{number of partitions in the dlist. If NULL, nparts will equal the length of ...}
 }
 \value{
-A DList containing the data in ..., or an empty DList, partitioned accordingly based on nparts.
+A dlist containing the data in ..., or an empty dlist, partitioned according to \code{\link{nparts}}.
 }
 \description{
-Creates a dlist with the specified partitioning and data.
+Creates a distributed list with the specified partitioning and data.
 }
 \examples{
 \dontrun{
-a <- dlist(1,2,3,4,nparts=2) # A DList containing 2 partitions, with data 1 to 4.
+## A dlist containing 2 partitions, with data 1 to 4.
+a <- dlist(1,2,3,4,nparts=2)
+collect(a)
 }
+}
+\references{
+Prasad, S., Fard, A., Gupta, V., Martinez, J., LeFevre, J., Xu, V., Hsu, M., Roy, I.
+Large scale predictive analytics in Vertica: Fast data transfer, distributed model creation
+and in-database prediction. _Sigmod 2015_, 1657-1668.
+
+Venkataraman, S., Bodzsar, E., Roy, I., AuYoung, A., and
+Schreiber, R. (2013) Presto: Distributed Machine Learning and
+Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
+
+Homepage: https://github.com/vertica/DistributedR
 }
 
