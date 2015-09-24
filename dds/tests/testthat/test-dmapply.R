@@ -65,9 +65,8 @@ test_that("parts-wise multimodal dmapply works", {
   answer <- dmapply(function(x,y,z) {
                       list(is.list(x),is.matrix(y),is.data.frame(z),
                            length(x), sum(y), sum(z))
-                    }, parts(test_dlist), parts(test_darray), parts(test_dframe),.unlistEach=FALSE)
+                    }, parts(test_dlist), parts(test_darray), parts(test_dframe))
 
-  #expect_equal(collect(answer),list(TRUE,TRUE,TRUE,2,3,10,TRUE,TRUE,TRUE,2,7,26)) #Case when unlistEach=TRUE
   expect_equal(collect(answer),list(list(TRUE,TRUE,TRUE,2,3,10), list(TRUE,TRUE,TRUE,2,7,26)))
 })
 
@@ -146,7 +145,7 @@ test_that("dmapply with sparse matrices : works", {
   wGF <- dmapply(function(i,el,v,w) { 
                      library(Matrix) 
                      sparseMatrix(i=el[,1],j=el[,2], dims=c(v,v), x=w)
-                     }, 1, output.type="darray",MoreArgs=list(el=el,w=w,v=vNum))
+                     }, 1, output.type="sparse_darray",combine="row",MoreArgs=list(el=el,w=w,v=vNum))
 
   y <- sparseMatrix(i=el[,1], j=el[,2], dims=c(vNum,vNum), x=w)
   gy <- collect(wGF)

@@ -180,17 +180,17 @@ dmapply <- function(FUN,...,MoreArgs=list(),output.type="dlist",nparts=NULL,comb
   da_types <- c("da","darray","darrayclass","daclass","a","matrix","dmatrix","array","darr")
   dl_types <- c("dl","l","dlist","dlistclass","list","dlclass")
   df_types <- c("df","f","dframe","dframeclass","data.frame","dataframe")
-  sp_types <- c("sda","sdarray","sparse","sparsearray","sarray","sparsematrix","smatrix","s","sp")
+  sp_types <- c("sparse darray", "sparse_darray","sparsedarray","sda","sdarray","sparse","sparsearray","sarray","sparsematrix","smatrix","s","sp")
 
   if(tolower(output.type) %in% da_types) output.type <- "darray"
   else if (tolower(output.type) %in% dl_types) output.type <- "dlist"
   else if (tolower(output.type) %in% df_types) output.type <- "dframe"
-  else if (tolower(output.type) %in% sp_types) output.type <- "sparse"
+  else if (tolower(output.type) %in% sp_types) output.type <- "sparse_darray"
 
-  accepted_types <- c("dlist","darray","dframe","sparse")
+  accepted_types <- c("dlist","darray","dframe","sparse_darray")
 
   if(!(output.type %in% accepted_types))
-    stop("Unrecognized value for output.type -- try one of: {'dlist', 'darray', 'dframe', 'sparse'}.")
+    stop("Unrecognized value for output.type -- try one of: {'dlist', 'darray', 'dframe', 'sparse_darray'}.")
 
   if(!is.null(nparts))
     if(!is.numeric(nparts) || length(nparts) < 1 || length(nparts) > 2) 
@@ -231,6 +231,8 @@ dmapply <- function(FUN,...,MoreArgs=list(),output.type="dlist",nparts=NULL,comb
 
   # simplify2array does not work well on data.frames, default to column instead
   if(output.type == "dframe" && combine == "flatten") combine = "col"
+  if(output.type == "sparse_darray" && combine != "col" && combine != "row") 
+    stop("sparse_darray outputs must have either 'row' or 'col' for combine")
 
   newobj <- do_dmapply(dds.env$driver, func=match.fun(FUN), ..., MoreArgs=MoreArgs,
                        output.type=output.type,nparts=partitioning,combine=combine)                       

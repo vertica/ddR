@@ -4,7 +4,8 @@
 \alias{darray}
 \title{Creates a distributed array with the specified partitioning and contents.}
 \usage{
-darray(nparts = NULL, dim = NULL, psize = NULL, data = 0)
+darray(nparts = NULL, dim = NULL, psize = NULL, data = 0,
+  sparse = FALSE)
 }
 \arguments{
 \item{nparts}{vector specifying number of partitions. If missing, 'psize' and 'dim' must be provided.}

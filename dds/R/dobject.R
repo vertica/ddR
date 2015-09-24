@@ -386,8 +386,9 @@ is.DObject <- is.dobject
 #' c <- darray(nparts=c(2,3)) 
 #' }
 #' @export
-darray <- function(nparts = NULL, dim=NULL, psize = NULL, data = 0) {
- 
+darray <- function(nparts = NULL, dim=NULL, psize = NULL, data = 0, sparse=FALSE) {
+  if(sparse && data!=0) stop("Cannot initialize data in a sparse matrix. Initialization makes a matrix dense. Set sparse=FALSE or data=0.") 
+
   if(!is.null(dim) || !is.null(psize)) {
     if(is.null(psize) || is.null(dim)) stop("Need to supply both psize and dim")
     if(!is.null(nparts)) stop("Cannot supply nparts as well as psize and dimensions")
@@ -429,12 +430,26 @@ darray <- function(nparts = NULL, dim=NULL, psize = NULL, data = 0) {
   
   dim <- as.integer(dim)
 
+  if(sparse) type = "sparse_darray"
+  else type = "darray"
+
   if(all(dim==0)) {
-    new(dds.env$driver@DArrayClass,backend=dds.env$driver@backendName,type = "darray", nparts = nparts, psize = psize, dim=dim)
+    new(dds.env$driver@DArrayClass,backend=dds.env$driver@backendName,type = type, nparts = nparts, psize = psize, dim=dim)
   } else{
+
     if(class(psize) == "numeric") psize<-matrix(psize, nrow=1)
     sizes<-unlist(apply(psize,1,function(y)list(y)), recursive=FALSE)
-    dmapply(function(d, v){ matrix(data=v,nrow=d[1], ncol=d[2]) }, sizes, MoreArgs=list(v=data), output.type="darray", combine="row", nparts=nparts)
+
+    if(!sparse) {
+      dmapply(function(d, v){ matrix(data=v,nrow=d[1], ncol=d[2]) }, sizes, MoreArgs=list(v=data), output.type="darray", combine="row", nparts=nparts)
+    }
+    else {
+      dmapply(function(d, v) { library(Matrix); new("dgCMatrix", i=as.integer({}), 
+                               x=as.numeric({}),
+                               p=as.integer(rep(v, d[2] + 1)),
+                               Dim=as.integer(d))
+                             }, sizes, MoreArgs=list(v=data),output.type="sparse_darray",combine="row", nparts=nparts)
+    }
   }
 }
 

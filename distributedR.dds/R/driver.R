@@ -65,6 +65,8 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
       .outObj <- distributedR::dframe(npartitions=nparts)
     } else if (output.type=="darray") {
       .outObj <- distributedR::darray(npartitions=nparts)
+    } else if (output.type=="sparse_darray") {
+      .outObj <- distributedR::darray(npartitions=nparts,sparse=TRUE)
     } else {
       .outObj <- distributedR::dlist(npartitions=nparts[[1]])
     }
@@ -221,20 +223,26 @@ For better performance, please try to partition your inputs compatibly."))
     # stitch together the internal components of a partition --
     # either rowwise, columnwise, or the default, which is to 
     # cbind the results after flattening them into 1d-vectors
-    if(!distributedR::is.dlist(.outObj)) {
+    if(output.type != "dlist") {
       if(combine=="row")
-        stitchResults <- ".newDObj <- do.call(rbind,.newDObj)"
+        if(output.type=="sparse_darray") 
+          stitchResults <- ".newDObj <- do.call(rbind2,.newDObj)"
+        else
+          stitchResults <- ".newDObj <- do.call(rbind,.newDObj)"
       else if(combine=="col")
-        stitchResults <- ".newDObj <- do.call(cbind,.newDObj)"
+        if(output.type=="sparse_darray") 
+          stitchResults <- ".newDObj <- do.call(cbind2,.newDObj)"
+        else
+          stitchResults <- ".newDObj <- do.call(cbind,.newDObj)"
       else 
         stitchResults <- ".newDObj <- simplify2array(.newDObj,higher=FALSE)"
 
       body(exec_func)[[nLines+1]] <- eval(parse(text=paste0("substitute(",stitchResults,")")),envir=new.env())
 
-      if(distributedR::is.dframe(.outObj)) {
+      if(output.type=="dframe") {
         convert <- ".newDObj <- as.data.frame(.newDObj)"
         body(exec_func)[[nLines+2]] <- eval(parse(text=paste0("substitute(",convert,")")),envir=new.env())
-      } else if(distributedR::is.darray(.outObj)) {
+      } else if(output.type=="darray") {
         convert <- ".newDObj <- as.matrix(.newDObj)"
         body(exec_func)[[nLines+2]] <- eval(parse(text=paste0("substitute(",convert,")")),envir=new.env())
       }
