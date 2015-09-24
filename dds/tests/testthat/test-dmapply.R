@@ -52,14 +52,14 @@ context("test multimodal (mixture of different dobject types) dmapply")
   test_darray <- dmapply(function(x) {
                    start <- 2*(x-1)+1
                    t(as.matrix(c(start,start+1)))
-                }, output.type="DArrayClass",1:2,combine="row",nparts=c(2,1))
+                }, output.type="darray",1:2,combine="row",nparts=c(2,1))
 
   # Two partitions, going from 1 to 8, 1 row (4 elem) each
   test_dframe <- dmapply(function(x) {
                    start <- 4*(x-1)+1
                    end <- start + 3 
                    data.frame(t(as.matrix(start:end)))
-                }, output.type="DFrameClass",1:2,combine="row",nparts=c(2,1))
+                }, output.type="dframe",1:2,combine="row",nparts=c(2,1))
 
 test_that("parts-wise multimodal dmapply works", {
   answer <- dmapply(function(x,y,z) {

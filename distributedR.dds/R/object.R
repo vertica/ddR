@@ -28,9 +28,9 @@ setMethod("initialize", "DistributedRObj", function(.Object, ...) {
    .Object <- callNextMethod(.Object, ...)
     
   if(is.null(.Object@DRObj@dobject_ptr)) {
-   if(.Object@type == "DListClass")
+   if(.Object@type == "dlist")
        .Object@DRObj <- distributedR::dlist(npartitions=totalParts(.Object))
-   else if(.Object@type == "DArrayClass")
+   else if(.Object@type == "darray")
      if(.Object@dim[1] < 1) {
        .Object@DRObj <- distributedR::darray(npartitions=totalParts(.Object))
      } else {

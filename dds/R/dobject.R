@@ -205,7 +205,7 @@ dlist <- function(...,nparts = NULL) {
   psize = matrix(0L,nparts[1])
   initialize <- list(...)
   if(length(initialize) == 0) {
-    new(dds.env$driver@DListClass,backend=dds.env$driver@backendName,type = "DListClass", nparts = nparts, psize = psize, dim = 0L)
+    new(dds.env$driver@DListClass,backend=dds.env$driver@backendName,type = "dlist", nparts = nparts, psize = psize, dim = 0L)
   } else{
     dmapply(function(x){ x }, initialize,nparts=nparts)
   }
@@ -242,7 +242,7 @@ as.dlist <- function(items,nparts=NULL) {
     newobj <- combine(dds.env$driver,items)
     newobj@nparts <- c(length(items), 1L)
     newobj@backend <- dds.env$driver@backendName
-    newobj@type <- "DListClass"
+    newobj@type <- "dlist"
     return(newobj)
   }
 
@@ -259,7 +259,7 @@ as.dlist <- function(items,nparts=NULL) {
 #' }
 #' @export
 is.dlist <- function(x) {
-  is(x,"DObject") && x@type == "DListClass"
+  is(x,"DObject") && x@type == "dlist"
 }
 
 #' @export
@@ -343,11 +343,11 @@ darray <- function(nparts = NULL, dim=NULL, psize = NULL, data = 0) {
   dim <- as.integer(dim)
 
   if(all(dim==0)) {
-    new(dds.env$driver@DArrayClass,backend=dds.env$driver@backendName,type = "DArrayClass", nparts = nparts, psize = psize, dim=dim)
+    new(dds.env$driver@DArrayClass,backend=dds.env$driver@backendName,type = "darray", nparts = nparts, psize = psize, dim=dim)
   } else{
     if(class(psize) == "numeric") psize<-matrix(psize, nrow=1)
     sizes<-unlist(apply(psize,1,function(y)list(y)), recursive=FALSE)
-    dmapply(function(d, v){ matrix(data=v,nrow=d[1], ncol=d[2]) }, sizes, MoreArgs=list(v=data), output.type="DArrayClass", combine="row", nparts=nparts)
+    dmapply(function(d, v){ matrix(data=v,nrow=d[1], ncol=d[2]) }, sizes, MoreArgs=list(v=data), output.type="darray", combine="row", nparts=nparts)
   }
 }
 
@@ -364,7 +364,7 @@ DArray <- darray
 #' }
 #' @export
 is.darray <- function(x) {
-  is(x,"DObject") && x@type == "DArrayClass"
+  is(x,"DObject") && x@type == "darray"
 }
 
 #' @export
@@ -429,11 +429,11 @@ dframe <- function(nparts = NULL, dim=NULL, psize = NULL, data = 0) {
   dim <- as.integer(dim)
 
  if(all(dim==0)) {
-    new(dds.env$driver@DArrayClass,backend=dds.env$driver@backendName,type = "DFrameClass", nparts = nparts, psize = psize, dim=dim)
+    new(dds.env$driver@DArrayClass,backend=dds.env$driver@backendName,type = "dframe", nparts = nparts, psize = psize, dim=dim)
   } else{
     if(class(psize) == "numeric") psize<-matrix(psize, nrow=1)
     sizes<-unlist(apply(psize,1,function(y)list(y)), recursive=FALSE)
-    dmapply(function(d, v){ data.frame(matrix(data=v,nrow=d[1], ncol=d[2])) }, sizes, MoreArgs=list(v=data), output.type="DFrameClass", combine="row", nparts=nparts)
+    dmapply(function(d, v){ data.frame(matrix(data=v,nrow=d[1], ncol=d[2])) }, sizes, MoreArgs=list(v=data), output.type="dframe", combine="row", nparts=nparts)
   }
 }
 
@@ -450,7 +450,7 @@ DFrame <- dframe
 #' }
 #' @export
 is.dframe <- function(x) {
-  is(x,"DObject") && x@type == "DFrameClass"
+  is(x,"DObject") && x@type == "dframe"
 }
 
 #' @export
@@ -606,9 +606,9 @@ repartition.DObject <- function(dobj,skeleton) {
 
     if(dims > 2) stop("Cannot repartition object with more than 2 dimensions")
 
-    if(type=="DListClass") {
+    if(type=="dlist") {
       output <- list()    
-    } else if(type=="DFrameClass") {
+    } else if(type=="dframe") {
       output <- data.frame(matrix(0,psize[[1]],psize[[2]]))
     } else {
       output <- matrix(0,psize[[1]],psize[[2]])
@@ -624,7 +624,7 @@ repartition.DObject <- function(dobj,skeleton) {
       end <- dataPartitions[[index+2]]
       endingPosition <- currentPosition + end - start
 
-      if(type=="DListClass") {
+      if(type=="dlist") {
         output[currentPosition:endingPosition] <- oldPartition[start:end]
       } else {
         output[currentPosition[[1]]:endingPosition[[1]],currentPosition[[2]]:endingPosition[[2]]] <-
@@ -645,12 +645,8 @@ repartition.DObject <- function(dobj,skeleton) {
     }
     output 
   }
-
-  if(skeleton@type == "DListClass") type = list()
-  else if(skeleton@type == "DArrayClass") type = matrix(1)
-  else type = data.frame(1)
-
-  if(skeleton@type == "DListClass") .unlistEach=TRUE
+  
+  if(skeleton@type == "dlist") .unlistEach=TRUE
   else .unlistEach=FALSE
 
   dmapplyArgs <- c(FUN=repartitioner,dmapplyArgs,psize=list(as.list(data.frame(t(psize(skeleton))))),MoreArgs=list(list(type=skeleton@type)),output.type=list(skeleton@type),combine=list("row"),nparts=list(nparts(skeleton)),.unlistEach=list(.unlistEach))
@@ -956,9 +952,9 @@ convertToDobject<-function(input, psize, type){
     matrixList<-lapply(1:prod(numparts), FUN=function(x){get_sub_object(input, psize,x, type)})
     answer<-NULL
     if(type == "array")
-       answer<-dmapply(FUN=function(x){x}, matrixList, output.type="DArrayClass", combine="row", nparts=numparts) 
+       answer<-dmapply(FUN=function(x){x}, matrixList, output.type="darray", combine="row", nparts=numparts) 
     else
-       answer<-dmapply(FUN=function(x){x}, matrixList, output.type="DFrameClass", combine="row", nparts=numparts) 
+       answer<-dmapply(FUN=function(x){x}, matrixList, output.type="dframe", combine="row", nparts=numparts) 
     
     dnames<-dimnames(input)
     if(length(dnames) ==2 && length(dnames[[1]]) == dim(answer)[1] && length(dnames[[2]]) == dim(answer)[2])

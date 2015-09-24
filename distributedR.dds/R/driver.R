@@ -42,13 +42,13 @@ setMethod("shutdown","DistributedRDDS",
 
 #' @export
 setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreArgs="list",output.type="character",nparts="numeric",combine="character",.unlistEach="logical"), 
-  function(driver,func,...,MoreArgs=list(),output.type="DListClass",nparts=NULL,combine="flatten",.unlistEach=FALSE) {
+  function(driver,func,...,MoreArgs=list(),output.type="dlist",nparts=NULL,combine="flatten",.unlistEach=FALSE) {
     # margs stores the dmapply args
     margs <- list(...)
     # ids stores the arguments to splits() and the values of the raw arguments in foreach
     ids <- list()
 
-    if(output.type=="DFrameClass" && combine == "flatten")
+    if(output.type=="dframe" && combine == "flatten")
       stop("Cannot flatten a data frame")
 
     pieceSize <- floor(length(margs[[1]])/prod(nparts)) + 1
@@ -61,9 +61,9 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
     limits <- limits[seq(length(limits)-1)]
 
     # to store the output of the foreach
-    if(output.type=="DFrameClass") {
+    if(output.type=="dframe") {
       .outObj <- distributedR::dframe(npartitions=nparts)
-    } else if (output.type=="DArrayClass") {
+    } else if (output.type=="darray") {
       .outObj <- distributedR::darray(npartitions=nparts)
     } else {
       .outObj <- distributedR::dlist(npartitions=nparts[[1]])
@@ -95,7 +95,7 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
             # iterations is equal to the psize
             # For DArrays, it's the prod of the dimensions
             # Both of these can be expressed using prod(psize)
-            if(arg@type != "DFrameClass") prod(psize)
+            if(arg@type != "dframe") prod(psize)
             # If it's a DFrame, then we get number of columns
             # in the partition, represented by psize[[2]]
             else psize[[2]]
@@ -104,7 +104,7 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
         # Repartitioning needs to happen when applyIterations don't match, OR
         # when partitioning is happening rowwise
         if(!identical(unname(applyIterations), modelApplyIterations)
-            || (arg@psize[1,][[1]] != arg@dim[[1]] && arg@type != "DListClass")) {
+            || (arg@psize[1,][[1]] != arg@dim[[1]] && arg@type != "dlist")) {
           warning(paste0("A repartitioning of an input variable has been triggered.
 For better performance, please try to partition your inputs compatibly."))
 
@@ -112,12 +112,12 @@ For better performance, please try to partition your inputs compatibly."))
           # the repartitioned object should match
           # TODO: DArrays need to be "shifted" into alignment??? Throw an error if not possible
       
-          if(arg@type == "DListClass") { 
+          if(arg@type == "dlist") { 
             new_psize <- matrix(modelApplyIterations, ncol = 1, byrow = TRUE)
             skeleton <- dlist(nparts=length(modelApplyIterations))
           }
 
-          else if(arg@type == "DFrameClass") {
+          else if(arg@type == "dframe") {
             new_psize <- vapply(modelApplyIterations, 
                                 function(x) c(arg@dim[[1]],x),
                         FUN.VALUE=numeric(2))
@@ -126,7 +126,7 @@ For better performance, please try to partition your inputs compatibly."))
             new_psize <- t(as.matrix(new_psize))
           }
 
-          else if(arg@type == "DArrayClass") {
+          else if(arg@type == "darray") {
             new_psize <- vapply(modelApplyIterations,
                                 function(x) {
                                   # if applyIterations is not a multiple of column
@@ -267,4 +267,7 @@ For better performance, please try to partition your inputs compatibly."))
   assign("is.darray", dds::is.darray, envir=globalenv())
   assign("is.dframe", dds::is.dframe, envir=globalenv())
   assign("is.dlist", dds::is.dlist, envir=globalenv())
+  assign("as.dlist", dds::as.dlist, envir=globalenv())
+  assign("as.darray", dds::as.darray, envir=globalenv())
+  assign("as.dframe", dds::as.dframe, envir=globalenv())
 }

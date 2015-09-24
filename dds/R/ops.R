@@ -340,7 +340,7 @@ setMethod("rbind", "DObject",
 
    types <- sapply(list(...),function(y) y@type)
 
-   if(any((types!="DArrayClass") & (types != "DFrameClass"))) stop("rbind is only supported for DArrays and DFrames")
+   if(any((types!="darray") & (types != "dframe"))) stop("rbind is only supported for DArrays and DFrames")
 
    ncols <- vapply(list(...), function(obj) ncol(obj), FUN.VALUE=numeric(1))
    if(min(ncols) != max(ncols)) stop("All inputs should have the same number of columns")
@@ -349,8 +349,8 @@ setMethod("rbind", "DObject",
 
    # The output is a DArray if only DArrays are present. Otherwise,
    # it is a DFrame.
-   if(any(types=="DFrameClass")) out.type = "DFrameClass"
-   else out.type = "DArrayClass" 
+   if(any(types=="dframe")) out.type = "dframe"
+   else out.type = "darray" 
 
    # Ensure that colwise partitions have the same dimensions
    # If they don't, repartition the incompatible object to be the 
@@ -362,7 +362,7 @@ setMethod("rbind", "DObject",
               if(identical(psize(obj,seq(nparts(obj)[[2]]))[,2],colWidths))
                 return(obj)
               else {
-                if(obj@type == "DFrameClass") 
+                if(obj@type == "dframe") 
                   skeleton <- dframe(nparts=c(nparts(obj)[[1]],nparts(x)[[2]]))
                 else 
                   skeleton <- darray(nparts=c(nparts(obj)[[1]],nparts(x)[[2]]))
@@ -416,7 +416,7 @@ setMethod("cbind", "DObject",
 
    types <- sapply(list(...),function(y) y@type)
 
-   if(any((types!="DArrayClass") & (types != "DFrameClass"))) stop("cbind is only supported for DArrays and DFrames")
+   if(any((types!="darray") & (types != "dframe"))) stop("cbind is only supported for DArrays and DFrames")
    nrows <- vapply(list(...), function(obj) nrow(obj), FUN.VALUE=numeric(1))
    if(min(nrows) != max(nrows)) stop("All inputs should have the same number of rows")
 
@@ -424,8 +424,8 @@ setMethod("cbind", "DObject",
 
    # The output is a DArray if only DArrays are present. Otherwise,
    # it is a DFrame.
-   if(any(types=="DFrameClass")) out.type = "DFrameClass"
-   else out.type = "DArrayClass" 
+   if(any(types=="dframe")) out.type = "dframe"
+   else out.type = "darray" 
 
    # Ensure that colwise partitions have the same dimensions
    # If they don't, repartition the incompatible object to be the 
@@ -437,7 +437,7 @@ setMethod("cbind", "DObject",
               if(identical(psize(obj,seq(1,totalParts(obj),by=nparts(obj)[[2]]))[,1],rowWidths))
                 return(obj)
               else {
-                if(obj@type == "DFrameClass") 
+                if(obj@type == "dframe") 
                   skeleton <- dframe(nparts=c(nparts(x)[[1]],nparts(obj)[[2]]))
                 else 
                   skeleton <- darray(nparts=c(nparts(x)[[1]],nparts(obj)[[2]]))

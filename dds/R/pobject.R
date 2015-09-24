@@ -30,9 +30,9 @@ setMethod("initialize", "ParallelObj", function(.Object, ...) {
    numparts<-totalParts(.Object)
    #TODO: Fix for data.frame and arrays
    if(length(.Object@pObj)==0) {
-    if(.Object@type == "DListClass")  
+    if(.Object@type == "dlist")  
        .Object@pObj <- vector("list", numparts)
-    else if(.Object@type == "DArrayClass")
+    else if(.Object@type == "darray")
        .Object@pObj <- lapply(1:numparts, function(x) array(0, dim=c(0,0)))
     else
        .Object@pObj  <- lapply(1:numparts, function(x) data.frame())

@@ -85,11 +85,11 @@ setMethod("combine",signature(driver="ParallelDDS",items="list"),
 # TODO(iR): Parallel processing does not work on Windows due to limitation of parallel package
 #' @export
 setMethod("do_dmapply",signature(driver="ParallelDDS",func="function",MoreArgs="list", output.type="character",nparts="numeric",combine="character",.unlistEach="logical"), 
-  function(driver,func,...,MoreArgs=list(), output.type="DListClass",nparts=NULL, combine="flatten",.unlistEach=FALSE){
+  function(driver,func,...,MoreArgs=list(), output.type="dlist",nparts=NULL, combine="flatten",.unlistEach=FALSE){
   dots <- list(...)
   dlen<-length(dots)
 
-  if(output.type =="DFrameClass" && combine=="flatten") 
+  if(output.type =="dframe" && combine=="flatten") 
       stop("Cannot flatten a data frame")
 
   for(num in 1:dlen){
@@ -184,7 +184,7 @@ setMethod("do_dmapply",signature(driver="ParallelDDS",func="function",MoreArgs="
    #Decide how we may need to combine entries from the answer into partitions
    #We handle the "flatten" case in the while loop since simplify2array has to be called with parameter "higher=FALSE"
    combineFunc <- list
-   if(output.type !="DListClass"){
+   if(output.type !="dlist"){
 	if(combine == "row")
 	   combineFunc <- rbind
 	else if(combine == "col")
@@ -193,7 +193,7 @@ setMethod("do_dmapply",signature(driver="ParallelDDS",func="function",MoreArgs="
    index<-1
    psizes<-array(0L,dim=c(totalParts,2)) #Stores partition sizes
    while(index <= totalParts){
-   	     if((output.type == "DListClass") || (combine != "flatten"))
+   	     if((output.type == "dlist") || (combine != "flatten"))
 			     outputObj[[index]]<-do.call(combineFunc, answer[(elemInEachPart[index]+1):elemInEachPart[index+1]])
 	     else
 	        	     outputObj[[index]]<-simplify2array(answer[(elemInEachPart[index]+1):elemInEachPart[index+1]], higher=FALSE)
@@ -221,7 +221,7 @@ setMethod("do_dmapply",signature(driver="ParallelDDS",func="function",MoreArgs="
 
 
   #Use single dimension if we know it's a list
-  if(output.type=="DListClass"){
+  if(output.type=="dlist"){
 	 psizes<-as.matrix(psizes[,1])
 	 dims<-dims[1]
    }
