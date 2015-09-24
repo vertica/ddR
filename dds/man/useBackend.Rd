@@ -2,27 +2,39 @@
 % Please edit documentation in R/dds.R
 \name{useBackend}
 \alias{useBackend}
-\title{Sets the active backend driver in the DDS environment. The driver object is
-responsible for the dispatch of all backend-specific DDS operations, such as
-dmapply, collect, and parts. Besides allowing the backend driver to be changed,
-initialization parameters may be passed into the ellipsis (...) part of the
+\title{Sets the active backend driver. Functions exported by the 'dds' package
+are dispatched to the backend driver.
+Backend specific initialization parameters may be passed into the ellipsis (...) part of the
 function arguments.}
 \usage{
 useBackend(driver, ...)
 }
 \arguments{
-\item{driver}{The driver object to load as the active backend for DDS. This object should extend class 'DDSDriver', and the S4 methods for do_dmapply, do_collect, and get_parts should be defined for the class of the driver object.}
+\item{driver}{driver object for the backend that will be used. This object should extend class 'DDSDriver', and the S4 methods for do_dmapply, do_collect, and get_parts should be defined in the class of the driver object.}
 
-\item{...}{Additional parameters to pass to the initialization function of this driver.
-After successfully setting the backend to a new backend with useBackend(), all subsequent dmapply, collect, and parts operations will dispatch on that driver object's class. Note that DObjects created with a different backend prior to switching will be incompatible with these backend-specific functions of the new driver.}
+\item{...}{additional parameters to pass to the initialization function of the driver.}
 }
 \description{
-The default loaded driver in DDS is parallel.
+The default driver uses R's 'parallel' as the backend.
+}
+\details{
+After successfully setting the backend to a new backend with useBackend(), all subsequent dmapply, collect, and parts operations will dispatch on that driver object's class. Note that distributed objects created with a different backend prior to switching will be incompatible with these backend-specific functions of the new driver.
 }
 \examples{
 \dontrun{
 useBackend(parallel,inst=2)
 library(distributedR.dds); useBackend(distributedR)
 }
+}
+\references{
+Prasad, S., Fard, A., Gupta, V., Martinez, J., LeFevre, J., Xu, V., Hsu, M., Roy, I.
+Large scale predictive analytics in Vertica: Fast data transfer, distributed model creation
+and in-database prediction. _Sigmod 2015_, 1657-1668.
+
+Venkataraman, S., Bodzsar, E., Roy, I., AuYoung, A., and
+Schreiber, R. (2013) Presto: Distributed Machine Learning and
+Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
+
+Homepage: https://github.com/vertica/DistributedR
 }
 

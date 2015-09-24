@@ -2,7 +2,7 @@
 % Please edit documentation in R/dds.R
 \name{dmapply}
 \alias{dmapply}
-\title{dmapply is the main 'workhorse' function of DDS. Like mapply in R, it allows a multivariate function, FUN, to be applied to several inputs. Unlike standard mapply, it always returns a DDS Distributed Object, or DObject.}
+\title{Distributed version of mapply. Similar to R's 'mapply', it allows a multivariate function, FUN, to be applied to several inputs. Unlike standard mapply, it always returns a distributed object.}
 \usage{
 dmapply(FUN, ..., MoreArgs = list(), output.type = "dlist", nparts = NULL,
   combine = "flatten")
@@ -12,27 +12,41 @@ dmapply(FUN, ..., MoreArgs = list(), output.type = "dlist", nparts = NULL,
 
 \item{...}{arguments to vectorize over (vectors or lists of strictly positive length, or all of zero length). These may also be distributed objects, such as dlists, darrays, and dframes.}
 
-\item{output.type}{The output DObject type. By default, this is "dlist", which means that the result of dmapply will be stored in a dlist. "darray" will make dmapply return a darray, just as "dframe" will make it return a dframe.}
+\item{MoreArgs}{a list of other arguments to ‘FUN’.}
 
-\item{nparts}{A 1d or 2d numeric value to specify how the output should be partitioned. DLists only have one-dimensional partitioning, whereas DArrays and DFrames have two (representing the number partitions across the vertical and horizontal dimensions). Let 'P' be the number of partitions as determined by getBestOutputPartitioning. The default for DLists is equal to 'P'. The default for DArrays and DFrames is c(1L,P).}
+\item{output.type}{the output type of the distributed object. The default value of "dlist" means that the result of dmapply will be stored in a distributed list. "darray" will make dmapply return a darray, just as "dframe" will make it return a dframe.}
 
-\item{combine}{For DFrames and DArrays, this specifies what how the results of dmapply are combined within each partition (if each partition contains more than one result). If "row", the results are rbinded; if "col", they are cbinded. If the value is "flatten", the results are flattened into one column, as is the case with simplify2array(). The default value is "flatten".}
+\item{nparts}{a 1d or 2d numeric value to specify how the output should be partitioned. dlists only have one-dimensional partitioning, whereas darrays and dframes have two (representing the number partitions across the vertical and horizontal dimensions).}
 
-\item{a}{list of other arguments to ‘FUN’.}
+\item{combine}{for dframes and darrays, it specifies how the results of dmapply are combined within each partition (if each partition contains more than one result). If "row", the results are stitched using rbind; if "col", cbind is used. If the value is "flatten", the results are flattened into one column, as is the case with simplify2array(). The default value is "flatten".}
 }
 \value{
-A DList, DArray, or DFrame (depending on the value of output.type), with nparts=nparts
+A dlist, darray, or dframe (depending on the value of output.type), with number of partitions equal to \code{\link{nparts}}
 }
 \description{
-Though dmapply is modeled after mapply, there are several important differences, as are evident in the parameters described below.
+Though dmapply is modeled after mapply, there are several important differences, as evident in the parameters described below.
 }
 \examples{
 \dontrun{
-a <- dmapply(function(x,y) x+y, 1:5, 2:6, nparts=3) # A DList adding two vectors of numbers.
+## A dlist created by adding two input vectors
+a <- dmapply(function(x,y) x+y, 1:5, 2:6, nparts=3)
+collect(a)
 
-##The following is a DArray with each partition containing the values equal to its partition id (1 to 4). Since combine is set to "row", the contents of each partition will be be vectorized as would be the case if combine=="flatten". Since nparts=c(2,2), the the partitions of the DArray will be stitched in a 2x2 fashion, meaning the overall dims of the DArray will be 4x4.
-
+##Create a darray with 4 partitions. Partitions are stitched in 2x2 fashion, meaning the overall dims of the darray will be 4x4.
 b <- dmapply(function(x) matrix(x,2,2), 1:4,output.type="darray",combine="row",nparts=c(2,2))
+collect(b,1) #First partition
+collect(b)
 }
+}
+\references{
+Prasad, S., Fard, A., Gupta, V., Martinez, J., LeFevre, J., Xu, V., Hsu, M., Roy, I.
+Large scale predictive analytics in Vertica: Fast data transfer, distributed model creation
+and in-database prediction. _Sigmod 2015_, 1657-1668.
+
+Venkataraman, S., Bodzsar, E., Roy, I., AuYoung, A., and
+Schreiber, R. (2013) Presto: Distributed Machine Learning and
+Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
+
+Homepage: https://github.com/vertica/DistributedR
 }
 
