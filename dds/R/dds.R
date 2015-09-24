@@ -19,8 +19,6 @@
 dds.env <- new.env(emptyenv())
 #Track no. of executors in the backend
 dds.env$nexecutors <- 1
-# Fix for weird methods bug
-dds.env$gc_performed <- FALSE
 
 #' Sets the active backend driver in the DDS environment. The driver object is
 #' responsible for the dispatch of all backend-specific DDS operations, such as
@@ -52,8 +50,6 @@ useBackend <- function(driver, ...) {
   nexecutors<-init(driver, ...)
   if(!is.null(nexecutors) && is.numeric(nexecutors) && (nexecutors > 1)) {dds.env$nexecutors <- nexecutors}
       
-  # Fix for weird methods bug
-  dds.env$gc_performed <- FALSE
   dds.env$driver <- driver
 }
 
@@ -86,14 +82,8 @@ setMethod("shutdown","DDSDriver",
 
 #' @export
 # dispatches on DDSDriver
-setGeneric("do_dmapply", function(driver,func,...,MoreArgs=list(),output.type="DListClass",nparts=NULL,combine="flatten",.unlistEach=FALSE) {
-  # Fix for weird methods bug
-  ## See: http://r.789695.n4.nabble.com/Reference-class-finalize-fails-with-attempt-to-apply-non-function-td4174697.html
-  if(!dds.env$gc_performed){
-     gc()
-     dds.env$gc_performed <- TRUE
-  }
-  standardGeneric("do_dmapply")
+setGeneric("do_dmapply", function(driver,func,...,MoreArgs=list(),output.type="dlist",nparts=NULL,combine="flatten") {
+   standardGeneric("do_dmapply")
 })
 
 #' @export
@@ -128,8 +118,8 @@ setGeneric("do_collect", function(x,parts) {
 #' b <- dlapply(a,function(x) x+3) # Adds 3 to each element of dlist a.
 #' } 
 #' @export
-dlapply <- function(X,FUN,...,nparts=NULL,.unlistEach=FALSE) {
-   dmapply(FUN,X,MoreArgs=list(...),output.type="DListClass",nparts=nparts,.unlistEach=.unlistEach)
+dlapply <- function(X,FUN,...,nparts=NULL) {
+   dmapply(FUN,X,MoreArgs=list(...),output.type="dlist",nparts=nparts)
 }
 
 #' dmapply is the main 'workhorse' function of DDS. Like mapply in R, it allows a multivariate function, FUN, to be applied to several inputs. Unlike standard mapply, it always returns a DDS Distributed Object, or DObject.
@@ -152,20 +142,24 @@ dlapply <- function(X,FUN,...,nparts=NULL,.unlistEach=FALSE) {
 #' b <- dmapply(function(x) matrix(x,2,2), 1:4,output.type="darray",combine="row",nparts=c(2,2)) 
 #' }
 #' @export
-dmapply <- function(FUN,...,MoreArgs=list(),output.type="dlist",nparts=NULL,combine="flatten",.unlistEach=FALSE) {
+dmapply <- function(FUN,...,MoreArgs=list(),output.type="dlist",nparts=NULL,combine="flatten") {
   if(!is.function(FUN)) stop("FUN needs to be a function")
   
   # Allow for multiple ways of expressing output.type
   da_types <- c("da","darray","darrayclass","daclass","a","matrix","dmatrix","array","darr")
   dl_types <- c("dl","l","dlist","dlistclass","list","dlclass")
   df_types <- c("df","f","dframe","dframeclass","data.frame","dataframe")
+  sp_types <- c("sda","sdarray","sparse","sparsearray","sarray","sparsematrix","smatrix","s","sp")
 
-  if(tolower(output.type) %in% da_types) output.type <- "DArrayClass"
-  else if (tolower(output.type) %in% dl_types) output.type <- "DListClass"
-  else if (tolower(output.type) %in% df_types) output.type <- "DFrameClass"
+  if(tolower(output.type) %in% da_types) output.type <- "darray"
+  else if (tolower(output.type) %in% dl_types) output.type <- "dlist"
+  else if (tolower(output.type) %in% df_types) output.type <- "dframe"
+  else if (tolower(output.type) %in% sp_types) output.type <- "sparse"
 
-  if(output.type != "DListClass" && output.type != "DArrayClass" && output.type != "DFrameClass")
-    stop("Unrecognized value for output.type -- try one of: {'dlist', 'darray', 'dframe'}.")   
+  accepted_types <- c("dlist","darray","dframe","sparse")
+
+  if(!(output.type %in% accepted_types))
+    stop("Unrecognized value for output.type -- try one of: {'dlist', 'darray', 'dframe', 'sparse'}.")
 
   if(!is.null(nparts))
     if(!is.numeric(nparts) || length(nparts) < 1 || length(nparts) > 2) 
@@ -180,7 +174,9 @@ dmapply <- function(FUN,...,MoreArgs=list(),output.type="dlist",nparts=NULL,comb
   else if (tolower(combine) %in% row_types) combine <- "row"
   else if (tolower(combine) %in% col_types) combine <- "col"
 
-  if(combine != "flatten" && combine != "row" && combine != "col")
+  accepted_combine <- c("flatten","row","col","unlist")
+
+  if(!(combine %in% accepted_combine))
     stop("Unrecognized option for combine -- try one of: {'flatten', 'row', 'col'}")
   
   dargs <- list(...)
@@ -203,11 +199,10 @@ dmapply <- function(FUN,...,MoreArgs=list(),output.type="dlist",nparts=NULL,comb
   partitioning <- getBestOutputPartitioning(dds.env$driver,...,nparts=nparts,type=output.type)
 
   # simplify2array does not work well on data.frames, default to column instead
-  if(output.type == "DFrameClass" && combine == "flatten") combine = "col"
+  if(output.type == "dframe" && combine == "flatten") combine = "col"
 
   newobj <- do_dmapply(dds.env$driver, func=match.fun(FUN), ..., MoreArgs=MoreArgs,
-                       output.type=output.type,nparts=partitioning,combine=combine,
-                       .unlistEach=.unlistEach)
+                       output.type=output.type,nparts=partitioning,combine=combine)                       
 
   checkReturnObject(partitioning,newobj)
 
@@ -266,7 +261,7 @@ getBestOutputPartitioning.DDSDriver <- function(driver, ...,nparts=NULL,type=NUL
 
   if(length(nparts) == 1) {
     # default to cbinding partitions if 2D
-    if(type == "DListClass")
+    if(type == "dlist")
       nparts <- c(nparts, 1L)
     else
       nparts <- c(1L,nparts)

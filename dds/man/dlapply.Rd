@@ -5,7 +5,7 @@
 \title{Like dmapply, but permits only one iterable argument, and the output.type is
 always a dlist. This is the distributed version of 'lapply'.}
 \usage{
-dlapply(X, FUN, ..., nparts = NULL, .unlistEach = FALSE)
+dlapply(X, FUN, ..., nparts = NULL)
 }
 \arguments{
 \item{X}{The vector, matrix, list, data.frame, dlist, darray, or dframe or other iterable object to supply to the function in FUN.}
