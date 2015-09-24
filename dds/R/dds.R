@@ -82,7 +82,7 @@ setMethod("shutdown","DDSDriver",
 
 #' @export
 # dispatches on DDSDriver
-setGeneric("do_dmapply", function(driver,func,...,MoreArgs=list(),output.type="dlist",nparts=NULL,combine="flatten",.unlistEach=FALSE) {
+setGeneric("do_dmapply", function(driver,func,...,MoreArgs=list(),output.type="dlist",nparts=NULL,combine="flatten") {
    standardGeneric("do_dmapply")
 })
 
@@ -118,8 +118,8 @@ setGeneric("do_collect", function(x,parts) {
 #' b <- dlapply(a,function(x) x+3) # Adds 3 to each element of dlist a.
 #' } 
 #' @export
-dlapply <- function(X,FUN,...,nparts=NULL,.unlistEach=FALSE) {
-   dmapply(FUN,X,MoreArgs=list(...),output.type="dlist",nparts=nparts,.unlistEach=.unlistEach)
+dlapply <- function(X,FUN,...,nparts=NULL) {
+   dmapply(FUN,X,MoreArgs=list(...),output.type="dlist",nparts=nparts)
 }
 
 #' dmapply is the main 'workhorse' function of DDS. Like mapply in R, it allows a multivariate function, FUN, to be applied to several inputs. Unlike standard mapply, it always returns a DDS Distributed Object, or DObject.
@@ -142,7 +142,7 @@ dlapply <- function(X,FUN,...,nparts=NULL,.unlistEach=FALSE) {
 #' b <- dmapply(function(x) matrix(x,2,2), 1:4,output.type="darray",combine="row",nparts=c(2,2)) 
 #' }
 #' @export
-dmapply <- function(FUN,...,MoreArgs=list(),output.type="dlist",nparts=NULL,combine="flatten",.unlistEach=FALSE) {
+dmapply <- function(FUN,...,MoreArgs=list(),output.type="dlist",nparts=NULL,combine="flatten") {
   if(!is.function(FUN)) stop("FUN needs to be a function")
   
   # Allow for multiple ways of expressing output.type
@@ -174,7 +174,7 @@ dmapply <- function(FUN,...,MoreArgs=list(),output.type="dlist",nparts=NULL,comb
   else if (tolower(combine) %in% row_types) combine <- "row"
   else if (tolower(combine) %in% col_types) combine <- "col"
 
-  accepted_combine <- c("flatten","row","col")
+  accepted_combine <- c("flatten","row","col","unlist")
 
   if(!(combine %in% accepted_combine))
     stop("Unrecognized option for combine -- try one of: {'flatten', 'row', 'col'}")
@@ -202,8 +202,7 @@ dmapply <- function(FUN,...,MoreArgs=list(),output.type="dlist",nparts=NULL,comb
   if(output.type == "dframe" && combine == "flatten") combine = "col"
 
   newobj <- do_dmapply(dds.env$driver, func=match.fun(FUN), ..., MoreArgs=MoreArgs,
-                       output.type=output.type,nparts=partitioning,combine=combine,
-                       .unlistEach=.unlistEach)
+                       output.type=output.type,nparts=partitioning,combine=combine)                       
 
   checkReturnObject(partitioning,newobj)
 

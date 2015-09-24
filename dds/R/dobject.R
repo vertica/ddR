@@ -646,10 +646,10 @@ repartition.DObject <- function(dobj,skeleton) {
     output 
   }
   
-  if(skeleton@type == "dlist") .unlistEach=TRUE
-  else .unlistEach=FALSE
+  if(skeleton@type == "dlist") combine=list("unlist")
+  else combine=list("row")
 
-  dmapplyArgs <- c(FUN=repartitioner,dmapplyArgs,psize=list(as.list(data.frame(t(psize(skeleton))))),MoreArgs=list(list(type=skeleton@type)),output.type=list(skeleton@type),combine=list("row"),nparts=list(nparts(skeleton)),.unlistEach=list(.unlistEach))
+  dmapplyArgs <- c(FUN=repartitioner,dmapplyArgs,psize=list(as.list(data.frame(t(psize(skeleton))))),MoreArgs=list(list(type=skeleton@type)),output.type=list(skeleton@type),combine=combine,nparts=list(nparts(skeleton)))
 
   do.call(dmapply,dmapplyArgs)
 }

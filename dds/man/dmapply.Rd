@@ -5,7 +5,7 @@
 \title{dmapply is the main 'workhorse' function of DDS. Like mapply in R, it allows a multivariate function, FUN, to be applied to several inputs. Unlike standard mapply, it always returns a DDS Distributed Object, or DObject.}
 \usage{
 dmapply(FUN, ..., MoreArgs = list(), output.type = "dlist", nparts = NULL,
-  combine = "flatten", .unlistEach = FALSE)
+  combine = "flatten")
 }
 \arguments{
 \item{FUN}{function to apply, found via ‘match.fun’.}

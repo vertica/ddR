@@ -44,7 +44,7 @@ setReplaceMethod("names", signature(x = "DObject", value = "ANY"), definition = 
    },
   limits,lens,SIMPLIFY=FALSE)
 
-  dmapply(function(x,y) { names(x) <- y; x }, parts(x), namesList,.unlistEach=TRUE, nparts=totalParts(x))
+  dmapply(function(x,y) { names(x) <- y; x }, parts(x), namesList,combine="unlist", nparts=totalParts(x))
 })
 
 #' @export

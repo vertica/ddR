@@ -41,8 +41,8 @@ setMethod("shutdown","DistributedRDDS",
 )
 
 #' @export
-setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreArgs="list",output.type="character",nparts="numeric",combine="character",.unlistEach="logical"), 
-  function(driver,func,...,MoreArgs=list(),output.type="dlist",nparts=NULL,combine="flatten",.unlistEach=FALSE) {
+setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreArgs="list",output.type="character",nparts="numeric",combine="character"), 
+  function(driver,func,...,MoreArgs=list(),output.type="dlist",nparts=NULL,combine="flatten") {
     # margs stores the dmapply args
     margs <- list(...)
     # ids stores the arguments to splits() and the values of the raw arguments in foreach
@@ -210,7 +210,7 @@ For better performance, please try to partition your inputs compatibly."))
     body(exec_func)[[3]][[3]] <- match.fun(func)
     body(exec_func)[[4]] <- eval(parse(text=paste0("substitute(",execLine,")")),envir=new.env())
     
-    if(.unlistEach) {
+    if(combine=="unlist") {
       unlistedResults <- ".newDObj <- unlist(.newDObj,recursive=FALSE)"
       body(exec_func)[[5]] <- eval(parse(text=paste0("substitute(",unlistedResults,")")),envir=new.env())
     }
