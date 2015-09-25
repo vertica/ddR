@@ -245,6 +245,224 @@ fitted.hpdkmeans <- function(object, method = c("centers", "classes"), ...)
 	else object$cl
 }
 
+#   X: is a darray of samples. Each row represents a sample.
+#   centers: the matrix of centers or their number
+#   iter.max: maximum number of iterations
+#   nstart: number of tries
+#   algorithm: choice of algorithm
+#   sampling_threshold: determining between centralized and distributed sampling for choosing random centers
+#   trace: boolean, to show the progress
+#   na_action: the desired behaviour in the case of infinite data
+hpdkmeansv2 <-
+function(X, centers, iter.max = 10, nstart = 1,
+#         algorithm = c("Lloyd", "Forgy", "Hartigan-Wong", "MacQueen"), 
+        sampling_threshold = 1e6, trace = FALSE, na_action = c("exclude","fail"), completeModel = FALSE)
+{
+    startTotalTime <- proc.time()
+    # loading the so library on all available executors
+    #ddyn.load("HPdcluster")
+    # unloading the so library from all available executors at the exit time
+    #on.exit(ddyn.unload("HPdcluster"))
+    a <- dmapply(function(x) library("HPdcluster"), 1:totalParts(X))
+
+    # validating the input arguments
+    if(is.null(X)) stop("'X' is a required argument")
+    nSample <- nrow(X)    # number of samples
+    if(is.na(nSample)) stop("invalid nrow(X)")
+    p <- ncol(X)    # number of predictors
+    if(is.na(p)) stop("invalid ncol(X)")
+    if(p != X@psize[1,2]) stop("'X' should be partitioned row-wise")
+    if(missing(centers)) stop("'centers' must be a number or a matrix")
+#A    nmeth <- switch(match.arg(algorithm),
+#A                    "Hartigan-Wong" = 1,
+#A                    "Lloyd" = 2, "Forgy" = 2,
+#A                    "MacQueen" = 3)
+    nmeth <- 2
+    if(nmeth != 2) stop("The specified algorithm is not supported")
+    
+    nstart <- as.integer(nstart)
+    if(nstart <= 0) stop("nstart should be a positive integer number")
+    
+    nparts <- totalParts(X)  # number of partitions (blocks)
+
+    mask <- NULL
+    switch(match.arg(na_action),
+        "fail" = {
+            naCheckOutput <- .naCheckKmeans(X, trace=trace)   
+	    anyMiss <- naCheckOutput$found
+            if(anyMiss > 0)
+                stop(anyMiss, " sample(s) have missed values")
+        },
+        "exclude" = {
+            mask <- .clone(X, ncol=1, sparse=FALSE)
+            naCheckOutput <- .naCheckKmeans(X, trace=trace, mask)
+	    anyMiss <- naCheckOutput$found
+	    mask <- naCheckOutput$mask
+            if(anyMiss > 0) {
+                if(anyMiss == nSample)
+                    stop("all the samples have missed values")
+                else
+                    warning(anyMiss, " sample(s) are excluded because of missed value")
+            }
+            else
+                mask <- NULL # to avoid extra overhead
+        },
+#A        "pass" = {
+#A            # do nothing            
+#A        },
+        {
+            stop("only 'exclude' and 'fail' are valid values for na_action")
+        }
+    )
+    
+    initialCenters <- FALSE
+
+    if(length(centers) == 1L) { # the number of centers is given
+#O        if (centers == 1) nmeth <- 3
+        k <- as.integer(centers)
+        if(is.na(k)) stop("'invalid value of 'k'")
+        if(nSample < k)
+            stop("more cluster centers than data points")
+
+        centers <- .pickCenters(X, k, sampling_threshold, trace)
+
+    } else {    # initial centers are given
+        if(! all(is.finite(centers))    )
+            stop("only finite values for centers are acceptable")
+        centers <- as.matrix(centers)
+        if(any(duplicated(centers)))
+            stop("initial centers are not distinct")
+        initialCenters <- TRUE
+        k <- nrow(centers)
+        if(nSample < k)
+            stop("more cluster centers than data points")
+    }
+
+    iter.max <- as.integer(iter.max)
+    if(is.na(iter.max) || iter.max < 1) stop("'iter.max' must be positive")
+    if(ncol(X) != ncol(centers))
+        stop("must have same number of columns in 'X' and 'centers'")
+
+    # calculating the norm of all samples for approximating distance (||a|| - ||b|| <= ||a - b||)
+    if(trace) {
+        cat("Calculating the norm of samples\n")
+        starttime<-proc.time()
+    }
+    Norms <- .clone(X, ncol=1, sparse=FALSE)
+    if(is.null(mask)) {
+
+    	calculateNorm <- function(Xi, Ni)
+	{
+            if(class(Xi) == "matrix")
+                .Call("calculate_norm", Xi, Ni, PACKAGE="HPdcluster")
+            else
+                .Call("calculate_norm", as.matrix(Xi), Ni, PACKAGE="HPdcluster")
+	    return(Ni)
+	}
+
+    	Norms <- dmapply(calculateNorm, Xi = parts(X), Ni = parts(Norms),
+	      output.type = "DArrayClass",combine = "row", nparts = c(totalParts(X),1))
+
+
+    } else {
+
+    	calculateNorm <- function(Xi, Ni)
+	{
+            good <- maski > 0
+            if(class(Xi) == "matrix")
+                Ni[good,] <- .Call("calculate_norm", Xi[good,], Ni[good,], PACKAGE="HPdcluster")
+            else
+                Ni[good,] <- .Call("calculate_norm", as.matrix(Xi[good,]), Ni[good,], PACKAGE="HPdcluster")
+	    return(Ni)
+	}
+
+    	Norms <- dmapply(calculateNorm, Xi = parts(X), Ni = parts(Norms),
+	      output.type = "DArrayClass",combine = "row", nparts = c(totalParts(X),1))
+
+    }
+    if (trace) {    # timing end
+        endtime <- proc.time()
+        spentTime <- endtime-starttime
+        cat("Spent time:",(spentTime)[3],"sec\n")
+    }
+
+#O  Z <- do_one(nmeth)
+    Z <- .do_oneSet(nmeth, X, Norms, k, centers, iter.max, trace, mask, completeModel=completeModel)
+    if(completeModel)
+        best <- sum(Z$wss)
+
+    if(nstart >= 2 && !initialCenters && completeModel) {
+	    for(i in 2:nstart) {
+	        centers <- .pickCenters(X, k, sampling_threshold, trace)
+	        ZZ <- .do_oneSet(nmeth, X, Norms, k, centers, iter.max, trace, mask, completeModel=completeModel)
+	        if((z <- sum(ZZ$wss)) < best) {
+		        Z <- ZZ
+		        best <- z
+	        }
+	    }
+    }
+
+    centers <- Z$centers
+    dimnames(centers) <- list(1L:k, colnames(X))
+    cluster <- Z$cluster
+    if(completeModel && !is.null(rn <- rownames(X))) {
+        rownames(cluster) <- rn
+    }
+
+#O    totss <- sum(scale(x, scale = FALSE)^2)
+    if(completeModel)
+        totss <- .d.totss(X, trace, mask)
+
+    if (trace) {
+        endTotalTime <- proc.time()
+        totalTime <- endTotalTime - startTotalTime
+        cat("*****************************\n")
+        cat("Total running time:",(totalTime)[3],"sec\n")
+        iterationTime = .hpkmeans.env$iterations_totalTime / Z$iter
+        cat("Running time of each iteration on average:",iterationTime,"sec\n")
+    }
+
+    if(completeModel) 
+        structure(list(cluster = cluster, centers = centers, totss = totss,
+                       withinss = Z$wss, tot.withinss = best,
+                       betweenss = totss - best, 
+                       size = Z$size, iter = Z$iter),
+	              class = c("hpdkmeans","kmeans"))
+    else
+        structure(list(centers = centers, totss = NA,
+                       withinss = NA, tot.withinss = NA,
+                       betweenss = NA, 
+                       size = Z$size, iter = Z$iter),
+	              class = c("hpdkmeans","kmeans"))
+}
+
+## modelled on print methods in the cluster package
+print.hpdkmeans <- function(x, ...)
+{
+    cat("K-means clustering with ", length(x$size), " clusters of sizes ",
+        paste(x$size, collapse=", "), "\n", sep="")
+    cat("\nCluster means:\n")
+    print(x$centers, ...)
+#O    cat("\nClustering vector:\n")
+#O    print(x$cluster, ...)
+    if(! is.null(x$withinss)) {
+        cat("\nWithin cluster sum of squares by cluster:\n")
+        print(x$withinss, ...)
+        cat(sprintf(" (between_SS / total_SS = %5.1f %%)\n",
+		    100 * x$betweenss/x$totss))
+    }
+    cat("\nAvailable components:\n")
+    print(names(x))
+    invisible(x)
+}
+
+fitted.hpdkmeans <- function(object, method = c("centers", "classes"), ...)
+{
+	method <- match.arg(method)
+	if (method == "centers") object$centers[object$cl, , drop=FALSE]
+	else object$cl
+}
+
 ##################################################
 #        Functions Added by Arash                #
 ##################################################
@@ -441,23 +659,35 @@ fitted.hpdkmeans <- function(object, method = c("centers", "classes"), ...)
                 else    # When X is sparse, class(Xi) == "dgCMatrix"
                     .Call("hpdkmeans_Lloyd", as.matrix(Xi), Ni, centers, cl, nc, PACKAGE="HPdcluster")
 		centers[is.nan(centers)] <- 0
+		return(c(matrix(centers*nc),nc))
 		if(completeModel)
 			return(list(sumOfClusteri = matrix(centers * nc), numOfPointsi = matrix(nc), clusteri =  matrix(cl)))
 		return(list(sumOfClusteri = matrix(centers * nc), numOfPointsi = matrix(nc)))
 	    }
 
-	    clustering_info <- dmapply(kmeansFunc, Xi = parts(X), Ni = parts(Norms),
-	    		    MoreArgs = list(centers=centers, nmeth=nmeth, completeModel=completeModel),
-			    nparts = totalParts(X))
+#	    clustering_info <- dmapply(kmeansFunc, Xi = parts(X), Ni = parts(Norms),
+#	    		    MoreArgs = list(centers=centers, nmeth=nmeth, completeModel=completeModel),
+#			    nparts = totalParts(X))
 
-timing_info <- Sys.time()
-	    size <- dmapply(function(x){ x$numOfPointsi }, clustering_info,
-	    	 output.type="DArrayClass", combine = "col", nparts = c(1,totalParts(clustering_info)))
-	    cent <- dmapply(function(x) x$sumOfClusteri, clustering_info,
-	    	 output.type="DArrayClass", combine = "col", nparts = c(1,totalParts(clustering_info)))
-	    size <- rowSums(collect(size))
-	    cent <- rowSums(collect(cent))
-print(Sys.time() - timing_info)
+
+		    clustering_info <- dmapply(kmeansFunc, Xi = parts(X), Ni = parts(Norms),
+	    		    MoreArgs = list(centers=centers, nmeth=nmeth, completeModel=completeModel),
+			    output.type = "DArrayClass", combine = "col", nparts = c(1,totalParts(X)))
+
+	size <- rowSums(collect(clustering_info))
+	cent <- size[1:(p*k)]
+	size <- size[-(1:(p*k))]
+
+#timing_info <- Sys.time()
+#	    size <- dmapply(function(x){ x$numOfPointsi }, clustering_info,
+#	    	 output.type="DArrayClass", combine = "col", nparts = c(1,totalParts(clustering_info)))
+#	    cent <- dmapply(function(x) x$sumOfClusteri, clustering_info,
+#	    	 output.type="DArrayClass", combine = "col", nparts = c(1,totalParts(clustering_info)))
+#print(collect(cent))
+#print(Sys.time() - timing_info)
+#	    size <- rowSums(collect(size))
+#	    cent <- rowSums(collect(cent))
+#print(Sys.time() - timing_info)
 
             newCenters <- matrix(cent,nrow=k,ncol=p) / matrix(size,nrow=k,ncol=p)
             newCenters[size == 0,] <- centers[size == 0,] # some of the clusters might be empty
@@ -506,6 +736,7 @@ timing_info <- Sys.time()
 	    	 output.type="DArrayClass", combine = "col", nparts = c(1,totalParts(clustering_info)))
 	    cent <- dmapply(function(x) x$sumOfClusteri, clustering_info,
 	    	 output.type="DArrayClass", combine = "col", nparts = c(1,totalParts(clustering_info)))
+print(Sys.time() - timing_info)
 	    size <- rowSums(collect(size))
 	    cent <- rowSums(collect(cent))
 print(Sys.time() - timing_info)

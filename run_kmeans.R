@@ -1,6 +1,6 @@
 library(dds)
 library(methods)
-library(HPdclusterv2)
+library(dds.kmeans)
 library(distributedR.dds)
 
 args <- commandArgs(TRUE)
@@ -10,7 +10,7 @@ if(length(args) > 0 & args[1] == "DR")
 #Uncomment the following lines to use Distributed R 
 useBackend(distributedR)
 
-nInst = 4  #determines the no. of  partitions (and hence max cores utilized)
+nInst = 2  #determines the no. of  partitions (and hence max cores utilized)
 ncol = 10
 nrow = 1000000
 K = 10
@@ -30,4 +30,5 @@ feature <- dmapply(generateKMeansData,id = 1:nInst,
 		output.type = "DArrayClass", 
 		combine = "row", nparts = c(nInst,1))
 
-model <- hpdkmeans(feature,K, trace = TRUE) 
+# model <- hpdkmeans(feature,K, trace = TRUE)  # For version using dlists
+model <- hpdkmeansv2(feature,K, trace = TRUE)  # For version using darrays

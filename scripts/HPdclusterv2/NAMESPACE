@@ -1,3 +1,0 @@
-useDynLib(HPdcluster)
-exportPattern("^[[:alpha:]]+")
-import(dds)

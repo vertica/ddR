@@ -81,8 +81,7 @@ collect <- function(dobj, index=NULL) {
 #' to be applied over partitions of distributed objects. 
 #' @return a list of distributed objects, each referring to one partition of the input.
 #' @details
-#' Note: In DDS, each element of parts() is itself considered a distributed object
-#' (of one partition).
+#' In DDS, each element of parts() is itself considered a distributed object of one partition.
 #' @references 
 #' Prasad, S., Fard, A., Gupta, V., Martinez, J., LeFevre, J., Xu, V., Hsu, M., Roy, I. 
 #' Large scale predictive analytics in Vertica: Fast data transfer, distributed model creation 
@@ -345,6 +344,7 @@ is.DObject <- is.dobject
 #' @param psize size of each partition as a vector specifying number of rows and columns. 
 #' This parameter is provided together with dim.
 #' @param data initial value of all elements in array. Default is 0.
+#' @param sparse If TRUE, the output darray will be of type sparse_darray. The default value is FALSE.
 #' @return Returns a distributed array with the specified dimensions. Data may reside as partitions in remote nodes.
 #' @seealso \code{\link{collect}} \code{\link{psize}} \code{\link{dmapply}}
 #' @details 

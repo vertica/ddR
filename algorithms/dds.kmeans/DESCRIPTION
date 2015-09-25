@@ -1,4 +1,4 @@
-Package: HPdclusterv2
+Package: dds.kmeans
 Type: Package
 Title: Distributed Clustering for Big Data
 Version: 1.2.0
