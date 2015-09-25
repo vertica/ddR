@@ -1,5 +1,5 @@
 ---
-title: "distributedR.dds examples"
+title: "dds examples"
 author: "Edward Ma"
 date: "2015-09-08"
 output: rmarkdown::html_vignette
@@ -9,7 +9,7 @@ vignette: >
   \usepackage[utf8]{inputenc}
 ---
 
-Quick examples using the DDS API (note: currently some of these examples only work when using the Distributed R backend)
+Quick examples using the DDS API
 
 Starting it up:
 

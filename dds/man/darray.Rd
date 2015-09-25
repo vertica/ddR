@@ -16,6 +16,8 @@ darray(nparts = NULL, dim = NULL, psize = NULL, data = 0,
 This parameter is provided together with dim.}
 
 \item{data}{initial value of all elements in array. Default is 0.}
+
+\item{sparse}{If TRUE, the output darray will be of type sparse_darray. The default value is FALSE.}
 }
 \value{
 Returns a distributed array with the specified dimensions. Data may reside as partitions in remote nodes.
