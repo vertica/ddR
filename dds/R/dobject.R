@@ -626,7 +626,10 @@ setMethod("show",signature("DObject"),function(object) {
     partsStr <- paste0(partsStr,", ...")
   }
 
-  printStr <- paste0("\nType: ", object@type,"\nNo. of Partitions: ", totalParts(object), "\nnparts: ", paste(object@nparts,collapse=","),"\npsize: ", partsStr, "\ndim: ", paste(dim(object),collapse=","), "\nBackend Type: ", object@backend,"\n")
+  if(is.dlist(object)) dimStr <- "Length: "
+  else dimStr <- "Dim: "
+
+  printStr <- paste0("\nDDS Distributed Object","\nType: ", object@type,"\n# of partitions: ", totalParts(object), "\nPartitions per dimension: ", paste(object@nparts,collapse="x"),"\nPartition sizes: ", partsStr, "\n", dimStr, paste(dim(object),collapse=","), "\nBackend: ", object@backend,"\n")
 
   cat(printStr) 
 })
