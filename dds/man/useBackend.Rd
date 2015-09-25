@@ -4,7 +4,7 @@
 \alias{useBackend}
 \title{Sets the active backend driver. Functions exported by the 'dds' package
 are dispatched to the backend driver.
-Backend specific initialization parameters may be passed into the ellipsis (...) part of the
+Backend-specific initialization parameters may be passed into the ellipsis (...) part of the
 function arguments.}
 \usage{
 useBackend(driver, ...)
@@ -18,7 +18,7 @@ useBackend(driver, ...)
 The default driver uses R's 'parallel' as the backend.
 }
 \details{
-After successfully setting the backend to a new backend with useBackend(), all subsequent dmapply, collect, and parts operations will dispatch on that driver object's class. Note that distributed objects created with a different backend prior to switching will be incompatible with these backend-specific functions of the new driver.
+After successfully registering a new backend with useBackend(), all subsequent dmapply, collect, and parts operations will dispatch on that driver object's class. Note that distributed objects created with a different backend prior to switching will be incompatible with these backend-specific functions of the new driver.
 }
 \examples{
 \dontrun{

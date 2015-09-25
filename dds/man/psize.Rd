@@ -13,7 +13,7 @@ psize(dobj, index = NULL)
 }
 \value{
 A matrix that denotes the number of rows and columns in the
-partition. Row i of the matrix corresponds or size of i'th partition. For dlist, the returned matrix has only 1 column.
+partition. Row i of the matrix corresponds or size of i'th partition. For a dlist, the returned matrix has only 1 column.
 }
 \description{
 Return sizes of each partition of the input distributed object.

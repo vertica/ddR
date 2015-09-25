@@ -4,7 +4,7 @@
 \alias{nparts}
 \title{Returns a 2d-vector denoting the number of partitions existing along
 each dimension of the distributed object, where the vector==c(partitions_per_column,
-partitions_per_row). For dlist, the value is
+partitions_per_row). For a dlist, the value is
 equivalent to c(totalParts(dobj),1).}
 \usage{
 nparts(dobj)
@@ -18,7 +18,7 @@ A 2d-vector containing the number of partitions along each dimension.
 \description{
 Returns a 2d-vector denoting the number of partitions existing along
 each dimension of the distributed object, where the vector==c(partitions_per_column,
-partitions_per_row). For dlist, the value is
+partitions_per_row). For a dlist, the value is
 equivalent to c(totalParts(dobj),1).
 }
 \examples{

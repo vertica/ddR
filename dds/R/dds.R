@@ -22,7 +22,7 @@ dds.env$nexecutors <- 1
 
 #' Sets the active backend driver. Functions exported by the 'dds' package 
 #' are dispatched to the backend driver.
-#' Backend specific initialization parameters may be passed into the ellipsis (...) part of the 
+#' Backend-specific initialization parameters may be passed into the ellipsis (...) part of the 
 #' function arguments. 
 #'
 #' The default driver uses R's 'parallel' as the backend.
@@ -30,7 +30,7 @@ dds.env$nexecutors <- 1
 #' @param driver driver object for the backend that will be used. This object should extend class 'DDSDriver', and the S4 methods for do_dmapply, do_collect, and get_parts should be defined in the class of the driver object. 
 #' @param ... additional parameters to pass to the initialization function of the driver.
 #' @details
-#' After successfully setting the backend to a new backend with useBackend(), all subsequent dmapply, collect, and parts operations will dispatch on that driver object's class. Note that distributed objects created with a different backend prior to switching will be incompatible with these backend-specific functions of the new driver.
+#' After successfully registering a new backend with useBackend(), all subsequent dmapply, collect, and parts operations will dispatch on that driver object's class. Note that distributed objects created with a different backend prior to switching will be incompatible with these backend-specific functions of the new driver.
 #' @references 
 #' Prasad, S., Fard, A., Gupta, V., Martinez, J., LeFevre, J., Xu, V., Hsu, M., Roy, I. 
 #' Large scale predictive analytics in Vertica: Fast data transfer, distributed model creation 
@@ -113,12 +113,13 @@ setGeneric("do_collect", function(x,parts) {
   standardGeneric("do_collect")
 })
 
-#' Distributed version of 'lapply'. Similar to \code{\link{dmapply}}, but permits only one iterable argument, and the output.type is 
-#' always a dlist. 
+#' Distributed version of 'lapply'. Similar to \code{\link{dmapply}}, but permits only one iterable argument, and output.type is 
+#' always 'dlist'. 
 #'
 #' @param X vector, matrix, list, data.frame, dlist, darray, or dframe or other iterable object to supply to the function in FUN.
 #' @param FUN the function to be applied to each element of ‘X’.
 #' @param ... optional arguments to 'FUN'.
+#' @param nparts number of partitions in the output dlist.
 #' @return a dlist with number of partitions specified in 'nparts'
 #' @references 
 #' Prasad, S., Fard, A., Gupta, V., Martinez, J., LeFevre, J., Xu, V., Hsu, M., Roy, I. 
@@ -147,9 +148,9 @@ dlapply <- function(X,FUN,...,nparts=NULL) {
 #' @param FUN function to apply, found via ‘match.fun’.
 #' @param ...  arguments to vectorize over (vectors or lists of strictly positive length, or all of zero length). These may also be distributed objects, such as dlists, darrays, and dframes.
 #' @param MoreArgs a list of other arguments to ‘FUN’.
-#' @param output.type the output type of the distributed object. The default value of "dlist" means that the result of dmapply will be stored in a distributed list. "darray" will make dmapply return a darray, just as "dframe" will make it return a dframe. 
+#' @param output.type the output type of the distributed object. The default value of "dlist" means that the result of dmapply will be stored in a distributed list. "darray" will make dmapply return a darray, just as "dframe" will make it return a dframe. "sparse_darray" results in a special version of darray where the elements are sparse.
 #' @param nparts a 1d or 2d numeric value to specify how the output should be partitioned. dlists only have one-dimensional partitioning, whereas darrays and dframes have two (representing the number partitions across the vertical and horizontal dimensions). 
-#' @param combine for dframes and darrays, it specifies how the results of dmapply are combined within each partition (if each partition contains more than one result). If "row", the results are stitched using rbind; if "col", cbind is used. If the value is "flatten", the results are flattened into one column, as is the case with simplify2array(). The default value is "flatten".
+#' @param combine for dframes and darrays, it specifies how the results of dmapply are combined within each partition (if each partition contains more than one result). If "row", the results are stitched using rbind; if "col", cbind is used. If the value is "flatten", the results are flattened into one column, as is the case with simplify2array(). For dlists, "unlist" will first attempt to unlist each element of the dmapply result and then expand these items within the partition of the dlist. The default value is "flatten".
 #' @return A dlist, darray, or dframe (depending on the value of output.type), with number of partitions equal to \code{\link{nparts}}
 #' @references 
 #' Prasad, S., Fard, A., Gupta, V., Martinez, J., LeFevre, J., Xu, V., Hsu, M., Roy, I. 
@@ -304,5 +305,5 @@ getBestOutputPartitioning.DDSDriver <- function(driver, ...,nparts=NULL,type=NUL
 }
 
 .onAttach <- function(libname, pkgname) {
-  packageStartupMessage("\nWelcome to 'dds' (Distributed Data-structures)!\nFor more information visit: https://github.com/vertica/Standard-R-API")
+  packageStartupMessage("\nWelcome to 'dds' (Distributed Data-structures)!\nFor more information, visit: https://github.com/vertica/Standard-R-API")
 }

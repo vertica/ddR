@@ -2,8 +2,8 @@
 % Please edit documentation in R/dds.R
 \name{dlapply}
 \alias{dlapply}
-\title{Distributed version of 'lapply'. Similar to \code{\link{dmapply}}, but permits only one iterable argument, and the output.type is
-always a dlist.}
+\title{Distributed version of 'lapply'. Similar to \code{\link{dmapply}}, but permits only one iterable argument, and output.type is
+always 'dlist'.}
 \usage{
 dlapply(X, FUN, ..., nparts = NULL)
 }
@@ -13,13 +13,15 @@ dlapply(X, FUN, ..., nparts = NULL)
 \item{FUN}{the function to be applied to each element of ‘X’.}
 
 \item{...}{optional arguments to 'FUN'.}
+
+\item{nparts}{number of partitions in the output dlist.}
 }
 \value{
 a dlist with number of partitions specified in 'nparts'
 }
 \description{
-Distributed version of 'lapply'. Similar to \code{\link{dmapply}}, but permits only one iterable argument, and the output.type is
-always a dlist.
+Distributed version of 'lapply'. Similar to \code{\link{dmapply}}, but permits only one iterable argument, and output.type is
+always 'dlist'.
 }
 \examples{
 \dontrun{

@@ -24,7 +24,7 @@ If 'dobj' and 'skeleton' have different internal partitioning, this function wil
 \examples{
 \dontrun{
 a <- dlist(1,2,3,4,nparts=2)
-b <- dmapply(function(x) x, 10:14,nparts=4)
+b <- dmapply(function(x) x, 11:14,nparts=4)
 c <- repartition(a,b) # c will have 4 partitions of length 1 each, containing 1 to 4.
 }
 }

@@ -302,7 +302,7 @@ da <- dmapply(function(index, rs, cs, cb) {
                         j=1,
                         x=index+1, 
                         dims=c(nrow,ncol))
-             }, 0:((rblocks*cblocks)-1), MoreArgs=list(rs=rsize, cs=csize, cb=cblocks), output.type="darray", combine="row",nparts=c(rblocks,cblocks))
+             }, 0:((rblocks*cblocks)-1), MoreArgs=list(rs=rsize, cs=csize, cb=cblocks), output.type="sparse_darray", combine="row",nparts=c(rblocks,cblocks))
 
 
 rindex<-c(1,(cumsum(rsize)+1)[1:length(rsize)-1])

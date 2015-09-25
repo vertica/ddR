@@ -9,7 +9,7 @@ as.dlist(items, nparts = NULL)
 \arguments{
 \item{items}{The object to convert to a dlist.}
 
-\item{nparts}{The number of partitions for in the resulting dlist.}
+\item{nparts}{The number of partitions in the resulting dlist.}
 }
 \value{
 A dlist converted from the input.

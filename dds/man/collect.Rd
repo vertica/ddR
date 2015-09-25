@@ -9,7 +9,7 @@ collect(dobj, index = NULL)
 \arguments{
 \item{dobj}{input distributed array, distributed data frame or distributed list.}
 
-\item{index}{a vector indicating partitions to fetch. If multiple indices are provided, the result is assembled in the same order as the indices provided; though be aware that for dframes and darrays the result may lose its structure.}
+\item{index}{a vector indicating partitions to fetch. If multiple indices are provided, the result is assembled in the same order as the indices provided, though be aware that for dframes and darrays the result may lose its structure.}
 }
 \value{
 An R list, array, or data.frame containing data stored in the partitions of the input.

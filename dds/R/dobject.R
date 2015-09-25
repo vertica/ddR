@@ -27,7 +27,7 @@ setClass("DObject",
 
 #' Fetch partition(s) of ‘darray’, ‘dframe’ or ‘dlist’ from remote workers.
 #' @param dobj input distributed array, distributed data frame or distributed list.
-#' @param index a vector indicating partitions to fetch. If multiple indices are provided, the result is assembled in the same order as the indices provided; though be aware that for dframes and darrays the result may lose its structure.
+#' @param index a vector indicating partitions to fetch. If multiple indices are provided, the result is assembled in the same order as the indices provided, though be aware that for dframes and darrays the result may lose its structure.
 #' @return An R list, array, or data.frame containing data stored in the partitions of the input.
 #' @references 
 #' Prasad, S., Fard, A., Gupta, V., Martinez, J., LeFevre, J., Xu, V., Hsu, M., Roy, I. 
@@ -62,7 +62,6 @@ collect <- function(dobj, index=NULL) {
 
   # Try to get data from backend all at once
   # If the backend does not support this, we'll have to stitch it together by ourselves
-  # TODO: support DArrays and DFrames as well as DLists
   tryCatch({
     partitions <- do_collect(dobj, index)
     partitions
@@ -81,6 +80,9 @@ collect <- function(dobj, index=NULL) {
 #' parts() is primarily used in conjunction with dmapply when functions are written
 #' to be applied over partitions of distributed objects. 
 #' @return a list of distributed objects, each referring to one partition of the input.
+#' @details
+#' Note: In DDS, each element of parts() is itself considered a distributed object
+#' (of one partition).
 #' @references 
 #' Prasad, S., Fard, A., Gupta, V., Martinez, J., LeFevre, J., Xu, V., Hsu, M., Roy, I. 
 #' Large scale predictive analytics in Vertica: Fast data transfer, distributed model creation 
@@ -140,7 +142,7 @@ parts <- function(dobj, index=NULL) {
 #' @param dobj input distributed object
 #' @param index a numeric vector or list containing the indices of the partitions. Default is NULL.
 #' @return A matrix that denotes the number of rows and columns in the
-#' partition. Row i of the matrix corresponds or size of i'th partition. For dlist, the returned matrix has only 1 column.
+#' partition. Row i of the matrix corresponds or size of i'th partition. For a dlist, the returned matrix has only 1 column.
 #' @seealso \code{\link{nparts}}, \code{\link{parts}}
 #' @references 
 #' Prasad, S., Fard, A., Gupta, V., Martinez, J., LeFevre, J., Xu, V., Hsu, M., Roy, I. 
@@ -178,7 +180,7 @@ psize <- function(dobj,index=NULL) {
 
 #' Returns a 2d-vector denoting the number of partitions existing along
 #' each dimension of the distributed object, where the vector==c(partitions_per_column,
-#' partitions_per_row). For dlist, the value is 
+#' partitions_per_row). For a dlist, the value is 
 #' equivalent to c(totalParts(dobj),1).
 #' @param dobj input distributed array, data.frame or list.
 #' @seealso \code{\link{totalParts}}
@@ -258,7 +260,7 @@ DList <- dlist
 
 #' Creates a distributed list from the input.
 #' @param items The object to convert to a dlist.
-#' @param nparts The number of partitions for in the resulting dlist.
+#' @param nparts The number of partitions in the resulting dlist.
 #' @seealso \code{\link{dlist}}
 #' @return A dlist converted from the input.
 #' Note that a list of partitions (resulting from the use of parts()) may
@@ -466,11 +468,25 @@ DArray <- darray
 #' }
 #' @export
 is.darray <- function(x) {
-  is(x,"DObject") && x@type == "darray"
+  is(x,"DObject") && (x@type == "darray" || x@type == "sparse_darray")
 }
 
 #' @export
 is.DArray <- is.darray
+
+#' Returns whether the input is a sparse_darray
+#' @param x input object.
+#' @return TRUE if x is a sparse_darray, FALSE otherwise.
+#' @examples
+#' \dontrun{
+#' is.sparse_darray(3) # FALSE
+#' is.sparse_darray(darray(psize=c(3,3),dim=c(9,9))) # FALSE
+#' is.sparse_darray(darray(npartitions=3,sparse=TRUE)) # TRUE
+#' }
+#' @export
+is.sparse_darray <- function(x) {
+  is(x,"DObject") && x@type == "sparse_darray"
+}
 
 #' Creates a distributed data.frame with the specified partitioning and data.
 #' @param nparts vector specifying number of partitions. If missing, 'psize' and 'dim' must be provided.
@@ -634,7 +650,7 @@ setMethod("show",signature("DObject"),function(object) {
 #' @examples
 #' \dontrun{
 #' a <- dlist(1,2,3,4,nparts=2)
-#' b <- dmapply(function(x) x, 10:14,nparts=4)
+#' b <- dmapply(function(x) x, 11:14,nparts=4)
 #' c <- repartition(a,b) # c will have 4 partitions of length 1 each, containing 1 to 4.
 #' }
 #' @export

@@ -14,11 +14,11 @@ dmapply(FUN, ..., MoreArgs = list(), output.type = "dlist", nparts = NULL,
 
 \item{MoreArgs}{a list of other arguments to ‘FUN’.}
 
-\item{output.type}{the output type of the distributed object. The default value of "dlist" means that the result of dmapply will be stored in a distributed list. "darray" will make dmapply return a darray, just as "dframe" will make it return a dframe.}
+\item{output.type}{the output type of the distributed object. The default value of "dlist" means that the result of dmapply will be stored in a distributed list. "darray" will make dmapply return a darray, just as "dframe" will make it return a dframe. "sparse_darray" results in a special version of darray where the elements are sparse.}
 
 \item{nparts}{a 1d or 2d numeric value to specify how the output should be partitioned. dlists only have one-dimensional partitioning, whereas darrays and dframes have two (representing the number partitions across the vertical and horizontal dimensions).}
 
-\item{combine}{for dframes and darrays, it specifies how the results of dmapply are combined within each partition (if each partition contains more than one result). If "row", the results are stitched using rbind; if "col", cbind is used. If the value is "flatten", the results are flattened into one column, as is the case with simplify2array(). The default value is "flatten".}
+\item{combine}{for dframes and darrays, it specifies how the results of dmapply are combined within each partition (if each partition contains more than one result). If "row", the results are stitched using rbind; if "col", cbind is used. If the value is "flatten", the results are flattened into one column, as is the case with simplify2array(). For dlists, "unlist" will first attempt to unlist each element of the dmapply result and then expand these items within the partition of the dlist. The default value is "flatten".}
 }
 \value{
 A dlist, darray, or dframe (depending on the value of output.type), with number of partitions equal to \code{\link{nparts}}
