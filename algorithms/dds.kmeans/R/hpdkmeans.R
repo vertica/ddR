@@ -42,10 +42,10 @@ function(X, centers, iter.max = 10, nstart = 1,
 {
     startTotalTime <- proc.time()
     # loading the so library on all available executors
-    #ddyn.load("HPdcluster")
+    #ddyn.load("dds.kmeans")
     # unloading the so library from all available executors at the exit time
-    #on.exit(ddyn.unload("HPdcluster"))
-    a <- dmapply(function(x) library("HPdcluster"), 1:totalParts(X))
+    #on.exit(ddyn.unload("dds.kmeans"))
+    a <- dmapply(function(x) library("dds.kmeans"), 1:totalParts(X))
 
     # validating the input arguments
     if(is.null(X)) stop("'X' is a required argument")
@@ -136,9 +136,9 @@ function(X, centers, iter.max = 10, nstart = 1,
     	calculateNorm <- function(Xi, Ni)
 	{
             if(class(Xi) == "matrix")
-                .Call("calculate_norm", Xi, Ni, PACKAGE="HPdcluster")
+                .Call("calculate_norm", Xi, Ni, PACKAGE="dds.kmeans")
             else
-                .Call("calculate_norm", as.matrix(Xi), Ni, PACKAGE="HPdcluster")
+                .Call("calculate_norm", as.matrix(Xi), Ni, PACKAGE="dds.kmeans")
 	    return(Ni)
 	}
 
@@ -152,9 +152,9 @@ function(X, centers, iter.max = 10, nstart = 1,
 	{
             good <- maski > 0
             if(class(Xi) == "matrix")
-                Ni[good,] <- .Call("calculate_norm", Xi[good,], Ni[good,], PACKAGE="HPdcluster")
+                Ni[good,] <- .Call("calculate_norm", Xi[good,], Ni[good,], PACKAGE="dds.kmeans")
             else
-                Ni[good,] <- .Call("calculate_norm", as.matrix(Xi[good,]), Ni[good,], PACKAGE="HPdcluster")
+                Ni[good,] <- .Call("calculate_norm", as.matrix(Xi[good,]), Ni[good,], PACKAGE="dds.kmeans")
 	    return(Ni)
 	}
 
@@ -260,10 +260,10 @@ function(X, centers, iter.max = 10, nstart = 1,
 {
     startTotalTime <- proc.time()
     # loading the so library on all available executors
-    #ddyn.load("HPdcluster")
+    #ddyn.load("dds.kmeans")
     # unloading the so library from all available executors at the exit time
-    #on.exit(ddyn.unload("HPdcluster"))
-    a <- dmapply(function(x) library("HPdcluster"), 1:totalParts(X))
+    #on.exit(ddyn.unload("dds.kmeans"))
+    a <- dmapply(function(x) library("dds.kmeans"), 1:totalParts(X))
 
     # validating the input arguments
     if(is.null(X)) stop("'X' is a required argument")
@@ -354,9 +354,9 @@ function(X, centers, iter.max = 10, nstart = 1,
     	calculateNorm <- function(Xi, Ni)
 	{
             if(class(Xi) == "matrix")
-                .Call("calculate_norm", Xi, Ni, PACKAGE="HPdcluster")
+                .Call("calculate_norm", Xi, Ni, PACKAGE="dds.kmeans")
             else
-                .Call("calculate_norm", as.matrix(Xi), Ni, PACKAGE="HPdcluster")
+                .Call("calculate_norm", as.matrix(Xi), Ni, PACKAGE="dds.kmeans")
 	    return(Ni)
 	}
 
@@ -370,9 +370,9 @@ function(X, centers, iter.max = 10, nstart = 1,
 	{
             good <- maski > 0
             if(class(Xi) == "matrix")
-                Ni[good,] <- .Call("calculate_norm", Xi[good,], Ni[good,], PACKAGE="HPdcluster")
+                Ni[good,] <- .Call("calculate_norm", Xi[good,], Ni[good,], PACKAGE="dds.kmeans")
             else
-                Ni[good,] <- .Call("calculate_norm", as.matrix(Xi[good,]), Ni[good,], PACKAGE="HPdcluster")
+                Ni[good,] <- .Call("calculate_norm", as.matrix(Xi[good,]), Ni[good,], PACKAGE="dds.kmeans")
 	    return(Ni)
 	}
 
@@ -655,9 +655,9 @@ fitted.hpdkmeans <- function(object, method = c("centers", "classes"), ...)
 		cl = integer(nrow(Xi))
                 nc = integer(nrow(centers))
                 if(class(Xi) == "matrix")
-                    .Call("hpdkmeans_Lloyd", Xi, Ni, centers, cl, nc, PACKAGE="HPdcluster")
+                    .Call("hpdkmeans_Lloyd", Xi, Ni, centers, cl, nc, PACKAGE="dds.kmeans")
                 else    # When X is sparse, class(Xi) == "dgCMatrix"
-                    .Call("hpdkmeans_Lloyd", as.matrix(Xi), Ni, centers, cl, nc, PACKAGE="HPdcluster")
+                    .Call("hpdkmeans_Lloyd", as.matrix(Xi), Ni, centers, cl, nc, PACKAGE="dds.kmeans")
 		centers[is.nan(centers)] <- 0
 		return(c(matrix(centers*nc),nc))
 		if(completeModel)
@@ -720,9 +720,9 @@ fitted.hpdkmeans <- function(object, method = c("centers", "classes"), ...)
 		cl = integer(nrow(Xi))
                 nc = integer(nrow(centers))
                 if(class(Xi) == "matrix")
-                    .Call("hpdkmeans_Lloyd", Xi[good,], Ni[good,], centers, cl, nc, PACKAGE="HPdcluster")
+                    .Call("hpdkmeans_Lloyd", Xi[good,], Ni[good,], centers, cl, nc, PACKAGE="dds.kmeans")
                 else    # When X is sparse, class(Xi) == "dgCMatrix"
-                    .Call("hpdkmeans_Lloyd", as.matrix(Xi[good,]), Ni[good,], centers, cl, nc, PACKAGE="HPdcluster")
+                    .Call("hpdkmeans_Lloyd", as.matrix(Xi[good,]), Ni[good,], centers, cl, nc, PACKAGE="dds.kmeans")
 		centers[is.nan(centers)] <- 0
 		if(completeModel)
 			return(list(sumOfClusteri = centers * nc, numOfPointsi = nc, clusteri =  cl))
@@ -779,9 +779,9 @@ print(Sys.time() - timing_info)
 		{
 			clusteri = cluster_infoi$clusteri
 			if(class(Xi) == "matrix")
-				dwssi <- .Call("calculate_wss", Xi, centers, clusteri, PACKAGE="HPdcluster")
+				dwssi <- .Call("calculate_wss", Xi, centers, clusteri, PACKAGE="dds.kmeans")
 			else
-				dwssi <- .Call("calculate_wss", as.matrix(Xi), centers, clusteri, PACKAGE="HPdcluster")
+				dwssi <- .Call("calculate_wss", as.matrix(Xi), centers, clusteri, PACKAGE="dds.kmeans")
 	    		dwssi
 		}
 
@@ -794,9 +794,9 @@ print(Sys.time() - timing_info)
 			good <- maski > 0
 			clusteri = cluster_infoi$clusteri
 			if(class(Xi) == "matrix")
-				dwssi <- .Call("calculate_wss", Xi[good,], centers, clusteri, PACKAGE="HPdcluster")
+				dwssi <- .Call("calculate_wss", Xi[good,], centers, clusteri, PACKAGE="dds.kmeans")
 			else
-				dwssi <- .Call("calculate_wss", as.matrix(Xi[good,]), centers, clusteri, PACKAGE="HPdcluster")
+				dwssi <- .Call("calculate_wss", as.matrix(Xi[good,]), centers, clusteri, PACKAGE="dds.kmeans")
 	    		dwssi
 		}
 
@@ -873,9 +873,9 @@ hpdapply <- function(newdata, centers, trace=FALSE) {
 
         calculateNorm <- function(Xi,Ni){
             if(class(Xi) == "matrix")
-                .Call("calculate_norm", Xi, Ni, PACKAGE="HPdcluster")
+                .Call("calculate_norm", Xi, Ni, PACKAGE="dds.kmeans")
             else
-                .Call("calculate_norm", as.matrix(Xi), Ni, PACKAGE="HPdcluster")
+                .Call("calculate_norm", as.matrix(Xi), Ni, PACKAGE="dds.kmeans")
 	    Ni
 	}
 
@@ -886,9 +886,9 @@ hpdapply <- function(newdata, centers, trace=FALSE) {
         calculateNorm <- function(Xi,maski, Ni){
 	    good <- maski > 0
             if(class(Xi) == "matrix")
-                .Call("calculate_norm", Xi[good,], Ni[good,], PACKAGE="HPdcluster")
+                .Call("calculate_norm", Xi[good,], Ni[good,], PACKAGE="dds.kmeans")
             else
-                .Call("calculate_norm", as.matrix(Xi[good,]), Ni[good,], PACKAGE="HPdcluster")
+                .Call("calculate_norm", as.matrix(Xi[good,]), Ni[good,], PACKAGE="dds.kmeans")
 	    Ni
 	}
 
@@ -914,9 +914,9 @@ hpdapply <- function(newdata, centers, trace=FALSE) {
           cl = integer(nrow(xi))
           nc = integer(nrow(centers))
           if(class(xi) == "matrix")
-            .Call("hpdkmeans_Lloyd", xi, Ni, centers, cl, nc, PACKAGE="HPdcluster")
+            .Call("hpdkmeans_Lloyd", xi, Ni, centers, cl, nc, PACKAGE="dds.kmeans")
           else    # When newdata is sparse, class(xi) == "dgCMatrix"
-            .Call("hpdkmeans_Lloyd", as.matrix(xi), Ni, centers, cl, nc, PACKAGE="HPdcluster")
+            .Call("hpdkmeans_Lloyd", as.matrix(xi), Ni, centers, cl, nc, PACKAGE="dds.kmeans")
         
           matrix(cl)
 	}
@@ -934,12 +934,12 @@ hpdapply <- function(newdata, centers, trace=FALSE) {
           cl <- integer(m)
           nc = integer(nrow(centers))
           if(m == 1)
-            .Call("hpdkmeans_Lloyd", matrix(xi[good,],1), matrix(Ni[good,],1), centers, cl, nc, PACKAGE="HPdcluster")
+            .Call("hpdkmeans_Lloyd", matrix(xi[good,],1), matrix(Ni[good,],1), centers, cl, nc, PACKAGE="dds.kmeans")
           else    
             if(class(xi) == "matrix")
-                .Call("hpdkmeans_Lloyd", xi[good,], Ni[good,], centers, cl, nc, PACKAGE="HPdcluster")
+                .Call("hpdkmeans_Lloyd", xi[good,], Ni[good,], centers, cl, nc, PACKAGE="dds.kmeans")
             else # When newdata is sparse, class(xi) == "dgCMatrix"
-                .Call("hpdkmeans_Lloyd", as.matrix(xi[good,]), Ni[good,], centers, cl, nc, PACKAGE="HPdcluster")
+                .Call("hpdkmeans_Lloyd", as.matrix(xi[good,]), Ni[good,], centers, cl, nc, PACKAGE="dds.kmeans")
         
           clusteri[good,] <- matrix(cl)
 	  
@@ -976,16 +976,16 @@ hpdapply <- function(newdata, centers, trace=FALSE) {
     cl = integer(nSample)
     nc = integer(nrow(centers))
     if(missingSamples == 0) {
-        .Call("calculate_norm", newdata, normsTemp, PACKAGE="HPdcluster")
-        .Call("hpdkmeans_Lloyd", newdata, normsTemp, centersTemp, cl, nc, PACKAGE="HPdcluster")
+        .Call("calculate_norm", newdata, normsTemp, PACKAGE="dds.kmeans")
+        .Call("hpdkmeans_Lloyd", newdata, normsTemp, centersTemp, cl, nc, PACKAGE="dds.kmeans")
         cluster <- matrix(cl,nrow=nSample, ncol=1)
     } else {
         if(nSample == 1) {
-            normsTemp[mask,] <- .Call("calculate_norm", matrix(newdata[mask,],1), normsTemp[mask,], PACKAGE="HPdcluster")
-            .Call("hpdkmeans_Lloyd", matrix(newdata[mask,],1), normsTemp[mask,], centersTemp, cl, nc, PACKAGE="HPdcluster")
+            normsTemp[mask,] <- .Call("calculate_norm", matrix(newdata[mask,],1), normsTemp[mask,], PACKAGE="dds.kmeans")
+            .Call("hpdkmeans_Lloyd", matrix(newdata[mask,],1), normsTemp[mask,], centersTemp, cl, nc, PACKAGE="dds.kmeans")
         } else {
-            normsTemp[mask,] <- .Call("calculate_norm", newdata[mask,], normsTemp[mask,], PACKAGE="HPdcluster")
-            .Call("hpdkmeans_Lloyd", newdata[mask,], normsTemp[mask,], centersTemp, cl, nc, PACKAGE="HPdcluster")
+            normsTemp[mask,] <- .Call("calculate_norm", newdata[mask,], normsTemp[mask,], PACKAGE="dds.kmeans")
+            .Call("hpdkmeans_Lloyd", newdata[mask,], normsTemp[mask,], centersTemp, cl, nc, PACKAGE="dds.kmeans")
         }
         cluster[mask,1] <- cl
     }
