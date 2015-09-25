@@ -17,6 +17,7 @@
 
 # Current driving backend package. Package global variable
 dds.env <- new.env(emptyenv())
+dds.env$RminorVersion <- R.version$minor
 #Track no. of executors in the backend
 dds.env$nexecutors <- 1
 

@@ -184,11 +184,20 @@ setMethod("do_dmapply",signature(driver="ParallelDDS",func="function",MoreArgs="
    #Decide how we may need to combine entries from the answer into partitions
    #We handle the "flatten" case in the while loop since simplify2array has to be called with parameter "higher=FALSE"
    combineFunc <- list
+
    if(output.type !="dlist"){
-	if(combine == "row")
-	   combineFunc <- rbind
-	else if(combine == "col")
-	   combineFunc <- cbind
+	if(combine == "row"){
+	   if(dds.env$RminorVersion > 2) #If R >3.2, use new rbind
+	   	   combineFunc <- rbind
+           else
+	   	   combineFunc <- rBind
+	}
+	else if(combine == "col"){
+	   if(dds.env$RminorVersion > 2) #If R >3.2, use new cbind
+	   	   combineFunc <- cbind
+           else
+	   	   combineFunc <- cBind
+       }
    }
    index<-1
    psizes<-array(0L,dim=c(totalParts,2)) #Stores partition sizes
