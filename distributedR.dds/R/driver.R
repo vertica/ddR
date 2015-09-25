@@ -226,12 +226,12 @@ For better performance, please try to partition your inputs compatibly."))
     if(output.type != "dlist") {
       if(combine=="row")
         if(output.type=="sparse_darray") 
-          stitchResults <- ".newDObj <- do.call(rbind2,.newDObj)"
+          stitchResults <- ".newDObj <- do.call(rBind,.newDObj)"
         else
           stitchResults <- ".newDObj <- do.call(rbind,.newDObj)"
       else if(combine=="col")
         if(output.type=="sparse_darray") 
-          stitchResults <- ".newDObj <- do.call(cbind2,.newDObj)"
+          stitchResults <- ".newDObj <- do.call(cBind,.newDObj)"
         else
           stitchResults <- ".newDObj <- do.call(cbind,.newDObj)"
       else 
