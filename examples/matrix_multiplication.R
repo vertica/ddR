@@ -28,10 +28,7 @@ MatrixMultiply <- function(a,b)
 	m <- nparts(a)[2]
 	p <- nparts(b)[2]
 
-	c <- dlist(nparts = n*p)
-	c <- dmapply(function(c) 0, c,
-	     	output.type = "DArrayClass",
-		combine = "row", nparts = c(n,p))
+        c <- darray(dim=c(n,p),psize=c(1,1),data=0)
 
 	for(i in 1:m)
 	{
