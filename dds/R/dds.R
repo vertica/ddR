@@ -15,6 +15,9 @@
 # Boston, MA 02111-1307 USA.
 ###################################################################
 
+#' @importFrom methods setClass setGeneric setMethod 
+NULL
+
 # Current driving backend package. Package global variable
 dds.env <- new.env(emptyenv())
 dds.env$RminorVersion <- R.version$minor

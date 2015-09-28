@@ -3,7 +3,8 @@ Title: Package for the Standard R-Parallel-Computation API
 Version: 0.0.0.9000
 Author: HP Vertica Analytics Team
 Maintainer: HP Vertica Analytics Team <distributedRTeam@external.groups.hp.com>
-Description: This package contains the classes and code for creating and computing with distributed objects in R.
-Depends: methods, R (>= 3.0.0), Matrix, parallel
+Description: This package provides distributed data-structures. It simplifies distributed computing in R.
+Depends: methods, R (>= 3.0.0)
+Imports: Matrix, parallel
 License: GPLv2
 LazyData: true

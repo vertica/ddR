@@ -26,7 +26,7 @@ dds.env$driver <- parallel
 #Set environment and default number of cores to total no. of cores (but one on windows)
 #Note that DetectCores() can return NA. 
 parallel.dds.env <- new.env(emptyenv())
-parallel.dds.env$cores <- detectCores(all.tests=TRUE, logical=FALSE) 
+parallel.dds.env$cores <- parallel::detectCores(all.tests=TRUE, logical=FALSE) 
 parallel.dds.env$clusterType <- "FORK"
 if(is.na(parallel.dds.env$cores)){ parallel.dds.env$cores <- 1 }
 
@@ -43,7 +43,7 @@ setMethod("init","ParallelDDS",
   #On windows parallel can use only a single core. We need to use socket based SNOW for more number of cores.
   if((.Platform$OS.type == "windows" && executors!=1) || type =="PSOCK") {
      message("Using socket based parallel (SNOW) backend.")
-     cl <- makeCluster(getOption("cl.cores", parallel.dds.env$cores))
+     cl <- parallel::makeCluster(getOption("cl.cores", parallel.dds.env$cores))
      parallel.dds.env$snowCluster <- cl
      parallel.dds.env$clusterType <- "PSOCK"
   }
@@ -55,7 +55,7 @@ setMethod("shutdown","ParallelDDS",
   function(x) {
     if(!is.null(parallel.dds.env$snowCluster) && parallel.dds.env$clusterType == "PSOCK") {
         message("Switching out of using 'parallel (SNOW)'. Shutting down SNOW cluster...")
-        stopCluster(parallel.dds.env$snowCluster)
+        parallel::stopCluster(parallel.dds.env$snowCluster)
         parallel.dds.env$clusterType <- "FORK"
 	parallel.dds.env$snowCluster <- NULL
     }
@@ -147,7 +147,7 @@ setMethod("do_dmapply",signature(driver="ParallelDDS",func="function",MoreArgs="
             dots <- lapply(X, function(x) x[indices])
             .mapply(FUN, dots, MoreArgs)
         }
-        answer <- mclapply(seq_len(n), do_one, mc.preschedule = TRUE, 
+        answer <- parallel::mclapply(seq_len(n), do_one, mc.preschedule = TRUE, 
             mc.set.seed = TRUE, mc.silent = FALSE, 
             mc.cores = parallel.dds.env$cores, mc.cleanup = TRUE)
         do.call(c, answer)
@@ -190,13 +190,13 @@ setMethod("do_dmapply",signature(driver="ParallelDDS",func="function",MoreArgs="
 	   if(dds.env$RminorVersion > 2) #If R >3.2, use new rbind
 	   	   combineFunc <- rbind
            else
-	   	   combineFunc <- rBind
+	   	   combineFunc <- Matrix::rBind
 	}
 	else if(combine == "col"){
 	   if(dds.env$RminorVersion > 2) #If R >3.2, use new cbind
 	   	   combineFunc <- cbind
            else
-	   	   combineFunc <- cBind
+	   	   combineFunc <- Matrix::cBind
        }
    }
    index<-1
