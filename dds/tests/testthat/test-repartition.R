@@ -22,6 +22,7 @@ test_that("DArrays repartition correctly",{
   expect_equal(collect(c),collect(a))
   # partitioning should be same as b
   expect_equal(psize(c),psize(b))
+  expect_equal(nparts(c),nparts(b))
 
 })
 
