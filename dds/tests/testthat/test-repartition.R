@@ -7,39 +7,21 @@ context("Test repartitioning of DArrays")
 test_that("DArrays repartition correctly",{
   
   # This should be a four-partition darray
-  a <- darray(psize=c(3,1),dim=c(3,4))
+  a <- darray(psize=c(2,2),dim=c(4,4),data=1)
+  b <- darray(psize=c(4,1),dim=c(4,4),data=5)
 
-  ## Cheat...keep the same partition layout in the dobject by using foreach API
-  foreach(i,1:totalParts(a),function(a=splits(a@DRObj,i),index=i) {
-    a <- matrix(index,3,1)
-    update(a)
-  }, progress=FALSE)
-
-  expect_equal(totalParts(a),4L)
-  expect_equal(matrix(1,3,1),collect(a,1))
-  
-  b <- darray(psize=c(3,2),dim=c(3,4))
-  
-  foreach(i,1:totalParts(b),function(b=splits(b@DRObj,i),index=i) {
-    value <- (index-1)*2+1
-    b <- cbind(rep(value,3),rep(value+1,3))
-    update(b)
-  }, progress=FALSE)
-
-  expect_equal(totalParts(b),2L)
-  expect_equal(cbind(rep(1,3),rep(2,3)),collect(b,1))
-
-  expect_equal(collect(a),collect(b))
-
-  ## Note: the goal is to have *each* partition of a match *each* partition of b, not to have the whole
-  #  2d-structure of the overall objects match!
+  expect_equal(nparts(a), c(2,2))
+  expect_equal(nparts(b), c(1,4))
+  expect_equal(matrix(1,4,4),collect(a))
+  expect_equal(matrix(5,4,4),collect(b))  
 
   # repartition a to be like b
   c <- repartition(a,b)
 
-  expect_equal(collect(c,1),collect(b,1))
-  expect_equal(collect(c,2),collect(b,2))
-  expect_equal(totalParts(c),totalParts(b))
+  # data should be same as a
+  expect_equal(collect(c),collect(a))
+  # partitioning should be same as b
+  expect_equal(psize(c),psize(b))
 
 })
 
