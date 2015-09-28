@@ -44,7 +44,7 @@ dds.env$nexecutors <- 1
 #' Homepage: https://github.com/vertica/DistributedR
 #' @examples
 #' \dontrun{
-#' useBackend(parallel,inst=2)
+#' useBackend(parallel,executors=2)
 #' library(distributedR.dds); useBackend(distributedR)
 #' } 
 #' @export

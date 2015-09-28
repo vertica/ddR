@@ -22,7 +22,7 @@ After successfully registering a new backend with useBackend(), all subsequent d
 }
 \examples{
 \dontrun{
-useBackend(parallel,inst=2)
+useBackend(parallel,executors=2)
 library(distributedR.dds); useBackend(distributedR)
 }
 }

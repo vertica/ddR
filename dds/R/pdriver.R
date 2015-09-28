@@ -34,14 +34,14 @@ if(is.na(parallel.dds.env$cores)){ parallel.dds.env$cores <- 1 }
 # Initialize the no. of cores in parallel backend
 # By default we use the FORK method of parallel which works only on UNIV environments. The "PSOCK" method requires SNOW but works on all OSes.
 setMethod("init","ParallelDDS",
-  function(x, inst=NULL, type= "FORK", ...){
-    if(!is.null(inst)){
-    if(!((is.numeric(inst) || is.integer(inst)) && floor(inst)==inst && inst>=0)) stop("Argument 'inst' should be a non-negative integral value")
-        parallel.dds.env$cores <- inst
+  function(x, executors=NULL, type= "FORK", ...){
+    if(!is.null(executors)){
+    if(!((is.numeric(executors) || is.integer(executors)) && floor(executors)==executors && executors>=0)) stop("Argument 'executors' should be a non-negative integral value")
+        parallel.dds.env$cores <- executors
   }
 
   #On windows parallel can use only a single core. We need to use socket based SNOW for more number of cores.
-  if((.Platform$OS.type == "windows" && inst!=1) || type =="PSOCK") {
+  if((.Platform$OS.type == "windows" && executors!=1) || type =="PSOCK") {
      message("Using socket based parallel (SNOW) backend.")
      cl <- makeCluster(getOption("cl.cores", parallel.dds.env$cores))
      parallel.dds.env$snowCluster <- cl
