@@ -202,8 +202,12 @@ setMethod("do_dmapply",signature(driver="ParallelDDS",func="function",MoreArgs="
    index<-1
    psizes<-array(0L,dim=c(totalParts,2)) #Stores partition sizes
    while(index <= totalParts){
-   	     if((output.type == "dlist") || (combine != "flatten"))
+   	     if((output.type == "dlist") || (combine != "flatten")){
+	        if(combine == "unlist")
+			     outputObj[[index]]<-do.call(combineFunc, unlist(answer[(elemInEachPart[index]+1):elemInEachPart[index+1]], recursive=FALSE))
+	        else
 			     outputObj[[index]]<-do.call(combineFunc, answer[(elemInEachPart[index]+1):elemInEachPart[index+1]])
+             }
 	     else
 	        	     outputObj[[index]]<-simplify2array(answer[(elemInEachPart[index]+1):elemInEachPart[index+1]], higher=FALSE)
 	     d<-dim(outputObj[[index]])
