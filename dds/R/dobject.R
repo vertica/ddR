@@ -664,37 +664,37 @@ repartition <- function(dobj, skeleton) {
 #' @export
 repartition.DObject <- function(dobj,skeleton) {
  
-   verticalValues <- NULL
-   horizontalValues <- NULL
-   index <- 0
-   dims <- length(dim(skeleton))
+  verticalValues <- NULL
+  horizontalValues <- NULL
+  index <- 0
+  dims <- length(dim(skeleton))
 
-   stopifnot(dim(dobj) == dim(skeleton))
+  stopifnot(dim(dobj) == dim(skeleton))
 
-   # Don't do anything if partitioning is already the same
-   if(identical(psize(dobj),psize(skeleton))) return(dobj)
+  # Don't do anything if partitioning is already the same
+  if(identical(psize(dobj),psize(skeleton))) return(dobj)
 
   if(dims > 1) {
-     while(is.null(horizontalValues) || tail(horizontalValues,n=1L) < dim(dobj)[[2]]) {
-       if(is.null(horizontalValues)) prevMax <- 0
-       else prevMax <- horizontalValues[index]
-       index <- index + 1
-       horizontalValues <- c(horizontalValues,psize(dobj,index)[[2]] + prevMax)
-     }
-   }
+    while(is.null(horizontalValues) || tail(horizontalValues,n=1L) < dim(dobj)[[2]]) {
+      if(is.null(horizontalValues)) prevMax <- 0
+      else prevMax <- horizontalValues[index]
+      index <- index + 1
+      horizontalValues <- c(horizontalValues,psize(dobj,index)[[2]] + prevMax)
+    }
+  }
 
-   nparts_per_row <- ifelse(dims > 1, index, 1)
+  nparts_per_row <- ifelse(dims > 1, index, 1)
 
-   count <- 0
-   if(index==0) index <- 1
+  count <- 0
+  if(index==0) index <- 1
 
-   while(is.null(verticalValues) || tail(verticalValues,n=1L) < dim(dobj)[[1]]) {
-     if(is.null(verticalValues)) prevMax <- 0
-     else prevMax <- verticalValues[count]
-     verticalValues <- c(verticalValues,psize(dobj,index)[[1]] + prevMax)
-     index <- index + nparts_per_row
-     count <- count + 1
-   }
+  while(is.null(verticalValues) || tail(verticalValues,n=1L) < dim(dobj)[[1]]) {
+    if(is.null(verticalValues)) prevMax <- 0
+    else prevMax <- verticalValues[count]
+    verticalValues <- c(verticalValues,psize(dobj,index)[[1]] + prevMax)
+    index <- index + nparts_per_row
+    count <- count + 1
+  }
 
   cur_row <- 0
   cur_col <- 0
@@ -709,7 +709,6 @@ repartition.DObject <- function(dobj,skeleton) {
   }
 
   while(index < totalParts(skeleton)) {
-
     index <- index + 1
 
     start_x <- cur_row + 1  
@@ -748,7 +747,6 @@ repartition.DObject <- function(dobj,skeleton) {
      }
   }
 
-
   dmapplyArgs <- lapply(seq((max_parts*3)), function(x) {
                              ind <- ceiling(x/3)
                              if(x %% 3 == 1) field = "parts"
@@ -761,7 +759,6 @@ repartition.DObject <- function(dobj,skeleton) {
                                       else return(value)
                                    })
                            })
-
 
   repartitioner <- function(...,psize,type) {
     
@@ -952,12 +949,9 @@ getCorners <- function(x,y,vertical,horizontal=NULL) {
          lower <- index + 1
       }
     } 
-     
      indices <- c(indices,index)
      offsets <- c(offsets,offset)
-
   }
-
   
   if(length(indices) == 1) {
     partition_id <- indices[[1]]
@@ -966,7 +960,6 @@ getCorners <- function(x,y,vertical,horizontal=NULL) {
   }
 
   list(partition_id,offsets)
-
 }
 
 #Helper function to check dimension and psizes when DObjects are initialized
@@ -1098,7 +1091,6 @@ as.darray <- function(input, psize=NULL) {
 as.dframe <- function(input, psize=NULL) {
    convertToDobject(input, psize, type="data.frame") 
 }
-
 
 convertToDobject<-function(input, psize, type){
 

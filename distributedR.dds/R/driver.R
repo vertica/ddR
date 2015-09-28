@@ -15,8 +15,9 @@
 # Boston, MA 02111-1307 USA.
 ###################################################################
 
-# Create distributedR DDSDriver
+dR.env <- new.env()
 
+# Create distributedR DDSDriver
 setClass("DistributedRDDS", contains="DDSDriver")
 
 #' @export 
@@ -25,9 +26,11 @@ distributedR <- new("DistributedRDDS",DListClass = "DistributedRObj",DFrameClass
 
 #' @export
 setMethod("init","DistributedRDDS",
-  function(x,...) {
+  function(x,warn=TRUE,...) {
+    if(!is.logical(warn)) stop("`warn` must be either TRUE or FALSE.")
     message("Backend switched to Distributed R. Starting it up...")
     distributedR_start(...)
+    dR.env$DRWarn <- warn
     return (sum(distributedR_status()$Inst))
   }
 )
@@ -47,6 +50,8 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
     margs <- list(...)
     # ids stores the arguments to splits() and the values of the raw arguments in foreach
     ids <- list()
+ 
+    warned <- !dR.env$DRWarn
 
     if(output.type=="dframe" && combine == "flatten")
       stop("Cannot flatten a data frame")
@@ -62,14 +67,17 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
 
     # to store the output of the foreach
     if(output.type=="dframe") {
-      .outObj <- distributedR::dframe(npartitions=nparts)
+      .outObj <- "distributedR::dframe(npartitions=nparts)"
     } else if (output.type=="darray") {
-      .outObj <- distributedR::darray(npartitions=nparts)
+      .outObj <- "distributedR::darray(npartitions=nparts)"
     } else if (output.type=="sparse_darray") {
-      .outObj <- distributedR::darray(npartitions=nparts,sparse=TRUE)
+      .outObj <- "distributedR::darray(npartitions=nparts,sparse=TRUE)"
     } else {
-      .outObj <- distributedR::dlist(npartitions=nparts[[1]])
+      .outObj <- "distributedR::dlist(npartitions=nparts[[1]])"
     }
+
+    if(!dR.env$DRWarn) .outObj <- paste0("suppressWarnings(",.outObj,")")
+    .outObj <- eval(parse(text=.outObj))
 
     nDobjs = 0
 
@@ -107,8 +115,10 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
         # when partitioning is happening rowwise
         if(!identical(unname(applyIterations), modelApplyIterations)
             || (arg@psize[1,][[1]] != arg@dim[[1]] && arg@type != "dlist")) {
-          warning(paste0("A repartitioning of an input variable has been triggered.
-For better performance, please try to partition your inputs compatibly."))
+          if(!warned) {
+            warning(paste0("Repartitioning of input variable(s) has been triggered. For better performance, partition your output compatibly with your inputs."))
+            warned <- TRUE
+          }
 
           # Now using applyIterations, we need to build the skeleton object whose partitioning
           # the repartitioned object should match
@@ -252,7 +262,10 @@ For better performance, please try to partition your inputs compatibly."))
 
     body(exec_func)[[nLines+1]] <- substitute(update(.newDObj))
 
-    foreach(index,seq(prod(nparts)),exec_func,progress=FALSE) 
+    if(dR.env$DRWarn)
+      foreach(index,seq(prod(nparts)),exec_func,progress=FALSE) 
+    else
+      suppressWarnings(foreach(index,seq(prod(nparts)),exec_func,progress=FALSE))  
 
     psizes <- partitionsize(.outObj)
 

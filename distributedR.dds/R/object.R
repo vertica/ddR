@@ -29,23 +29,27 @@ setMethod("initialize", "DistributedRObj", function(.Object, ...) {
     
   if(is.null(.Object@DRObj@dobject_ptr)) {
    if(.Object@type == "dlist")
-       .Object@DRObj <- distributedR::dlist(npartitions=totalParts(.Object))
-   else if(.Object@type == "darray")
+     build <- "distributedR::dlist(npartitions=totalParts(.Object))"
+   else if(.Object@type == "darray") {
      if(.Object@dim[1] < 1) {
-       .Object@DRObj <- distributedR::darray(npartitions=totalParts(.Object))
+       build <- "distributedR::darray(npartitions=totalParts(.Object))"
      } else {
-       .Object@DRObj <- distributedR::darray(dim=.Object@dim,blocks=.Object@psize[1,])
+       build <- "distributedR::darray(dim=.Object@dim,blocks=.Object@psize[1,])"
      }
-   else
+   }
+   else {
      if(.Object@dim[1] < 1) {
-       .Object@DRObj <- distributedR::dframe(npartitions=totalParts(.Object))
+       build <- "distributedR::dframe(npartitions=totalParts(.Object))"
      } else {
-       .Object@DRObj <- distributedR::dframe(dim=.Object@dim,blocks=.Object@psize[1,])
+       build <- "distributedR::dframe(dim=.Object@dim,blocks=.Object@psize[1,])"
      }
-
+   }
+   
+   if(!dR.env$DRWarn) build <- paste0("suppressWarnings(",build,")")
+   .Object@DRObj <- eval(parse(text=build))
    .Object@splits <- seq(npartitions(.Object@DRObj))
 
-   }
+  }
 
    .Object
 })
