@@ -307,7 +307,3 @@ getBestOutputPartitioning.DDSDriver <- function(driver, ...,nparts=NULL,type=NUL
 
   nparts 
 }
-
-.onAttach <- function(libname, pkgname) {
-  packageStartupMessage("\nWelcome to 'dds' (Distributed Data-structures)!\nFor more information, visit: https://github.com/vertica/Standard-R-API")
-}
