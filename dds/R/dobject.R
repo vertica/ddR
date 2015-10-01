@@ -124,16 +124,16 @@ parts <- function(dobj, index=NULL) {
 
   psize <- lapply(index,function(x) psize(dobj,x))
 
-  partitions <- mapply(FUN=function(obj,psize) {
-    obj@nparts <- c(1L, 1L)
-    obj@backend <- dds.env$driver@backendName
-    obj@type <- dobj@type 
-    obj@psize <- matrix(psize,nrow=1,ncol=length(psize))
-    obj@dim <- as.integer(psize)
-    obj
-}, partitions, psize, SIMPLIFY=FALSE)
-
   stopifnot(length(partitions) == length(index))
+
+  for(i in seq(1,length(partitions))){
+    partitions[[i]]@nparts <- c(1L, 1L)
+    partitions[[i]]@backend <- dds.env$driver@backendName
+    partitions[[i]]@type <- dobj@type 
+    partitions[[i]]@psize <- matrix(psize[[i]],nrow=1,ncol=length(psize[[i]]))
+    partitions[[i]]@dim <- as.integer(psize[[i]])
+  }
+  
   partitions
 }
 
