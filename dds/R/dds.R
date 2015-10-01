@@ -96,7 +96,7 @@ setGeneric("do_dmapply",
            function(driver, func, ..., MoreArgs=list(), output.type="dlist",
                     nparts=NULL, combine="flatten")
                standardGeneric("do_dmapply"),
-           signature="driver")
+           signature=c("driver", "func"))
 
 #' @export
 # dispatches on DDSDriver
@@ -170,42 +170,19 @@ dlapply <- function(X,FUN,...,nparts=NULL) {
 #' collect(b)
 #' }
 #' @export
-dmapply <- function(FUN,...,MoreArgs=list(),output.type="dlist",nparts=NULL,combine="flatten") {
+dmapply <- function(FUN ,..., MoreArgs=list(),
+                    output.type=c("dlist", "dframe", "darray", "sparse_darray"),
+                    nparts=NULL, combine=c("flatten", "row", "col"))
+{
   if(!is.function(FUN)) stop("FUN needs to be a function")
+
+  output.type <- match.arg(output.type)
   
-  # Allow for multiple ways of expressing output.type
-  da_types <- c("da","darray","darrayclass","daclass","a","matrix","dmatrix","array","darr")
-  dl_types <- c("dl","l","dlist","dlistclass","list","dlclass")
-  df_types <- c("df","f","dframe","dframeclass","data.frame","dataframe")
-  sp_types <- c("sparse darray", "sparse_darray","sparsedarray","sda","sdarray","sparse","sparsearray","sarray","sparsematrix","smatrix","s","sp")
-
-  if(tolower(output.type) %in% da_types) output.type <- "darray"
-  else if (tolower(output.type) %in% dl_types) output.type <- "dlist"
-  else if (tolower(output.type) %in% df_types) output.type <- "dframe"
-  else if (tolower(output.type) %in% sp_types) output.type <- "sparse_darray"
-
-  accepted_types <- c("dlist","darray","dframe","sparse_darray")
-
-  if(!(output.type %in% accepted_types))
-    stop("Unrecognized value for output.type -- try one of: {'dlist', 'darray', 'dframe', 'sparse_darray'}.")
-
   if(!is.null(nparts))
     if(!is.numeric(nparts) || length(nparts) < 1 || length(nparts) > 2) 
-      stop("Invalid nparts vector provided. Must be a 1d or 2d vector")
+      stop("Invalid nparts vector provided. Must be one or two numbers.")
 
-  # Allow for multiple ways of expressing combine
-  flatten_types <- c("flatten","flat","default","f")
-  row_types <- c("row","r","rbind")
-  col_types <- c("col","column","c","cbind")
-
-  if(tolower(combine) %in% flatten_types) combine <- "flatten"
-  else if (tolower(combine) %in% row_types) combine <- "row"
-  else if (tolower(combine) %in% col_types) combine <- "col"
-
-  accepted_combine <- c("flatten","row","col","unlist")
-
-  if(!(combine %in% accepted_combine))
-    stop("Unrecognized option for combine -- try one of: {'flatten', 'row', 'col'}")
+  combine <- match.arg(combine)
   
   dargs <- list(...)
 

@@ -809,7 +809,7 @@ repartition.DObject <- function(dobj,skeleton) {
     output 
   }
   
-  if(skeleton@type == "dlist") combine=list("unlist")
+  if(skeleton@type == "dlist") combine=list("flatten")
   else combine=list("row")
 
   dmapplyArgs <- c(FUN=repartitioner,dmapplyArgs,psize=list(as.list(data.frame(t(psize(skeleton))))),MoreArgs=list(list(type=skeleton@type)),output.type=list(skeleton@type),combine=combine,nparts=list(nparts(skeleton)))

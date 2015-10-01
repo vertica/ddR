@@ -2,3 +2,7 @@
 *.Rcheck
 *.o
 *.so
+/dds/GPATH
+/dds/GRTAGS
+/dds/GTAGS
+/dds/R/.Rhistory

@@ -82,10 +82,27 @@ setMethod("combine",signature(driver="ParallelDDS",items="list"),
 })
 
 #This function calls mclapply internally. 
-# TODO(iR): Parallel processing does not work on Windows due to limitation of parallel package
+## TODO(iR): Parallel processing does not work on Windows due to
+## limitation of parallel package.
+## mL: could use snow package for that, see BiocParallel
+
 #' @export
-setMethod("do_dmapply",signature(driver="ParallelDDS",func="function",MoreArgs="list", output.type="character",nparts="numeric",combine="character"), 
-  function(driver,func,...,MoreArgs=list(), output.type="dlist",nparts=NULL, combine="flatten"){
+setMethod("do_dmapply",
+          signature(driver="ParallelDDS", func="function"), 
+          function(driver, func, ..., MoreArgs = list(),
+                   output.type =
+                       c("dlist", "dframe", "darray", "sparse_darray"),
+                   nparts = NULL,
+                   combine = c("flatten", "row", "col"))
+{
+  stopifnot(is.list(MoreArgs))
+  output.type <- match.arg(output.type)
+  if (!is.null(nparts)) {
+      stopifnot(is.numeric(nparts),
+                length(nparts) == 1L || length(nparts) == 2L)
+  }
+  combine <- match.arg(combine)
+  
   dots <- list(...)
   dlen<-length(dots)
 
