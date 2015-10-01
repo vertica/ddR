@@ -98,7 +98,7 @@ setMethod("shutdown","DDSDriver",
 # dispatches on DDSDriver
 setGeneric("do_dmapply", function(driver,func,...,MoreArgs=list(),output.type="dlist",nparts=NULL,combine="flatten") {
    standardGeneric("do_dmapply")
-})
+},signature="driver")
 
 #' @export
 # dispatches on DDSDriver
@@ -231,6 +231,7 @@ dmapply <- function(FUN,...,MoreArgs=list(),output.type="dlist",nparts=NULL,comb
    },FUN.VALUE=numeric(1))
 
   if(max(lens) != min(lens)) stop("The lengths of your iterable arguments need to be equal.")
+  if(min(lens) == 0) stop("Zero-length arguments are not permitted")
     
   partitioning <- getBestOutputPartitioning(dds.env$driver,...,nparts=nparts,type=output.type)
 

@@ -44,13 +44,16 @@ setMethod("shutdown","DistributedRDDS",
 )
 
 #' @export
-setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreArgs="list",output.type="character",nparts="numeric",combine="character"), 
+setMethod("do_dmapply",signature(driver="DistributedRDDS"), 
   function(driver,func,...,MoreArgs=list(),output.type="dlist",nparts=NULL,combine="flatten") {
     # margs stores the dmapply args
     margs <- list(...)
     # ids stores the arguments to splits() and the values of the raw arguments in foreach
     ids <- list()
  
+    # stores arguments that are expressed in a nested parts list
+    nested_parts <- list()
+
     warned <- !dR.env$DRWarn
 
     if(output.type=="dframe" && combine == "flatten")
@@ -92,7 +95,8 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
     for(num in seq(length(margs))) {
       nm <- nms[[num]]
       arg <- margs[[num]]
-     
+      containsDobject <- FALSE     
+
       if(!is.list(arg) && is(arg,"DObject")) {
         # Boolean to store whether the current argument being processed is a pure
         # DObject (i.e., not used with parts() or a vanilla-R argument
@@ -162,43 +166,101 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
         }
 
         arg <- parts(arg)
+        containsDobject <- TRUE
+      } else {
+        isDObj <- FALSE
 
-      } else isDObj <- FALSE
+        if(is.list(arg)) {
+          is_dobject <- rapply(arg, function(x) is(x,"DistributedRObj"),how="unlist")
+          containsDobject <- any(is_dobject)        
 
-      dobject_list <- vapply(arg, function(x) { is(x,"DObject")},FUN.VALUE=logical(1))
-      containsDobject <- any(dobject_list)
-         
+          if(containsDobject) {
+            if(!all(is_dobject)) stop("Currently, the driver does not support input lists that mix DObject partitions and other object types")
+            nested_list <- any(vapply(arg, function(x) { is.list(x) },FUN.VALUE=logical(1)))
+            dobject_list <- rapply(arg, function(x) x@DRObj, how="unlist")
+            if(length(unique(dobject_list)) > 1) stop("The driver does not currently permit partitions of different DObjects be mixed in a list")
+
+         }
+       }
+     }
+
       # If unnamed, give it a name. Otherwise, leave it be.
+      orig_nm <- nm
       if(nchar(nm) == 0 || is.null(nms)) 
         nm <- paste0(".tmpVarName",num)
 
-      # DR currently cannot handle NAs for second argument to splits(). Therefore, we use 
-      # empty list as a workaround ... repartition function has this "hack" as well
       if(containsDobject) {
-        ids[[num]] <- lapply(arg,function(argument) {
-          if(is(argument,"DObject")) argument@splits
-          else NULL        
-        })
+        if(isDObj) {
+          ids[[num]] <- lapply(arg,function(argument) {
+                          argument@splits
+                        })
+        }
           nDobjs <- nDobjs + 1
           tempName <- paste0(".tempVar",nDobjs)
-          assign(tempName,arg[dobject_list][[1]]@DRObj)
+
+          if(isDObj) 
+            assign(tempName,arg[[1]]@DRObj)
+          else 
+            assign(tempName,dobject_list[[1]])
+
           tempStr <- paste0("substitute(splits(",tempName,",ids[[num]][[index]]),env=parent.frame())")
 
       } else {
-          ids[[num]] <- arg
           tempStr <- "substitute(ids[[num]][[index]],env=parent.frame())" 
       }
 
-      if(!isDObj) 
-        ids[[num]] <- mapply(function(x,y) { ids[[num]][y:(y+x-1)] }, modelApplyIterations, limits, SIMPLIFY=FALSE)
-      
+      if(!isDObj) {
+        temp <-  mapply(function(x,y) { arg[y:(y+x-1)] }, modelApplyIterations, limits, SIMPLIFY=FALSE)
+        if(!containsDobject) ids[[num]] <- temp
+        else {
+          all.splits <- lapply(temp, function(x) {
+            as.list(rapply(x,function(x) x@splits, how="unlist"))
+          })
+          ids[[num]] <- all.splits   
+
+          # replace variable with list structure provided by the user
+          if(nested_list) {        
+            switch_statement <- eval(parse(text=paste0("substitute(",nm,"<-switch(.execId))")),envir=new.env())
+            for(x in seq(1,length(temp))) {
+              # Remove contents, but maintain structure of lits
+              skel <- rapply(temp[[x]],function(x) NULL, how="replace")
+
+              rhs <- eval(parse(text=paste0("substitute(",deparse(skel),")")),envir=new.env())
+              indices <- 2
+              # number the nested list items in a depth-first fashion 
+              count <- 1
+
+              while(indices[[1]] <= length(rhs)) {
+                len <- length(indices)
+                if(is.list(eval(rhs[[indices]]))) {
+                  indices <- c(indices,2)
+                }
+                else { 
+                  rhs[[indices]] <- eval(parse(text=paste0("substitute(",nm,"[[",count,"]])")),envir=new.env())
+                  count <- count + 1
+                   indices[len] <- indices[len] + 1
+                }
+                if(len > 1 && indices[len] > length(rhs[[indices[1:(len-1)]]])) {
+                  indices <- indices[1:(len-1)]
+                  indices[len-1] <- indices[len-1] + 1
+                }
+              }
+
+              switch_statement[[3]][[2+x]] <- rhs
+            }
+            nested_parts[[length(nested_parts)+1]] <- switch_statement
+          }
+          
+        }
+        
+      }
 
       tempStr <- gsub("num",as.character(num),tempStr)
       formals(exec_func)[[nm]] <- eval(parse(text=tempStr))
 
       if(num > 1) argsStr <- paste0(argsStr,", ")
         argsStr <- paste0(argsStr,names(formals(exec_func))[[num]])
-      if(nchar(nm) != 0 && !is.null(nms)) 
+      if(nchar(orig_nm) != 0 && !is.null(nms)) 
         argsStr <- paste0(argsStr,"=",names(formals(exec_func))[[num]])      
 
     }
@@ -210,21 +272,22 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
 
     execLine <- paste0(".newDObj <- mapply(.funct,",argsStr,",MoreArgs=MoreArgs,SIMPLIFY=FALSE)")
     
-    # Need to convert empty lists to NAs here, because DR can't pass NAs to executors when arg is also using splits()
-    insertNAs <- "for (n in ls(all.names=TRUE,envir=parent.frame())) {
-                    if(identical(get(n,envir=parent.frame()),list()) && n != 'MoreArgs' 
-                       && n != '.newDObj') 
-                    assign(n,list(NA)) 
-                  }"
+    if(length(nested_parts) > 0) {
+      formals(exec_func)[[".execId"]] <- substitute(index) 
+      for(l in seq(1,length(nested_parts))) {
+        body(exec_func)[[1+l]] <- nested_parts[[l]]
+      }
+    }
+ 
+    nLines <- length(body(exec_func))
 
-    body(exec_func)[[2]] <- eval(parse(text=paste0("substitute(",insertNAs,")")),envir=new.env())
-    body(exec_func)[[3]] <- eval(parse(text=paste0("substitute(",defineFunction,")")),envir=new.env())
-    body(exec_func)[[3]][[3]] <- match.fun(func)
-    body(exec_func)[[4]] <- eval(parse(text=paste0("substitute(",execLine,")")),envir=new.env())
+    body(exec_func)[[nLines+1]] <- eval(parse(text=paste0("substitute(",defineFunction,")")),envir=new.env())
+    body(exec_func)[[nLines+1]][[3]] <- match.fun(func)
+    body(exec_func)[[nLines+2]] <- eval(parse(text=paste0("substitute(",execLine,")")),envir=new.env())
     
     if(combine=="unlist") {
       unlistedResults <- ".newDObj <- unlist(.newDObj,recursive=FALSE)"
-      body(exec_func)[[5]] <- eval(parse(text=paste0("substitute(",unlistedResults,")")),envir=new.env())
+      body(exec_func)[[nLines+3]] <- eval(parse(text=paste0("substitute(",unlistedResults,")")),envir=new.env())
     }
 
     nLines <- length(body(exec_func))
@@ -280,15 +343,3 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function",MoreAr
   }
 )
 
-# Do not allow DistR to overwrite dds definitions if this package is loaded after dds
-.onAttach <- function(libname, pkgname) {
-  assign("dlist", dds::dlist, envir=globalenv())
-  assign("darray", dds::darray, envir=globalenv())
-  assign("dframe", dds::dframe, envir=globalenv())
-  assign("is.darray", dds::is.darray, envir=globalenv())
-  assign("is.dframe", dds::is.dframe, envir=globalenv())
-  assign("is.dlist", dds::is.dlist, envir=globalenv())
-  assign("as.dlist", dds::as.dlist, envir=globalenv())
-  assign("as.darray", dds::as.darray, envir=globalenv())
-  assign("as.dframe", dds::as.dframe, envir=globalenv())
-}

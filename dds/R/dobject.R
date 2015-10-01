@@ -738,32 +738,17 @@ repartition.DObject <- function(dobj,skeleton) {
   partitionIdsAndOffsets <- mapply(getIdsAndOffsets,starts_and_ends[,1],starts_and_ends[,2],starts_and_ends[,3],starts_and_ends[,4],MoreArgs=list(vertical=verticalValues,horizontal=horizontalValues,psizes=psize(dobj)),SIMPLIFY=FALSE)
   }
 
-  max_parts <- 0
+  partitions <- lapply(partitionIdsAndOffsets,
+                  function(x) parts(dobj,as.list(x$parts)))
 
-  for(a in seq(1,length(partitionIdsAndOffsets))) {
-     numParts <- length(partitionIdsAndOffsets[[a]][["starts"]])
-     if(numParts > max_parts) {
-       max_parts <- numParts
-     }
-  }
+  starts <- lapply(partitionIdsAndOffsets,
+                  function(x) as.list(x$starts))
+                   
+  ends <- lapply(partitionIdsAndOffsets,
+                  function(x) as.list(x$ends))
 
-  dmapplyArgs <- lapply(seq((max_parts*3)), function(x) {
-                             ind <- ceiling(x/3)
-                             if(x %% 3 == 1) field = "parts"
-                             else if (x %% 3 == 2) field = "starts"
-                             else field = "ends"
-                             lapply(partitionIdsAndOffsets, function(y) {
-                                      if(ind > length(y[[field]])) return(NA)
-                                      value <- y[[field]][[ind]]
-                                      if(field=="parts") return(parts(dobj,value)[[1]])
-                                      else return(value)
-                                   })
-                           })
-
-  repartitioner <- function(...,psize,type) {
+  repartitioner <- function(partitions,starts,ends,psize,type) {
     
-    dataPartitions <- list(...)
-
     index <- 1
     dims <- length(psize)    
 
@@ -779,22 +764,18 @@ repartition.DObject <- function(dobj,skeleton) {
 
     currentPosition <- rep(1,dims)
 
-    while(index <= length(dataPartitions) - 2 && !is.na(dataPartitions[[index]])) {
+    while(index <= length(partitions)) {
 
-      oldPartition <- dataPartitions[[index]]
-  
-      start <- dataPartitions[[index+1]]
-      end <- dataPartitions[[index+2]]
-      endingPosition <- currentPosition + end - start
+      endingPosition <- currentPosition + ends[[index]] - starts[[index]]
 
       if(type=="dlist") {
-        output[currentPosition:endingPosition] <- oldPartition[start:end]
+        output[currentPosition:endingPosition] <- partitions[[index]][starts[[index]]:ends[[index]]]
       } else {
         output[currentPosition[[1]]:endingPosition[[1]],currentPosition[[2]]:endingPosition[[2]]] <-
-        oldPartition[start[[1]]:end[[1]],start[[2]]:end[[2]]]
+        partitions[[index]][starts[[index]][[1]]:ends[[index]][[1]],starts[[index]][[2]]:ends[[index]][[2]]]
       }
 
-      index <- index + 3
+      index <- index + 1
 
       if(dims > 1) {
         if(psize[[2]] > endingPosition[[2]]) {
@@ -812,9 +793,9 @@ repartition.DObject <- function(dobj,skeleton) {
   if(skeleton@type == "dlist") combine=list("unlist")
   else combine=list("row")
 
-  dmapplyArgs <- c(FUN=repartitioner,dmapplyArgs,psize=list(as.list(data.frame(t(psize(skeleton))))),MoreArgs=list(list(type=skeleton@type)),output.type=list(skeleton@type),combine=combine,nparts=list(nparts(skeleton)))
-
-  do.call(dmapply,dmapplyArgs)
+  dmapply(FUN=repartitioner,partitions,starts,ends,psize=as.list(data.frame(t(psize(skeleton)))),
+            MoreArgs=list(type=skeleton@type), output.type=skeleton@type, combine=combine,
+            nparts=nparts(skeleton))
 }
 
 # Given a starting x and y range, get the full list of partition ids and offsets
