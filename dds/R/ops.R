@@ -307,9 +307,8 @@ setMethod("sum", "DObject",
 
     # Get sums of every dobject in the list(x,...) 
     sums <- vapply(list(x,...), function(y) {
-       curSum <- sum(rowSums(y,na.rm=na.rm))
-
-    }, FUN.VALUE=numeric(1))
+                       sum(rowSums(y,na.rm=na.rm))
+                   }, FUN.VALUE=numeric(1))
 
     # Return sum of sums
     sum(sums)
