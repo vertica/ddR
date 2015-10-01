@@ -71,14 +71,10 @@ useBackend <- function(driver, ...) {
 setClass("DDSDriver", representation(DListClass = "character", DFrameClass = "character", DArrayClass = "character", backendName = "character"))
 
 #' @export
-setGeneric("init", function(x,...) {
-  standardGeneric("init")
-}) 
+setGeneric("init", function(x,...) standardGeneric("init"))
 
 #' @export
-setGeneric("shutdown", function(x) {
-  standardGeneric("shutdown")
-}) 
+setGeneric("shutdown", function(x) standardGeneric("shutdown")) 
 
 #' @export
 setMethod("init","DDSDriver",
@@ -96,26 +92,22 @@ setMethod("shutdown","DDSDriver",
 
 #' @export
 # dispatches on DDSDriver
-setGeneric("do_dmapply", function(driver,func,...,MoreArgs=list(),output.type="dlist",nparts=NULL,combine="flatten") {
-   standardGeneric("do_dmapply")
-})
+setGeneric("do_dmapply",
+           function(driver, func, ..., MoreArgs=list(), output.type="dlist",
+                    nparts=NULL, combine="flatten")
+               standardGeneric("do_dmapply"),
+           signature="driver")
 
 #' @export
 # dispatches on DDSDriver
-setGeneric("combine", function(driver,items) {
-  standardGeneric("combine")
-})
+setGeneric("combine", function(driver, items) standardGeneric("combine"))
 
 #' @export
 # dispatches on backend
-setGeneric("get_parts", function(x,index,...) {
-  standardGeneric("get_parts")
-})
+setGeneric("get_parts", function(x, index, ...) standardGeneric("get_parts"))
 
 #' @export
-setGeneric("do_collect", function(x,parts) {
-  standardGeneric("do_collect")
-})
+setGeneric("do_collect", function(x, parts) standardGeneric("do_collect"))
 
 #' Distributed version of 'lapply'. Similar to \code{\link{dmapply}}, but permits only one iterable argument, and output.type is 
 #' always 'dlist'. 
