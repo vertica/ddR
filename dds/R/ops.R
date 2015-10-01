@@ -127,6 +127,9 @@ rev.DObject <- function(x) {
   rev(collect(x))
 }
 
+setGeneric("colSums", signature="x")
+setGenericImplicit("colSums")
+
 #' @export
 setMethod("colSums", signature(x="DObject"),
   function(x, na.rm = FALSE, dims = 1L) {
@@ -146,6 +149,9 @@ setMethod("colSums", signature(x="DObject"),
   unlist(colPartitionResults)
 })
 
+setGeneric("colMeans", signature="x")
+setGenericImplicit("colMeans")
+
 #' @export
 setMethod("colMeans", signature(x="DObject"),
   function(x, na.rm = FALSE, dims = 1L) {
@@ -154,6 +160,9 @@ setMethod("colMeans", signature(x="DObject"),
     columnSums <- colSums(x,na.rm=na.rm)
     columnSums / nrow(x)
 })
+
+setGeneric("rowSums", signature="x")
+setGenericImplicit("rowSums")
 
 #' @export
 setMethod("rowSums", signature(x="DObject"),
@@ -173,6 +182,9 @@ setMethod("rowSums", signature(x="DObject"),
 
   unlist(rowPartitionResults)
 })
+
+setGeneric("rowMeans", signature="x")
+setGenericImplicit("rowMeans")
 
 #' @export
 setMethod("rowMeans", signature(x="DObject"),
@@ -268,6 +280,9 @@ setReplaceMethod("dimnames", signature(x = "DObject", value = "list"), definitio
   dmapply(function(x,y,z) { dimnames(x) <- list(y,z); x }, parts(x), rowNamesPartition, colNamesPartition, output.type=x@type, combine="row",nparts=nparts(x))
 })
 
+setGeneric("colnames", signature="x")
+setGenericImplicit("colnames")
+
 #' @export
 setMethod("colnames", "DObject",
   function(x) {
@@ -278,6 +293,9 @@ setMethod("colnames", "DObject",
     
     unlist(collect(colNames))
 })
+
+setGeneric("rownames", signature="x")
+setGenericImplicit("rownames")
 
 #' @export
 setMethod("rownames", "DObject",
@@ -314,6 +332,9 @@ setMethod("sum", "DObject",
     sum(sums)
 })
 
+setGeneric("mean", signature="x")
+setGenericImplicit("mean")
+
 #' @export
 setMethod("mean", "DObject",
   function(x,trim=0,na.rm=FALSE,...) {
@@ -325,14 +346,12 @@ setMethod("mean", "DObject",
 })
 
 #' @export
-setGeneric("rbind",
-    function(..., deparse.level=1) standardGeneric("rbind"),
-    signature = "...")
+setGeneric("rbind", signature = "...")
+setGenericImplicit("rbind")
 
 #' @export
-setGeneric("cbind",
-    function(..., deparse.level=1) standardGeneric("cbind"),
-    signature = "...")
+setGeneric("cbind", signature = "...")
+setGenericImplicit("cbind")
 
 #' @export
 setMethod("rbind", "DObject",
