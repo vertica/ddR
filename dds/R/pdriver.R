@@ -116,7 +116,7 @@ setMethod("do_dmapply",
     }else{
       #There are two cases for a list (1) parts(dobj) or (2) normal list (don't do anything)
       if(is(dots[[num]],"list") && is(dots[[num]][[1]], "DObject")){
-            dots[[num]] <- unlist (lapply(dots[[num]],function(argument){
+         dots[[num]] <- unlist (lapply(dots[[num]],function(argument){
 	    	      if(is(argument,"DObject"))
             	         return(argument@pObj[argument@splits])
 	              else return(argument)
@@ -126,12 +126,11 @@ setMethod("do_dmapply",
    }
 
    #Check if MoreArgs contains a distributed object. If yes, convert it into a regular object via collect
-   if(length(MoreArgs)>0){
-      for(index in seq(1, length(MoreArgs))){
+   for(index in seq_along(MoreArgs)){
          if(is(MoreArgs[[index]], "DObject"))
       	   MoreArgs[[index]] <- collect(MoreArgs[[index]])
-      }
    }
+
 
    answer <- NULL
    #Now iterate in parallel

@@ -260,7 +260,7 @@ test_that("MoreArgs works", {
   L1 <- dmapply(function(x,y){list(d = dim(x), m = median(x))}, 1, MoreArgs = list(x=da))
 
   expect_equal(collect(L1)[[1]]$d, dim(mat), info="check dim of darray with MoreArgs")
-  expect_equal(collect(L1)[[1]]$m, median(mat), info="check ncol of darray with MoreArgs")
+  expect_equal(collect(L1)[[1]]$m, median(mat), info="check median of darray with MoreArgs")
 })
 
 
