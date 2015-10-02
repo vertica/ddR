@@ -92,7 +92,7 @@ setMethod("do_dmapply",
                    output.type =
                        c("dlist", "dframe", "darray", "sparse_darray"),
                    nparts = NULL,
-                   combine = c("flatten", "row", "col"))
+                   combine = c("default","c", "rbind", "cbind"))
 {
   stopifnot(is.list(MoreArgs))
   output.type <- match.arg(output.type)

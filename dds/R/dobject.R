@@ -443,14 +443,14 @@ darray <- function(nparts = NULL, dim=NULL, psize = NULL, data = 0, sparse=FALSE
     sizes<-unlist(apply(psize,1,function(y)list(y)), recursive=FALSE)
 
     if(!sparse) {
-      dmapply(function(d, v){ matrix(data=v,nrow=d[1], ncol=d[2]) }, sizes, MoreArgs=list(v=data), output.type="darray", combine="row", nparts=nparts)
+      dmapply(function(d, v){ matrix(data=v,nrow=d[1], ncol=d[2]) }, sizes, MoreArgs=list(v=data), output.type="darray", combine="rbind", nparts=nparts)
     }
     else {
       dmapply(function(d, v) { library(Matrix); new("dgCMatrix", i=as.integer({}), 
                                x=as.numeric({}),
                                p=as.integer(rep(v, d[2] + 1)),
                                Dim=as.integer(d))
-                             }, sizes, MoreArgs=list(v=data),output.type="sparse_darray",combine="row", nparts=nparts)
+                             }, sizes, MoreArgs=list(v=data),output.type="sparse_darray",combine="rbind", nparts=nparts)
     }
   }
 }
@@ -586,7 +586,7 @@ dframe <- function(nparts = NULL, dim=NULL, psize = NULL, data = 0) {
   } else{
     if(class(psize) == "numeric") psize<-matrix(psize, nrow=1)
     sizes<-unlist(apply(psize,1,function(y)list(y)), recursive=FALSE)
-    dmapply(function(d, v){ data.frame(matrix(data=v,nrow=d[1], ncol=d[2])) }, sizes, MoreArgs=list(v=data), output.type="dframe", combine="row", nparts=nparts)
+    dmapply(function(d, v){ data.frame(matrix(data=v,nrow=d[1], ncol=d[2])) }, sizes, MoreArgs=list(v=data), output.type="dframe", combine="rbind", nparts=nparts)
   }
 }
 
@@ -790,8 +790,8 @@ repartition.DObject <- function(dobj,skeleton) {
     output 
   }
   
-  if(skeleton@type == "dlist") combine=list("flatten")
-  else combine=list("row")
+  if(skeleton@type == "dlist") combine="c"
+  else combine="rbind"
 
   dmapply(FUN=repartitioner,partitions,starts,ends,psize=as.list(data.frame(t(psize(skeleton)))),
             MoreArgs=list(type=skeleton@type), output.type=skeleton@type, combine=combine,
@@ -1111,9 +1111,9 @@ convertToDobject<-function(input, psize, type){
     matrixList<-lapply(1:prod(numparts), FUN=function(x){get_sub_object(input, psize,x, type)})
     answer<-NULL
     if(type == "array")
-       answer<-dmapply(FUN=function(x){x}, matrixList, output.type="darray", combine="row", nparts=numparts) 
+       answer<-dmapply(FUN=function(x){x}, matrixList, output.type="darray", combine="rbind", nparts=numparts) 
     else
-       answer<-dmapply(FUN=function(x){x}, matrixList, output.type="dframe", combine="row", nparts=numparts) 
+       answer<-dmapply(FUN=function(x){x}, matrixList, output.type="dframe", combine="rbind", nparts=numparts) 
     
     dnames<-dimnames(input)
     if(length(dnames) ==2 && length(dnames[[1]]) == dim(answer)[1] && length(dnames[[2]]) == dim(answer)[2])

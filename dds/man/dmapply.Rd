@@ -4,8 +4,9 @@
 \alias{dmapply}
 \title{Distributed version of mapply. Similar to R's 'mapply', it allows a multivariate function, FUN, to be applied to several inputs. Unlike standard mapply, it always returns a distributed object.}
 \usage{
-dmapply(FUN, ..., MoreArgs = list(), output.type = "dlist", nparts = NULL,
-  combine = "flatten")
+dmapply(FUN, ..., MoreArgs = list(), output.type = c("dlist", "dframe",
+  "darray", "sparse_darray"), nparts = NULL, combine = c("default", "c",
+  "rbind", "cbind"))
 }
 \arguments{
 \item{FUN}{function to apply, found via ‘match.fun’.}
@@ -18,7 +19,7 @@ dmapply(FUN, ..., MoreArgs = list(), output.type = "dlist", nparts = NULL,
 
 \item{nparts}{a 1d or 2d numeric value to specify how the output should be partitioned. dlists only have one-dimensional partitioning, whereas darrays and dframes have two (representing the number partitions across the vertical and horizontal dimensions).}
 
-\item{combine}{for dframes and darrays, it specifies how the results of dmapply are combined within each partition (if each partition contains more than one result). If "row", the results are stitched using rbind; if "col", cbind is used. If the value is "flatten", the results are flattened into one column, as is the case with simplify2array(). For dlists, "unlist" will first attempt to unlist each element of the dmapply result and then expand these items within the partition of the dlist. The default value is "flatten".}
+\item{combine}{for dframes and darrays, it specifies how the results of dmapply are combined within each partition (if each partition contains more than one result). If "rbind", the results are stitched using rbind; if "cbind", cbind is used. If the value is "c", the results are flattened into one column, as is the case with simplify2array(). For dlists, "c" will first attempt to unlist each element of the dmapply result and then expand these items within the partition of the dlist. One may think of this as the function that is invoked on the resulting list after the dmapply, with 'do.call'. The default value is "default", which for darrays and dframes has identical behavior to "c". For dlists, no function is called if "default".}
 }
 \value{
 A dlist, darray, or dframe (depending on the value of output.type), with number of partitions equal to \code{\link{nparts}}
@@ -33,7 +34,7 @@ a <- dmapply(function(x,y) x+y, 1:5, 2:6, nparts=3)
 collect(a)
 
 ##Create a darray with 4 partitions. Partitions are stitched in 2x2 fashion, meaning the overall dims of the darray will be 4x4.
-b <- dmapply(function(x) matrix(x,2,2), 1:4,output.type="darray",combine="row",nparts=c(2,2))
+b <- dmapply(function(x) matrix(x,2,2), 1:4,output.type="darray",combine="rbind",nparts=c(2,2))
 collect(b,1) #First partition
 collect(b)
 }

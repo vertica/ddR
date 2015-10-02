@@ -94,7 +94,7 @@ setMethod("shutdown","DDSDriver",
 # dispatches on DDSDriver
 setGeneric("do_dmapply",
            function(driver, func, ..., MoreArgs=list(), output.type="dlist",
-                    nparts=NULL, combine="flatten")
+                    nparts=NULL, combine="default")
                standardGeneric("do_dmapply"),
            signature=c("driver", "func"))
 
@@ -146,7 +146,7 @@ dlapply <- function(X,FUN,...,nparts=NULL) {
 #' @param MoreArgs a list of other arguments to ‘FUN’.
 #' @param output.type the output type of the distributed object. The default value of "dlist" means that the result of dmapply will be stored in a distributed list. "darray" will make dmapply return a darray, just as "dframe" will make it return a dframe. "sparse_darray" results in a special version of darray where the elements are sparse.
 #' @param nparts a 1d or 2d numeric value to specify how the output should be partitioned. dlists only have one-dimensional partitioning, whereas darrays and dframes have two (representing the number partitions across the vertical and horizontal dimensions). 
-#' @param combine for dframes and darrays, it specifies how the results of dmapply are combined within each partition (if each partition contains more than one result). If "row", the results are stitched using rbind; if "col", cbind is used. If the value is "flatten", the results are flattened into one column, as is the case with simplify2array(). For dlists, "unlist" will first attempt to unlist each element of the dmapply result and then expand these items within the partition of the dlist. The default value is "flatten".
+#' @param combine for dframes and darrays, it specifies how the results of dmapply are combined within each partition (if each partition contains more than one result). If "rbind", the results are stitched using rbind; if "cbind", cbind is used. If the value is "c", the results are flattened into one column, as is the case with simplify2array(). For dlists, "c" will first attempt to unlist each element of the dmapply result and then expand these items within the partition of the dlist. One may think of this as the function that is invoked on the resulting list after the dmapply, with 'do.call'. The default value is "default", which for darrays and dframes has identical behavior to "c". For dlists, no function is called if "default".
 #' @return A dlist, darray, or dframe (depending on the value of output.type), with number of partitions equal to \code{\link{nparts}}
 #' @references 
 #' Prasad, S., Fard, A., Gupta, V., Martinez, J., LeFevre, J., Xu, V., Hsu, M., Roy, I. 
@@ -165,14 +165,14 @@ dlapply <- function(X,FUN,...,nparts=NULL) {
 #' collect(a)
 #'
 #' ##Create a darray with 4 partitions. Partitions are stitched in 2x2 fashion, meaning the overall dims of the darray will be 4x4.
-#' b <- dmapply(function(x) matrix(x,2,2), 1:4,output.type="darray",combine="row",nparts=c(2,2)) 
+#' b <- dmapply(function(x) matrix(x,2,2), 1:4,output.type="darray",combine="rbind",nparts=c(2,2)) 
 #' collect(b,1) #First partition
 #' collect(b)
 #' }
 #' @export
 dmapply <- function(FUN ,..., MoreArgs=list(),
                     output.type=c("dlist", "dframe", "darray", "sparse_darray"),
-                    nparts=NULL, combine=c("flatten", "row", "col"))
+                    nparts=NULL, combine=c("default","c","rbind", "cbind"))
 {
   if(!is.function(FUN)) stop("FUN needs to be a function")
 
@@ -183,6 +183,9 @@ dmapply <- function(FUN ,..., MoreArgs=list(),
       stop("Invalid nparts vector provided. Must be one or two numbers.")
 
   combine <- match.arg(combine)
+
+  if(output.type == "dlist" && (combine == "rbind" || combine == "cbind"))
+    stop("'combine' options 'rbind' and 'cbind' are invalid for dlist outputs.")
   
   dargs <- list(...)
 
@@ -200,14 +203,14 @@ dmapply <- function(FUN ,..., MoreArgs=list(),
    },FUN.VALUE=numeric(1))
 
   if(max(lens) != min(lens)) stop("The lengths of your iterable arguments need to be equal.")
-  if(min(lens) == 0) stop("Zero-length arguments are not permitted")
+  if(min(lens) == 0) stop("Zero-length arguments are not permitted.")
     
   partitioning <- getBestOutputPartitioning(dds.env$driver,...,nparts=nparts,type=output.type)
 
   # simplify2array does not work well on data.frames, default to column instead
-  if(output.type == "dframe" && combine == "flatten") combine = "col"
-  if(output.type == "sparse_darray" && combine != "col" && combine != "row") 
-    stop("sparse_darray outputs must have either 'row' or 'col' for combine")
+  if(output.type == "dframe" && combine == "c") combine = "default"
+  if(output.type == "sparse_darray" && combine != "cbind" && combine != "rbind") 
+    stop("sparse_darray outputs must have either 'rbind' or 'cbind' for combine")
 
   newobj <- do_dmapply(dds.env$driver, func=match.fun(FUN), ..., MoreArgs=MoreArgs,
                        output.type=output.type,nparts=partitioning,combine=combine)                       

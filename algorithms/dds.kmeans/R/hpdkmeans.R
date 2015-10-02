@@ -143,7 +143,7 @@ function(X, centers, iter.max = 10, nstart = 1,
 	}
 
     	Norms <- dmapply(calculateNorm, Xi = parts(X), Ni = parts(Norms),
-	      output.type = "darray",combine = "row", nparts = c(totalParts(X),1))
+	      output.type = "darray",combine = "rbind", nparts = c(totalParts(X),1))
 
 
     } else {
@@ -159,7 +159,7 @@ function(X, centers, iter.max = 10, nstart = 1,
 	}
 
     	Norms <- dmapply(calculateNorm, Xi = parts(X), Ni = parts(Norms),
-	      output.type = "darray",combine = "row", nparts = c(totalParts(X),1))
+	      output.type = "darray",combine = "rbind", nparts = c(totalParts(X),1))
 
     }
     if (trace) {    # timing end
@@ -361,7 +361,7 @@ function(X, centers, iter.max = 10, nstart = 1,
 	}
 
     	Norms <- dmapply(calculateNorm, Xi = parts(X), Ni = parts(Norms),
-	      output.type = "darray",combine = "row", nparts = c(totalParts(X),1))
+	      output.type = "darray",combine = "rbind", nparts = c(totalParts(X),1))
 
 
     } else {
@@ -377,7 +377,7 @@ function(X, centers, iter.max = 10, nstart = 1,
 	}
 
     	Norms <- dmapply(calculateNorm, Xi = parts(X), Ni = parts(Norms),
-	      output.type = "darray",combine = "row", nparts = c(totalParts(X),1))
+	      output.type = "darray",combine = "rbind", nparts = c(totalParts(X),1))
 
     }
     if (trace) {    # timing end
@@ -483,18 +483,18 @@ fitted.hpdkmeans <- function(object, method = c("centers", "classes"), ...)
     if(is.null(mask)) {
         center <- colMeans(X, na.rm=TRUE)
 	ss <- dmapply(function(Xi,center) apply(Xi,1,function(xi) sum((xi - center)^2)), Xi=parts(X),MoreArgs = list(center = center),
-	   output.type = "darray",combine = "row",nparts = c(totalParts(X),1))
+	   output.type = "darray",combine = "rbind",nparts = c(totalParts(X),1))
 	
     } else { # we need to ignore the entire sample when it contains NA 
 
         center_darray <- dmapply(function(Xi, maski) colSums(Xi[maski > 0,]) , 
 		 Xi=parts(X), maski = parts(mask),
-		 output.type = "darray",combine = "row",nparts = c(totalParts(X),1))
+		 output.type = "darray",combine = "rbind",nparts = c(totalParts(X),1))
 	center <- rowSums(center_darray) / sum(mask)
 
 	ss <- dmapply(function(Xi,maski, center) apply(Xi,1,function(xi) sum((xi - center)^2)), 
 	   Xi=parts(X), maski = parts(mask), MoreArgs = list(center = center),
-	   output.type = "darray",combine = "row",nparts = c(totalParts(X),1))
+	   output.type = "darray",combine = "rbind",nparts = c(totalParts(X),1))
     }
     totss <- sum(ss)
     if (trace) {    # timing end
@@ -517,13 +517,13 @@ fitted.hpdkmeans <- function(object, method = c("centers", "classes"), ...)
     if(is.null(mask)) {
 
     	tempArray <- dmapply(function(Xi) sum(!is.finite(rowSums(Xi))), 
-		  Xi = parts(X),output.type = "darray",combine = "row",nparts = c(totalParts(X),1))   
+		  Xi = parts(X),output.type = "darray",combine = "rbind",nparts = c(totalParts(X),1))   
 	found <- sum(tempArray)
 
     } else {
 
       	mask <- dmapply(function(Xi) as.numeric(is.finite(rowSums(Xi))), 
-		  Xi = parts(X),output.type = "darray",combine = "row",nparts = c(totalParts(X),1))
+		  Xi = parts(X),output.type = "darray",combine = "rbind",nparts = c(totalParts(X),1))
     	found  <- nrow(mask) - sum(mask)
     }
 
@@ -574,7 +574,7 @@ fitted.hpdkmeans <- function(object, method = c("centers", "classes"), ...)
 
 	    d.centers <- dmapply(d.centerDist, Xi = parts(X), idx = 1:nparts, 
 	    	      MoreArgs = list(selectedBlocks=selectedBlocks), 
-		      output.type = "darray", combine = "row", nparts = c(totalParts(X),1))
+		      output.type = "darray", combine = "rbind", nparts = c(totalParts(X),1))
 
 	    centers <- na.omit(collect(d.centers))
 
@@ -609,7 +609,7 @@ fitted.hpdkmeans <- function(object, method = c("centers", "classes"), ...)
 	    }
 	    d.centers <- dmapply(d.centerCent, Xi = parts(X), idx = 1:nparts, 
 	    	      MoreArgs = list(indexOfCenters = indexOfCenters, blockSizes = blockSizes), 
-		      output.type = "darray", combine = "row", nparts = c(totalParts(X),1))
+		      output.type = "darray", combine = "rbind", nparts = c(totalParts(X),1))
 	    centers <- na.omit(collect(d.centers))
 
 
@@ -672,7 +672,7 @@ fitted.hpdkmeans <- function(object, method = c("centers", "classes"), ...)
 
 		    clustering_info <- dmapply(kmeansFunc, Xi = parts(X), Ni = parts(Norms),
 	    		    MoreArgs = list(centers=centers, nmeth=nmeth, completeModel=completeModel),
-			    output.type = "darray", combine = "col", nparts = c(1,totalParts(X)))
+			    output.type = "darray", combine = "cbind", nparts = c(1,totalParts(X)))
 
 	size <- rowSums(collect(clustering_info))
 	cent <- size[1:(p*k)]
@@ -680,9 +680,9 @@ fitted.hpdkmeans <- function(object, method = c("centers", "classes"), ...)
 
 #timing_info <- Sys.time()
 #	    size <- dmapply(function(x){ x$numOfPointsi }, clustering_info,
-#	    	 output.type="darray", combine = "col", nparts = c(1,totalParts(clustering_info)))
+#	    	 output.type="darray", combine = "cbind", nparts = c(1,totalParts(clustering_info)))
 #	    cent <- dmapply(function(x) x$sumOfClusteri, clustering_info,
-#	    	 output.type="darray", combine = "col", nparts = c(1,totalParts(clustering_info)))
+#	    	 output.type="darray", combine = "cbind", nparts = c(1,totalParts(clustering_info)))
 #print(collect(cent))
 #print(Sys.time() - timing_info)
 #	    size <- rowSums(collect(size))
@@ -733,9 +733,9 @@ fitted.hpdkmeans <- function(object, method = c("centers", "classes"), ...)
 
 timing_info <- Sys.time()
 	    size <- dmapply(function(x) x$numOfPointsi, clustering_info,
-	    	 output.type="darray", combine = "col", nparts = c(1,totalParts(clustering_info)))
+	    	 output.type="darray", combine = "cbind", nparts = c(1,totalParts(clustering_info)))
 	    cent <- dmapply(function(x) x$sumOfClusteri, clustering_info,
-	    	 output.type="darray", combine = "col", nparts = c(1,totalParts(clustering_info)))
+	    	 output.type="darray", combine = "cbind", nparts = c(1,totalParts(clustering_info)))
 print(Sys.time() - timing_info)
 	    size <- rowSums(collect(size))
 	    cent <- rowSums(collect(cent))
@@ -786,7 +786,7 @@ print(Sys.time() - timing_info)
 		}
 
 		dwss <- dmapply(wssFunction, parts(X), parts(cluster_info), MoreArgs = list(centers = centers),
-	     	     output.type = "darray", combine = "col", nparts = c(1,totalParts(X)))
+	     	     output.type = "darray", combine = "cbind", nparts = c(1,totalParts(X)))
         } else {
 
 		wssFunction<- function(Xi, maski, cluster_infoi, centers = centers)
@@ -801,7 +801,7 @@ print(Sys.time() - timing_info)
 		}
 
 		dwss <- dmapply(wssFunction, parts(X), parts(mask), parts(cluster_info), MoreArgs = list(centers = centers),
-	     	     output.type = "darray", combine = "col", nparts = c(1,totalParts(X)))
+	     	     output.type = "darray", combine = "cbind", nparts = c(1,totalParts(X)))
         }
 
         wss <- rowSums(dwss)
@@ -816,7 +816,7 @@ print(Sys.time() - timing_info)
 	cluster <- NULL
 	if(completeModel)
 	    cluster <- dmapply(function(x) x$clusteri, clustering_info,
-	    	 output.type="darray", combine = "row", nparts = c(totalParts(clustering_info),1))
+	    	 output.type="darray", combine = "rbind", nparts = c(totalParts(clustering_info),1))
 
     list(cluster=cluster, centers=centers, wss=wss, size=size, iter=iteration_counter)
 }
@@ -880,7 +880,7 @@ hpdapply <- function(newdata, centers, trace=FALSE) {
 	}
 
     	Norms <- dmapply(calculateNorm, parts(X), parts(Norms), 
-	      output.type = "darray", combine = "row", nparts = c(totalParts(X),1))
+	      output.type = "darray", combine = "rbind", nparts = c(totalParts(X),1))
     } else {
  
         calculateNorm <- function(Xi,maski, Ni){
@@ -893,7 +893,7 @@ hpdapply <- function(newdata, centers, trace=FALSE) {
 	}
 
     	Norms <- dmapply(calculateNorm, parts(X), parts(Norms), 
-	      output.type = "darray", combine = "row", nparts = c(totalParts(X),1))
+	      output.type = "darray", combine = "rbind", nparts = c(totalParts(X),1))
     }
     if (trace) {    # timing end
         endtime <- proc.time()
@@ -922,7 +922,7 @@ hpdapply <- function(newdata, centers, trace=FALSE) {
 	}
 
 	cluster <- dmapply(kmeansFunc, parts(newdata), parts(Ni), parts(cluster), MoreArgs = list(centers = centers),
-		output.type = "darray", combine = "row", nparts = c(totalParts(X),1))
+		output.type = "darray", combine = "rbind", nparts = c(totalParts(X),1))
 
     } else { # some of the samples should be ignored because of missed values
 
@@ -946,7 +946,7 @@ hpdapply <- function(newdata, centers, trace=FALSE) {
 	}
 
 	cluster <- dmapply(kmeansFunc, parts(newdata), parts(mask), parts(Ni), parts(cluster), MoreArgs = list(centers = centers),
-		output.type = "darray", combine = "row", nparts = c(totalParts(X),1))
+		output.type = "darray", combine = "rbind", nparts = c(totalParts(X),1))
 
     }
     if (trace) {    # timing end
@@ -1018,5 +1018,5 @@ deploy.hpdkmeans <- function(inputModel) {
 {
 	cloned_obj <- dmapply(function(X,ncol,data) matrix(data,nrow = nrow(X), ncol = ncol), 
 		   parts(X), MoreArgs = list(ncol = ncol, data = data),
-		   output.type = "darray",combine = "row",nparts = c(totalParts(X),1))
+		   output.type = "darray",combine = "rbind",nparts = c(totalParts(X),1))
 }

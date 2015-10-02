@@ -44,8 +44,14 @@ setMethod("shutdown","DistributedRDDS",
 )
 
 #' @export
-setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function"), 
-  function(driver,func,...,MoreArgs=list(),output.type="dlist",nparts=NULL,combine="flatten") {
+setMethod("do_dmapply",
+           signature(driver="DistributedRDDS",func="function"), 
+           function(driver,func,...,MoreArgs=list(),
+                    output.type = 
+                      c("dlist","dframe","darray","sparse_darray"),
+                    nparts=NULL,
+                    combine=c("default","c","rbind","cbind")) {
+
     # margs stores the dmapply args
     margs <- list(...)
     # ids stores the arguments to splits() and the values of the raw arguments in foreach
@@ -55,9 +61,9 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function"),
     nested_parts <- list()
 
     warned <- !dR.env$DRWarn
-
-    if(output.type=="dframe" && combine == "flatten")
-      stop("Cannot flatten a data frame")
+  
+    output.type <- match.arg(output.type)
+    combine <- match.arg(combine)
 
     pieceSize <- floor(length(margs[[1]])/prod(nparts)) + 1
     remainder <- length(margs[[1]]) %% prod(nparts)
@@ -331,7 +337,7 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function"),
     body(exec_func)[[nLines+1]][[3]] <- match.fun(func)
     body(exec_func)[[nLines+2]] <- eval(parse(text=paste0("substitute(",execLine,")")),envir=new.env())
     
-    if(combine=="unlist") {
+    if(combine=="c" && output.type=="dlist") {
       unlistedResults <- ".newDObj <- unlist(.newDObj,recursive=FALSE)"
       body(exec_func)[[nLines+3]] <- eval(parse(text=paste0("substitute(",unlistedResults,")")),envir=new.env())
     }
@@ -343,12 +349,12 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function"),
     # either rowwise, columnwise, or the default, which is to 
     # cbind the results after flattening them into 1d-vectors
     if(output.type != "dlist") {
-      if(combine=="row")
+      if(combine=="rbind")
         if(output.type=="sparse_darray") 
           stitchResults <- ".newDObj <- do.call(rBind,.newDObj)"
         else
           stitchResults <- ".newDObj <- do.call(rbind,.newDObj)"
-      else if(combine=="col")
+      else if(combine=="cbind")
         if(output.type=="sparse_darray") 
           stitchResults <- ".newDObj <- do.call(cBind,.newDObj)"
         else
