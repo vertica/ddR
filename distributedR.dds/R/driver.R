@@ -233,7 +233,10 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function"),
               while(indices[[1]] <= length(rhs)) {
                 len <- length(indices)
                 if(is.list(eval(rhs[[indices]]))) {
-                  indices <- c(indices,2)
+                  if(length(rhs[[indices]]) > 1)
+                    indices <- c(indices,2)
+                  else
+                    indices[len] <- indices[len] + 1
                 }
                 else { 
                   rhs[[indices]] <- eval(parse(text=paste0("substitute(",nm,"[[",count,"]])")),envir=new.env())

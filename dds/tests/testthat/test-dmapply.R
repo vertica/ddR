@@ -172,3 +172,15 @@ test_that("Errors are thrown when they are supposed to be", {
 
   expect_error(dmapply(function(x) matri(5,2,4), 1,output.type="darray"))
 })
+
+context("grouping partitions in dmapply")
+
+a <- darray(data=2,psize=c(2,2),dim=c(4,4))
+
+test_that("Partitions can be grouped in a list", {
+  b <- dlapply(list(parts(a,1:3),list(), parts(a,4)), function(x) do.call(rbind,x))
+  expect_equal(totalParts(b),3)
+  expect_equal(collect(b,1)[[1]],matrix(2,6,2))
+  expect_null(collect(b,2)[[1]])
+  expect_equal(collect(b,3)[[1]],matrix(2,2,2))
+})
