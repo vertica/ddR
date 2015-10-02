@@ -24,7 +24,7 @@ features <- cbind(cluster_ids, feature_obs)
 features <- dmapply(generateKMeansData,id = 1:nInst,
                 MoreArgs = list(centers = centers, nrow = nrow, ncol = ncol),
 		output.type = "dframe", 
-		combine = "row", nparts = c(nInst,1))
+		combine = "rbind", nparts = c(nInst,1))
 colnames(features) <- paste("X",1:ncol(features),sep="")
 
 
@@ -36,10 +36,10 @@ cat("\n\ttraining model took: \t", training," seconds \n\tpredictions took: \t",
 
 cat("\nStarting random forest using x,y darray interface")
 features_x = dmapply(function(x) x[,-1], parts(features),
-		output.type = "darray", combine = "row", 
+		output.type = "darray", combine = "rbind", 
 		nparts = nparts(features))
 features_y = dmapply(function(x) matrix(x[,1],ncol = 1), parts(features),
-		output.type = "darray", combine = "row", 
+		output.type = "darray", combine = "rbind", 
 		nparts = nparts(features))
 
 training <- system.time(model <- hpdRF_parallelForest(x = features_x, y = features_y))[3]

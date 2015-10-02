@@ -36,8 +36,8 @@ MatrixMultiply <- function(a,b)
 	     		parts(a,sapply(0:(n-1),function(x) rep(x*m+i,p))),
 			parts(b,rep(1:p,n)+p*(i-1)),
 			parts(c),
-			output.type = "DArrayClass", 
-			combine = "row", nparts = nparts(c))
+			output.type = "darray", 
+			combine = "rbind", nparts = nparts(c))
 	}
 	return(c)	
 }
@@ -45,9 +45,9 @@ MatrixMultiply <- function(a,b)
 
 #Create two 3x3 matrix:  
 a<- dmapply(function(i) matrix(i), i = 1:9,
-    output.type = "DArrayClass",combine = "row", nparts = c(3,3))
+    output.type = "darray",combine = "rbind", nparts = c(3,3))
 b<- dmapply(function(i) matrix(i), i = 1:9,
-    output.type = "DArrayClass",combine = "row", nparts = c(3,3))
+    output.type = "darray",combine = "rbind", nparts = c(3,3))
 
 print("Multiplying these two matrices: ")
 print(collect(a))

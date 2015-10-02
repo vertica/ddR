@@ -2,7 +2,7 @@ context("DFrame metadata and dmapply")
 
  a <- dmapply(function(x) {
              data.frame(matrix(x, nrow=2, ncol=4))
-             }, 1:2, output.type="dframe", combine="row",nparts=c(2,1))
+             }, 1:2, output.type="dframe", combine = "rbind",nparts=c(2,1))
 
 test_that("DFrame dimensions and collect are correct",{
 
@@ -18,24 +18,24 @@ test_that("DArray-based dmapplies work and throw errors accordingly", {
    # A DArray that has partition dimensions consistent with 'a'
    b <- dmapply(function(x) {
                   data.frame(matrix(2*x+5, nrow=2, ncol=4))
-               }, 1:2, output.type="dframe", combine="row",nparts=c(2,1)) 
+               }, 1:2, output.type="dframe", combine = "rbind",nparts=c(2,1)) 
 
    # A DArray that has partition dimensions not consistent with 'a'
    c <- dmapply(function(x) {
                   data.frame(matrix(2*x+5, nrow=4, ncol=2))
-               }, 1:2, output.type="dframe", combine="row",nparts=c(2,1))
+               }, 1:2, output.type="dframe", combine = "rbind",nparts=c(2,1))
 
    # Partition-wise addition
    d <- dmapply(function(x,y,z) {
                   x + y + z
-                }, parts(a),parts(b), MoreArgs=list(z=3), output.type="dframe",combine="row",nparts=c(2,1))
+                }, parts(a),parts(b), MoreArgs=list(z=3), output.type="dframe",combine = "rbind",nparts=c(2,1))
 
    expect_equal(collect(d), data.frame(do.call(cbind,rep(list(c(11,11,14,14)),4))))
 
    # Same partition-wise addition, this time with incompatible partitioning
    expect_error(dmapply(function(x,y,z) {
                   x + y + z
-                }, parts(a),parts(c), MoreArgs=list(z=3), output.type="dframe",combine="row",nparts=c(2,1)))
+                }, parts(a),parts(c), MoreArgs=list(z=3), output.type="dframe",combine = "rbind",nparts=c(2,1)))
 
 })
 
@@ -128,7 +128,7 @@ test_that("Dframe: check data.frame operations such as colSums on mixed col. typ
                   return(c(1,2,3))
                 else 
                   return(c(TRUE,FALSE,as.integer(4)))
-               }, 1:4, output.type="dframe", combine="col",nparts=c(4,1))
+               }, 1:4, output.type="dframe", combine="cbind",nparts=c(4,1))
 
   df4gp <- collect(df4)
   expect_equal(as.numeric(colSums(df4gp)), as.numeric(colSums(df4)))
@@ -161,7 +161,7 @@ test_that("Dframe: Fill a matrix partition-by-partition for later comparison wit
 
   da <- dmapply(function(index,rs,cs,cb) { 
                   data.frame(matrix(index, nrow=rs[floor(index/cb)+1],ncol=cs[(index%%cb)+1]))
-                }, 1:(rblocks*cblocks)-1, MoreArgs=list(rs=rsize,cs=csize,cb=cblocks),output.type="dframe", combine="row", nparts=c(rblocks,cblocks))
+                }, 1:(rblocks*cblocks)-1, MoreArgs=list(rs=rsize,cs=csize,cb=cblocks),output.type="dframe", combine = "rbind", nparts=c(rblocks,cblocks))
 
   cnames<-as.character(sample(1:ncol(mat)))
   expect_equal(nrow(da), nrow(mat))

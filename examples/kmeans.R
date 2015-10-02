@@ -25,7 +25,7 @@ feature_obs
 feature <- dmapply(generateKMeansData,id = 1:nInst,
                 MoreArgs = list(centers = centers, nrow = nrow, ncol = ncol),
 		output.type = "darray", 
-		combine = "row", nparts = c(nInst,1))
+		combine = "rbind", nparts = c(nInst,1))
 
 # model <- hpdkmeans(feature,K, trace = TRUE)  # For version using dlists
 model <- hpdkmeansv2(feature,K, trace = TRUE)  # For version using darrays

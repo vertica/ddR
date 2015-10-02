@@ -326,7 +326,7 @@
                 stop("Sparse darray is not supported for xtest")
         } else # splits of this darray will have 0 columns and 0 rows which can be indication of its being NULL insdide foreach 
             xtest <- dmapply(function(a) NA, a = 1:totalParts(x), 
-	    	  output.type = "darray",combine = "row",nparts = c(totalParts(x),1))
+	    	  output.type = "darray",combine = "rbind",nparts = c(totalParts(x),1))
         # validating y
         if(!is.null(y)) {
             if(!dds::is.darray(y))
@@ -337,7 +337,7 @@
             if(Stratify) stop("sampsize should be of length one")
         } else # splits of this darray will have 0 columns and 0 rows which can be indication of its being NULL insdide foreach 
             y <- dmapply(function(a) NA, a = 1:totalParts(x), 
-	      	 output.type = "darray",combine = "row",nparts = c(totalParts(x),1))
+	      	 output.type = "darray",combine = "rbind",nparts = c(totalParts(x),1))
         # validating ytest
         if(!is.null(ytest)) {
             if(is.null(y))
@@ -349,7 +349,7 @@
                 stop("Sparse darray is not supported for ytest")
         } else # splits of this darray will have 0 columns and 0 rows which can be indication of its being NULL insdide foreach 
             ytest <- dmapply(function(a) NA, a = 1:totalParts(x), 
-	    	  output.type = "darray",combine = "row",nparts = c(totalParts(x),1))
+	    	  output.type = "darray",combine = "rbind",nparts = c(totalParts(x),1))
 
         # Each argument of foreach function is limited to 2GB
         # parallel creation of the sub-forests

@@ -45,7 +45,7 @@ setReplaceMethod("names", signature(x = "DObject", value = "ANY"), definition = 
   limits,lens,SIMPLIFY=FALSE)
 
   dmapply(function(x,y) { names(x) <- y; x }, parts(x), namesList,
-          combine="flatten", nparts=totalParts(x))
+          combine="c", nparts=totalParts(x))
 })
 
 #' @export
@@ -277,7 +277,7 @@ setReplaceMethod("dimnames", signature(x = "DObject", value = "list"), definitio
                          value[[2]][start:end]
                       })
 
-  dmapply(function(x,y,z) { dimnames(x) <- list(y,z); x }, parts(x), rowNamesPartition, colNamesPartition, output.type=x@type, combine="row",nparts=nparts(x))
+  dmapply(function(x,y,z) { dimnames(x) <- list(y,z); x }, parts(x), rowNamesPartition, colNamesPartition, output.type=x@type, combine="rbind",nparts=nparts(x))
 })
 
 setGeneric("colnames", signature="x")
@@ -424,7 +424,7 @@ setMethod("rbind", "DObject",
      }
    }
 
-   dmapplyArgs <- c(FUN=fillFunction,dmapplyArgs,output.type=list(out.type),combine=list("row"),nparts=list(nPartsResult))
+   dmapplyArgs <- c(FUN=fillFunction,dmapplyArgs,output.type=list(out.type),combine=list("rbind"),nparts=list(nPartsResult))
 
    do.call(dmapply,dmapplyArgs)
 })
@@ -506,7 +506,7 @@ setMethod("cbind", "DObject",
      }
    }
 
-   dmapplyArgs <- c(FUN=fillFunction,dmapplyArgs,output.type=list(out.type),combine=list("row"),nparts=list(nPartsResult))
+   dmapplyArgs <- c(FUN=fillFunction,dmapplyArgs,output.type=list(out.type),combine=list("rbind"),nparts=list(nPartsResult))
 
    do.call(dmapply,dmapplyArgs)
 })

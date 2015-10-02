@@ -52,14 +52,14 @@ context("test multimodal (mixture of different dobject types) dmapply")
   test_darray <- dmapply(function(x) {
                    start <- 2*(x-1)+1
                    t(as.matrix(c(start,start+1)))
-                }, output.type="darray",1:2,combine="row",nparts=c(2,1))
+                }, output.type="darray",1:2,combine = "rbind",nparts=c(2,1))
 
   # Two partitions, going from 1 to 8, 1 row (4 elem) each
   test_dframe <- dmapply(function(x) {
                    start <- 4*(x-1)+1
                    end <- start + 3 
                    data.frame(t(as.matrix(start:end)))
-                }, output.type="dframe",1:2,combine="row",nparts=c(2,1))
+                }, output.type="dframe",1:2,combine = "rbind",nparts=c(2,1))
 
 test_that("parts-wise multimodal dmapply works", {
   answer <- dmapply(function(x,y,z) {
@@ -69,11 +69,11 @@ test_that("parts-wise multimodal dmapply works", {
 
   expect_equal(collect(answer),list(list(TRUE,TRUE,TRUE,2,3,10), list(TRUE,TRUE,TRUE,2,7,26)))
 
-  #Now check the case with "combine=unlist"
+  #Now check the case with "combine=c"
   answer <- dmapply(function(x,y,z) {
                       list(is.list(x),is.matrix(y),is.data.frame(z),
                            length(x), sum(y), sum(z))
-                    }, parts(test_dlist), parts(test_darray), parts(test_dframe), combine="flatten")
+                    }, parts(test_dlist), parts(test_darray), parts(test_dframe), combine="c")
 
   expect_equal(collect(answer),list(TRUE,TRUE,TRUE,2,3,10, TRUE,TRUE,TRUE,2,7,26))
 })
@@ -134,8 +134,8 @@ context("darray dmapply tests")
 library(Matrix)
 
 test_that("dmapply with dense darray: works", {
-  da <- dmapply(function(x) matrix(5,10,1), 1:1, output.type="darray", combine="row",nparts=c(1,1))
-  db <- dmapply(function(x) matrix(10,1,10), 1:1, output.type="darray", combine="row",nparts=c(1,1))
+  da <- dmapply(function(x) matrix(5,10,1), 1:1, output.type="darray", combine = "rbind",nparts=c(1,1))
+  db <- dmapply(function(x) matrix(10,1,10), 1:1, output.type="darray", combine = "rbind",nparts=c(1,1))
 
   expect_equal(dim(da), c(10,1))
   expect_equal(nparts(da), c(1,1))
@@ -153,7 +153,7 @@ test_that("dmapply with sparse matrices : works", {
   wGF <- dmapply(function(i,el,v,w) { 
                      library(Matrix) 
                      sparseMatrix(i=el[,1],j=el[,2], dims=c(v,v), x=w)
-                     }, 1, output.type="sparse_darray",combine="row",MoreArgs=list(el=el,w=w,v=vNum))
+                     }, 1, output.type="sparse_darray",combine = "rbind",MoreArgs=list(el=el,w=w,v=vNum))
 
   y <- sparseMatrix(i=el[,1], j=el[,2], dims=c(vNum,vNum), x=w)
   gy <- collect(wGF)

@@ -4,7 +4,7 @@ context("DArray metadata and dmapply")
 
  a <- dmapply(function(x) {
              matrix(x, nrow=2, ncol=4)
-             }, 1:2, output.type="darray", combine="row",nparts=c(2,1))
+             }, 1:2, output.type="darray", combine = "rbind",nparts=c(2,1))
 
 test_that("DArray dimensions and collect are correct",{
 
@@ -20,24 +20,24 @@ test_that("DArray-based dmapplies work and throw errors accordingly", {
    # A DArray that has partition dimensions consistent with 'a'
    b <- dmapply(function(x) {
                   matrix(2*x+5, nrow=2, ncol=4)
-               }, 1:2, output.type="darray", combine="row",nparts=c(2,1)) 
+               }, 1:2, output.type="darray", combine = "rbind",nparts=c(2,1)) 
 
    # A DArray that has partition dimensions not consistent with 'a'
    c <- dmapply(function(x) {
                   matrix(2*x+5, nrow=4, ncol=2)
-               }, 1:2, output.type="darray", combine="row",nparts=c(2,1))
+               }, 1:2, output.type="darray", combine = "rbind",nparts=c(2,1))
 
    # Partition-wise addition
    d <- dmapply(function(x,y,z) {
                   x + y + z
-                }, parts(a),parts(b), MoreArgs=list(z=3), output.type="darray",combine="row",nparts=c(2,1))
+                }, parts(a),parts(b), MoreArgs=list(z=3), output.type="darray",combine = "rbind",nparts=c(2,1))
 
    expect_equal(collect(d), do.call(cbind,rep(list(c(11,11,14,14)),4)))
 
    # Same partition-wise addition, this time with incompatible partitioning
    expect_error(dmapply(function(x,y,z) {
                   x + y + z
-                }, parts(a),parts(c), MoreArgs=list(z=3), output.type="darray",combine="row",nparts=c(2,1)))
+                }, parts(a),parts(c), MoreArgs=list(z=3), output.type="darray",combine = "rbind",nparts=c(2,1)))
 
 })
 
@@ -236,7 +236,7 @@ mat=NULL
 
 da <- dmapply(function(index, rs, cs, cb) {
       	     matrix(index, nrow=rs[floor(index/cb)+1],ncol=cs[(index%%cb)+1])
-             }, 0:((rblocks*cblocks)-1), MoreArgs=list(rs=rsize, cs=csize, cb=cblocks), output.type="darray", combine="row",nparts=c(rblocks,cblocks))
+             }, 0:((rblocks*cblocks)-1), MoreArgs=list(rs=rsize, cs=csize, cb=cblocks), output.type="darray", combine = "rbind",nparts=c(rblocks,cblocks))
 
 db <- dmapply(function(index, rs, cs, cb) {
      v<-NULL
@@ -244,7 +244,7 @@ db <- dmapply(function(index, rs, cs, cb) {
      if(index%%3 ==1){v<-NA}
      if(index%%3 ==2){v<-22}
      matrix(v, nrow=rs[floor(index/cb)+1],ncol=cs[(index%%cb)+1])
-     }, 0:((rblocks*cblocks)-1), MoreArgs=list(rs=rsize, cs=csize, cb=cblocks), output.type="darray", combine="row",nparts=c(rblocks,cblocks))
+     }, 0:((rblocks*cblocks)-1), MoreArgs=list(rs=rsize, cs=csize, cb=cblocks), output.type="darray", combine = "rbind",nparts=c(rblocks,cblocks))
 
 test_that("Creation and Fetch works", {
   expect_equal(nrow(da), nrow(mat), info="check nrow of flex darray")
@@ -286,7 +286,7 @@ mat2<-array(val, dim=c(nrow(mat),ncol(mat)))
 
 d1 <- dmapply(function(y, v) {
             matrix(v, nrow=nrow(y),ncol=ncol(y))
-             }, parts(da), MoreArgs=list(v=val), output.type="darray", combine="row",nparts=nparts(da))
+             }, parts(da), MoreArgs=list(v=val), output.type="darray", combine = "rbind",nparts=nparts(da))
 
 #test_that("Operations: sum, minus works", {
 #  expect_equal(collect(da1+da1), (mat+mat), info="check self + operator on flex darray")
@@ -311,7 +311,7 @@ da <- dmapply(function(index, rs, cs, cb) {
                         j=1,
                         x=index+1, 
                         dims=c(nrow,ncol))
-             }, 0:((rblocks*cblocks)-1), MoreArgs=list(rs=rsize, cs=csize, cb=cblocks), output.type="sparse_darray", combine="row",nparts=c(rblocks,cblocks))
+             }, 0:((rblocks*cblocks)-1), MoreArgs=list(rs=rsize, cs=csize, cb=cblocks), output.type="sparse_darray", combine = "rbind",nparts=c(rblocks,cblocks))
 
 
 rindex<-c(1,(cumsum(rsize)+1)[1:length(rsize)-1])
