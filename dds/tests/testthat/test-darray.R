@@ -255,6 +255,15 @@ test_that("Creation and Fetch works", {
   expect_equal(dim(da), dim(mat), info="check dimension of flex darray")
 })
 
+context("Dense darray when passed in MoreArgs")
+test_that("MoreArgs works", {
+  L1 <- dmapply(function(x,y){list(d = dim(x), m = median(x))}, 1, MoreArgs = list(x=da))
+
+  expect_equal(collect(L1)[[1]]$d, dim(mat), info="check dim of darray with MoreArgs")
+  expect_equal(collect(L1)[[1]]$m, median(mat), info="check ncol of darray with MoreArgs")
+})
+
+
 context("Dense darray ops when declared with nparts")
 
 test_that("Operatons: max, min, head, tail works", {

@@ -81,10 +81,9 @@ setMethod("combine",signature(driver="ParallelDDS",items="list"),
     new("ParallelObj",pObj=items[[1]]@pObj,splits = unlist(split_indices), dim = dims, psize = psizes)
 })
 
-#This function calls mclapply internally. 
-## TODO(iR): Parallel processing does not work on Windows due to
-## limitation of parallel package.
-## mL: could use snow package for that, see BiocParallel
+#This function calls mclapply internally when using parallel with "FORK" or 
+#snow's staticClusterApply when used with "PSOCK" option. 
+#On windows only "PSOCK" provides true parallelism.
 
 #' @export
 setMethod("do_dmapply",
@@ -124,6 +123,14 @@ setMethod("do_dmapply",
          }), recursive=FALSE)
       }
     }
+   }
+
+   #Check if MoreArgs contains a distributed object. If yes, convert it into a regular object via collect
+   if(length(MoreArgs)>0){
+      for(index in seq(1, length(MoreArgs))){
+         if(is(MoreArgs[[index]], "DObject"))
+      	   MoreArgs[[index]] <- collect(MoreArgs[[index]])
+      }
    }
 
    answer <- NULL
