@@ -114,14 +114,29 @@ setMethod("do_dmapply",
       #By converting DObject into a normal R object, we let mcmapply handle how iterations on differnt data types
       dots[[num]] <- collect(dots[[num]])
     }else{
-      #There are two cases for a list (1) parts(dobj) or (2) normal list (don't do anything)
-      if(is(dots[[num]],"list") && is(dots[[num]][[1]], "DObject")){
-         dots[[num]] <- unlist (lapply(dots[[num]],function(argument){
+      #There are two cases for a list (1) parts(dobj) or (2) list of parts(dobj)
+
+      if(is(dots[[num]],"list") && any(rapply(dots[[num]], function(x) is(x,"ParallelObj"),how="unlist"))){    
+        tmp <- rapply(dots[[num]],function(argument){
 	    	      if(is(argument,"DObject"))
             	         return(argument@pObj[argument@splits])
-	              else return(argument)
-         }), recursive=FALSE)
+	              else return(argument)}, how="replace")
+
+       #(iR): This is bit of a hack. rapply increases the depth of the list, but at the level that the replacement occured. 
+       #Simply ulist() does not work. If this was just parts(A,..), we can call unlist. If this is a list of parts, then 
+       #we unwrap the second layer of the list. Does unwrap correctly if parts(A) was embedded deeper than that.
+       if(is(dots[[num]][[1]], "DObject")){
+       	  dots[[num]] <- unlist(tmp, recursive=FALSE)
+       } else {
+          for(index in seq_along(tmp)){
+       	        if(length(tmp[[index]])>0)
+			tmp[[index]] <- unlist(tmp[[index]], recursive=FALSE)
+	        else
+			tmp[[index]] <- tmp[[index]]
+ 	       }
+          dots[[num]] <- tmp
       }
+     }
     }
    }
 
