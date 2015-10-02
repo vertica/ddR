@@ -39,6 +39,6 @@ setMethod("rownames", "DistributedRObj",
 #' @export
 setMethod("colnames", "DistributedRObj",
   function(x) {
-    if(is.dlist(x)) stop("Cannot use rownames on a DList. Use names() instead.")
+    if(is.dlist(x)) stop("Cannot use colnames on a DList. Use names() instead.")
     dimnames(x@DRObj)[[2]]
 })
