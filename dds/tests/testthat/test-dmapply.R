@@ -73,7 +73,7 @@ test_that("parts-wise multimodal dmapply works", {
   answer <- dmapply(function(x,y,z) {
                       list(is.list(x),is.matrix(y),is.data.frame(z),
                            length(x), sum(y), sum(z))
-                    }, parts(test_dlist), parts(test_darray), parts(test_dframe), combine="unlist")
+                    }, parts(test_dlist), parts(test_darray), parts(test_dframe), combine="flatten")
 
   expect_equal(collect(answer),list(TRUE,TRUE,TRUE,2,3,10, TRUE,TRUE,TRUE,2,7,26))
 })

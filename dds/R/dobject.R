@@ -790,7 +790,7 @@ repartition.DObject <- function(dobj,skeleton) {
     output 
   }
   
-  if(skeleton@type == "dlist") combine=list("unlist")
+  if(skeleton@type == "dlist") combine=list("flatten")
   else combine=list("row")
 
   dmapply(FUN=repartitioner,partitions,starts,ends,psize=as.list(data.frame(t(psize(skeleton)))),

@@ -44,7 +44,7 @@ setMethod("shutdown","DistributedRDDS",
 )
 
 #' @export
-setMethod("do_dmapply",signature(driver="DistributedRDDS"), 
+setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function"), 
   function(driver,func,...,MoreArgs=list(),output.type="dlist",nparts=NULL,combine="flatten") {
     # margs stores the dmapply args
     margs <- list(...)
