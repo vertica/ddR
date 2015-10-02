@@ -262,7 +262,8 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function"),
       formals(exec_func)[[nm]] <- eval(parse(text=tempStr))
 
       if(num > 1) argsStr <- paste0(argsStr,", ")
-        argsStr <- paste0(argsStr,names(formals(exec_func))[[num]])
+
+      argsStr <- paste0(argsStr,names(formals(exec_func))[[num]])
       if(nchar(orig_nm) != 0 && !is.null(nms)) 
         argsStr <- paste0(argsStr,"=",names(formals(exec_func))[[num]])      
 
@@ -270,10 +271,52 @@ setMethod("do_dmapply",signature(driver="DistributedRDDS",func="function"),
 
     defineFunction <- ".funct <- NULL"
 
+    # Sweep through MoreArgs and check to see if there are any DistributedRObj. If so, remove them for now,
+    # convert into a composite argument, and create statement to reinsert on the executor
+    
+    is.compositeArg <- vapply(MoreArgs,function(x) 
+                      is(x,"DistributedRObj"),FUN.VALUE=logical(1))
+
+    # Remove from MoreArgs
+    compositeArgs <- MoreArgs[is.compositeArg]
+    MoreArgsStr <- "MoreArgs"
+
+    # Convert to composite dobject
+    if(length(compositeArgs) > 0) {
+      argInd <- length(margs)
+      MoreArgsStr <- paste0("c(MoreArgs,list(")
+      for(ind in seq(1,length(compositeArgs))) {
+        if(!identical(compositeArgs[[ind]]@splits,1:(distributedR::npartitions(compositeArgs[[ind]]@DRObj))))
+          stop("Your MoreArgs DObject argument contains only a partial and/or out-of-order split set of the underlying
+                  backend Distributed R object. It cannot be converted into a composite arg") 
+
+        nDobjs <- nDobjs + 1
+        tempName <- paste0(".tempVar",nDobjs)
+        assign(tempName,compositeArgs[[ind]]@DRObj)
+        
+        nm <- names(compositeArgs[ind])
+        orig_nm <- nm
+        if(nchar(nm) == 0 || is.null(nm))
+          nm <- paste0(".tmpVarName",argInd+ind)
+
+        tempStr <- paste0("substitute(splits(",tempName,"),env=parent.frame())")
+        formals(exec_func)[[nm]] <- eval(parse(text=tempStr))
+  
+        if(ind > 1) MoreArgsStr <- paste0(MoreArgsStr,",")
+
+        MoreArgsStr <- paste0(MoreArgsStr,nm)
+        if(nchar(orig_nm) != 0 && !is.null(orig_nm))
+          MoreArgsStr <- paste0(MoreArgsStr,"=",nm)
+      }
+     MoreArgsStr <- paste0(MoreArgsStr,"))")
+    }
+
+    MoreArgs <- MoreArgs[!is.compositeArg]   
+ 
     formals(exec_func)[["MoreArgs"]] <- MoreArgs
     formals(exec_func)[[".newDObj"]] <- substitute(splits(.outObj,index),env=parent.frame())
 
-    execLine <- paste0(".newDObj <- mapply(.funct,",argsStr,",MoreArgs=MoreArgs,SIMPLIFY=FALSE)")
+    execLine <- paste0(".newDObj <- mapply(.funct,",argsStr,",MoreArgs=",MoreArgsStr,",SIMPLIFY=FALSE)")
     
     if(length(nested_parts) > 0) {
       formals(exec_func)[[".execId"]] <- substitute(index) 
