@@ -105,8 +105,6 @@ setMethod("do_dmapply",
   dots <- list(...)
   dlen<-length(dots)
 
-  if(output.type =="dframe" && combine=="flatten") 
-      stop("Cannot flatten a data frame")
 
   for(num in 1:dlen){
     if(is(dots[[num]],"DObject")){
@@ -123,8 +121,8 @@ setMethod("do_dmapply",
 	              else return(argument)}, how="replace")
 
        #(iR): This is bit of a hack. rapply increases the depth of the list, but at the level that the replacement occured. 
-       #Simply ulist() does not work. If this was just parts(A,..), we can call unlist. If this is a list of parts, then 
-       #we unwrap the second layer of the list. Does unwrap correctly if parts(A) was embedded deeper than that.
+       #Simple ulist() does not work. If this was just parts(A,..), we can call unlist. If this is a list of parts, then 
+       #we unwrap the second layer of the list. Unwrapping the second layer is incorrect if parts(A) was embedded deeper than that.
        if(is(dots[[num]][[1]], "DObject")){
        	  dots[[num]] <- unlist(tmp, recursive=FALSE)
        } else {
@@ -224,13 +222,13 @@ setMethod("do_dmapply",
    combineFunc <- list
 
    if(output.type !="dlist"){
-	if(combine == "row"){
+	if(combine == "rbind"){
 	   if(dds.env$RminorVersion > 2) #If R >3.2, use new rbind
 	   	   combineFunc <- rbind
            else
 	   	   combineFunc <- Matrix::rBind
 	}
-	else if(combine == "col"){
+	else if(combine == "cbind"){
 	   if(dds.env$RminorVersion > 2) #If R >3.2, use new cbind
 	   	   combineFunc <- cbind
            else
@@ -240,14 +238,18 @@ setMethod("do_dmapply",
    index<-1
    psizes<-array(0L,dim=c(totalParts,2)) #Stores partition sizes
    while(index <= totalParts){
-   	     if((output.type == "dlist") || (combine != "flatten")){
-	        if(combine == "unlist")
-			     outputObj[[index]]<-do.call(combineFunc, unlist(answer[(elemInEachPart[index]+1):elemInEachPart[index+1]], recursive=FALSE))
+   	     if(output.type == "dlist"){
+	        if(combine == "c")
+			     outputObj[[index]] <- unlist(answer[(elemInEachPart[index]+1):elemInEachPart[index+1]], recursive=FALSE)
 	        else
-			     outputObj[[index]]<-do.call(combineFunc, answer[(elemInEachPart[index]+1):elemInEachPart[index+1]])
-             }
-	     else
-	        	     outputObj[[index]]<-simplify2array(answer[(elemInEachPart[index]+1):elemInEachPart[index+1]], higher=FALSE)
+			     outputObj[[index]] <- answer[(elemInEachPart[index]+1):elemInEachPart[index+1]]
+             }else {
+	        if(combine == "c" || combine =="default")
+	        	     outputObj[[index]] <- simplify2array(answer[(elemInEachPart[index]+1):elemInEachPart[index+1]], higher=FALSE)
+                else
+			     outputObj[[index]] <- do.call(combineFunc, answer[(elemInEachPart[index]+1):elemInEachPart[index+1]])
+	     }
+
 	     d<-dim(outputObj[[index]])
 	     psizes[index,] <-(if(is.null(d)){c(length(outputObj[[index]]),0L)} else {d})
 	     index<-index+1
