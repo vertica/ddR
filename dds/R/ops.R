@@ -253,8 +253,7 @@ setMethod("rowMeans", signature(x="DObject"),
 })
 
 #' @export
-setMethod("max", "DObject",
-  function(x,...,na.rm=FALSE) {
+max.DObject <- function(x,...,na.rm=FALSE) {
     types <- vapply(list(x,...),function(y) is.darray(y) || is.dframe(y),
                FUN.VALUE=logical(1))
 
@@ -273,11 +272,10 @@ setMethod("max", "DObject",
 
     # Return maximum of maxima
     max(maxima)
-})
+}
 
 #' @export
-setMethod("min", "DObject",
-  function(x,...,na.rm=FALSE) {
+min.DObject <- function(x,...,na.rm=FALSE) {
     types <- vapply(list(x,...),function(y) is.darray(y) || is.dframe(y),
                FUN.VALUE=logical(1))
 
@@ -296,7 +294,7 @@ setMethod("min", "DObject",
 
     # Return minimum of minima
     min(minima)
-})
+}
 
 #' @export
 setReplaceMethod("dimnames", signature(x = "DObject", value = "list"), definition = function(x,value) {

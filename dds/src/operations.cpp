@@ -15,9 +15,6 @@
  ********************************************************************/
 
 #include <Rcpp.h>
-#include <algorithm>    // std::binary_search, std::sort
-#include <vector>       // std::vector
-#include <iterator>
 
 using namespace Rcpp;
 
@@ -134,11 +131,11 @@ List getPartitionIdsAndOffsets(List indices, NumericMatrix psizes, NumericVector
    std::vector<Rcpp::NumericVector> partition_offsets_col;
    std::vector<double> partition_ids;
 
-   for(int i = 0; i < rowPartNums.size(); i++) {
+   for(size_t i = 0; i < rowPartNums.size(); i++) {
      double rowPart = rowPartNums[i] * nparts[1];
 
      if(two_d) {
-       for(int j = 0; j < colPartNums.size(); j++) {
+       for(size_t j = 0; j < colPartNums.size(); j++) {
          partition_ids.push_back(rowPart + colPartNums[j]);
          partition_offsets_col.push_back(colOffsetNums[j]);
          partition_offsets_row.push_back(rowOffsetNums[i]);      
@@ -149,7 +146,7 @@ List getPartitionIdsAndOffsets(List indices, NumericMatrix psizes, NumericVector
      }
    }
 
-   int numElem = partition_ids.size();  
+   unsigned numElem = partition_ids.size();  
 
    List partitions(numElem);
    List row_offsets(numElem);  
