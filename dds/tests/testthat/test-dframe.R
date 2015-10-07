@@ -180,6 +180,9 @@ test_that("Dframe: Fill a matrix partition-by-partition for later comparison wit
   expect_equal(as.numeric(rowSums(da)), as.numeric(rowSums(mat)))
   expect_equal(as.numeric(rowMeans(da)), as.numeric(rowMeans(mat)))
   expect_equal(as.numeric(colMeans(da)), as.numeric(colMeans(mat)))
+
+  expect_true(all(head(da)== head(mat)))
+  expect_true(all(tail(da)== tail(mat)))
 })
 
 context("Testing as.dframe")
