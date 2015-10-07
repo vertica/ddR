@@ -5,6 +5,8 @@ Author: HP Vertica Analytics Team
 Maintainer: HP Vertica Analytics Team <distributedRTeam@external.groups.hp.com>
 Description: This package provides distributed data-structures. It simplifies distributed computing in R.
 Depends: methods, R (>= 3.0.0)
-Imports: Matrix, parallel
+Imports: Matrix, parallel,
+    Rcpp
 License: GPLv2
 LazyData: true
+LinkingTo: Rcpp

@@ -15,6 +15,9 @@
 # Boston, MA 02111-1307 USA.
 ###################################################################
 
+#' @useDynLib dds
+#' @importFrom Rcpp sourceCpp
+
 #' @importFrom methods setClass setGeneric setMethod 
 NULL
 

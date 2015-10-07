@@ -61,27 +61,79 @@ unique.DObject <- function(x, ...) {
 }
 
 #' @export
-setMethod("[", c("DObject", "numeric", "missing","ANY"), 
-  function(x, i, j, ..., drop=TRUE) {
-  if(is.dlist(x)){
-    stopifnot(max(i) <= length(x) && min(i) > 0)
-    indicesAndOffsets <- mapply(findPartitionByIndex,i,MoreArgs=list(cumRowIndex=cumsum(psize(x)[,1])))
+head.DObject <- function(x, n = 6L) {
+  if(n<0) stop("n must be greater than or equal to 0")
 
-    # Use run-length encoding algorithm to determine repeated partition sequences
-    sequences <- rle(indicesAndOffsets[1,])
+  n <- min(n,dim(x)[[1]])
 
-    temp <- c(0,cumsum(sequences$lengths)) + 1
-    temp <- temp[seq((length(temp)-1))]
-
-    partitionIndices <- as.list(sequences$values)
-    valueOffsets <- mapply(function(x,y) { 
-      indicesAndOffsets[2,x:(x+y-1)]
-    },
-   temp,sequences$lengths,SIMPLIFY=FALSE)
-
-   values <- dmapply(function(x,y) { x[y] }, parts(x, partitionIndices), valueOffsets)
+  if(is.dlist(x)) {
+    if(n==0) return(list())
+    x[1:n]
+  } else {
+    if(n==0) {
+      temp <- matrix(0,0,dim(x)[[2]])
+      colnames(temp) <- colnames(x)
+      if(is.dframe(x)) temp <- as.data.frame(temp)
+      return(temp)
+    }
+    x[1:n,1:(dim(x)[[2]]),drop=FALSE]
+  }
 }
-   unlist(collect(values),recursive=FALSE)
+
+#' @export
+tail.DObject <- function(x, n = 6L) {
+  if(n<0) stop("n must be greater than or equal to 0")
+
+  n <- min(n,dim(x)[[1]])
+
+  if(is.dlist(x)) {
+    if(n==0) return(list())
+    x[(length(x) - n + 1):length(x)]
+  } else {
+    if(n==0) {
+      temp <- matrix(0,0,dim(x)[[2]])
+      colnames(temp) <- colnames(x)
+      if(is.dframe(x)) temp <- as.data.frame(temp)
+      return(temp)
+    }
+    x[(dim(x)[[1]] - n + 1):(dim(x)[[1]]),1:(dim(x)[[2]]),drop=FALSE]
+  }
+}
+
+#' @export
+setMethod("[", c("DObject", "numeric", "ANY","ANY"), 
+  function(x, i, j, ..., drop=TRUE) {
+    stopifnot(max(i) <= dim(x)[[1]] && min(i) > 0)
+
+    if(is.dlist(x)){
+      order <- rank(i)
+      result <- getPartitionIdsAndOffsets(list(sort(i)), psize(x), nparts(x))
+
+      values <- dmapply(function(x,y) { x[y] }, parts(x, result$partitions), result$row_offsets)
+      out <- unlist(collect(values),recursive=FALSE)[order]
+    } else {
+      # TODO(etduwx): Currently this forces the second argument to exist, need to add support for 
+      # single indexing
+      stopifnot(is.numeric(j))
+      order_i <- rank(i)
+      order_j <- rank(j)
+
+      result <- getPartitionIdsAndOffsets(list(sort(i),sort(j)), psize(x), nparts(x))
+
+      starting_row <- (result$partitions[[1]]-1)/(nparts(x)[[2]])
+      starting_id <- starting_row * nparts(x)[[2]] 
+
+      nparts_across <- sum(result$partitions <= (starting_id + nparts(x)[[2]]))
+      nparts_down <- length(result$partitions) / nparts_across
+
+      values <- dmapply(function(x,y,z) { 
+                          x[y,z,drop=FALSE] 
+                        }, parts(x, result$partitions), result$row_offsets,
+                          result$col_offsets, output.type = x@type, combine="rbind", nparts=c(nparts_down,nparts_across))
+      out <- collect(values)[order_i,order_j,drop=drop]
+    }
+
+    out
 })
 
 #' @export
@@ -105,11 +157,16 @@ collect(matching)[[name]]
 #' @export
 setMethod("[[", c("DObject", "numeric", "ANY"),
   function(x, i, j, ...) {
-  if(is.dlist(x)) {
-  stopifnot(length(i) < 2)
-
-  unlist(unname(x[i]),recursive=FALSE)
- }
+    stopifnot(length(i) < 2)
+    if(is.dlist(x)) {
+      unlist(unname(x[i]),recursive=FALSE)
+    } else {
+      # TODO(etduwx): Currently this forces the second argument to exist, need to add support for 
+      # single indexing
+     stopifnot(is.numeric(j))
+     stopifnot(length(j) < 2)
+     x[i,j] 
+   }
 })
 
 # Internal helper function

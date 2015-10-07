@@ -664,43 +664,17 @@ repartition <- function(dobj, skeleton) {
 #' @export
 repartition.DObject <- function(dobj,skeleton) {
  
-  verticalValues <- NULL
-  horizontalValues <- NULL
-  index <- 0
   dims <- length(dim(skeleton))
-
   stopifnot(dim(dobj) == dim(skeleton))
 
   # Don't do anything if partitioning is already the same
   if(identical(psize(dobj),psize(skeleton))) return(dobj)
-
-  if(dims > 1) {
-    while(is.null(horizontalValues) || tail(horizontalValues,n=1L) < dim(dobj)[[2]]) {
-      if(is.null(horizontalValues)) prevMax <- 0
-      else prevMax <- horizontalValues[index]
-      index <- index + 1
-      horizontalValues <- c(horizontalValues,psize(dobj,index)[[2]] + prevMax)
-    }
-  }
-
-  nparts_per_row <- ifelse(dims > 1, index, 1)
-
-  count <- 0
-  if(index==0) index <- 1
-
-  while(is.null(verticalValues) || tail(verticalValues,n=1L) < dim(dobj)[[1]]) {
-    if(is.null(verticalValues)) prevMax <- 0
-    else prevMax <- verticalValues[count]
-    verticalValues <- c(verticalValues,psize(dobj,index)[[1]] + prevMax)
-    index <- index + nparts_per_row
-    count <- count + 1
-  }
-
+  
   cur_row <- 0
   cur_col <- 0
   index <- 0
 
-  starts_and_ends <- matrix(0,totalParts(skeleton),4)
+  partitionIndices <- vector(mode = "list", length = totalParts(skeleton))
 
   if(dims > 1) {
     col_end <- dim(skeleton)[[2]]
@@ -718,12 +692,12 @@ repartition.DObject <- function(dobj,skeleton) {
 
     if(dims > 1) {
       end_y <- cur_col + psize(skeleton,index)[[2]]
+      partitionIndices[[index]] <- list(start_x:end_x,start_y:end_y)
     } else {
       end_y <- 1
+      partitionIndices[[index]] <- list(start_x:end_x)
     }
  
-    starts_and_ends[index,] <- c(start_x,end_x,start_y,end_y)
-
     cur_col <- end_y
 
     if(cur_col >= col_end) {
@@ -732,22 +706,21 @@ repartition.DObject <- function(dobj,skeleton) {
     }
   }
 
-  if(dims==1) {
-    partitionIdsAndOffsets <- mapply(getIdsAndOffsets,starts_and_ends[,1],starts_and_ends[,2],starts_and_ends[,3],starts_and_ends[,4],MoreArgs=list(vertical=verticalValues,psizes=psize(dobj)),SIMPLIFY=FALSE)
-  } else {
-  partitionIdsAndOffsets <- mapply(getIdsAndOffsets,starts_and_ends[,1],starts_and_ends[,2],starts_and_ends[,3],starts_and_ends[,4],MoreArgs=list(vertical=verticalValues,horizontal=horizontalValues,psizes=psize(dobj)),SIMPLIFY=FALSE)
-  }
+  partitionIdsAndOffsets <- mapply(getPartitionIdsAndOffsets,partitionIndices,
+       MoreArgs=list(psizes=psize(dobj),nparts=nparts(dobj)),SIMPLIFY=FALSE)
 
   partitions <- lapply(partitionIdsAndOffsets,
-                  function(x) parts(dobj,as.list(x$parts)))
+                  function(x) parts(dobj,as.list(x$partitions)))
 
-  starts <- lapply(partitionIdsAndOffsets,
-                  function(x) as.list(x$starts))
+  rows <- lapply(partitionIdsAndOffsets,
+                  function(x) as.list(x$row_offsets))
                    
-  ends <- lapply(partitionIdsAndOffsets,
-                  function(x) as.list(x$ends))
+  if(dims > 1) {
+    cols <- lapply(partitionIdsAndOffsets,
+                  function(x) as.list(x$col_offsets))
+  }  
 
-  repartitioner <- function(partitions,starts,ends,psize,type) {
+  repartitioner <- function(partitions,rows,cols,psize,type) {
     
     index <- 1
     dims <- length(psize)    
@@ -766,13 +739,16 @@ repartition.DObject <- function(dobj,skeleton) {
 
     while(index <= length(partitions)) {
 
-      endingPosition <- currentPosition + ends[[index]] - starts[[index]]
+      if(dims > 1)
+        endingPosition <- currentPosition + c((length(rows[[index]])-1),(length(cols[[index]])-1))
+      else
+        endingPosition <- currentPosition + length(rows[[index]]) - 1
 
-      if(type=="dlist") {
-        output[currentPosition:endingPosition] <- partitions[[index]][starts[[index]]:ends[[index]]]
+      if(dims < 2) {
+        output[currentPosition:endingPosition] <- partitions[[index]][rows[[index]]]
       } else {
         output[currentPosition[[1]]:endingPosition[[1]],currentPosition[[2]]:endingPosition[[2]]] <-
-        partitions[[index]][starts[[index]][[1]]:ends[[index]][[1]],starts[[index]][[2]]:ends[[index]][[2]]]
+        partitions[[index]][rows[[index]],cols[[index]]]
       }
 
       index <- index + 1
@@ -793,154 +769,15 @@ repartition.DObject <- function(dobj,skeleton) {
   if(skeleton@type == "dlist") combine="c"
   else combine="rbind"
 
-  dmapply(FUN=repartitioner,partitions,starts,ends,psize=as.list(data.frame(t(psize(skeleton)))),
+  if(dims > 1) {
+    dmapply(FUN=repartitioner,partitions=partitions,rows=rows,cols=cols,psize=as.list(data.frame(t(psize(skeleton)))),
             MoreArgs=list(type=skeleton@type), output.type=skeleton@type, combine=combine,
             nparts=nparts(skeleton))
-}
-
-# Given a starting x and y range, get the full list of partition ids and offsets
-getIdsAndOffsets <- function(start_x,end_x,start_y,end_y,vertical,horizontal=NULL,psizes) {
-
-  # Top left corner
-  start_x_start_y <- getCorners(start_x,start_y,vertical,horizontal)
-
-  # Bottom right corner
-  end_x_end_y <- getCorners(end_x,end_y,vertical,horizontal)
-
-  if(!is.null(horizontal)) {
-    lenVertical <- floor((end_x_end_y[[1]]-start_x_start_y[[1]])/length(horizontal))
   } else {
-    lenVertical <- end_x_end_y[[1]]-start_x_start_y[[1]]
+    dmapply(FUN=repartitioner,partitions=partitions,rows=rows,psize=as.list(data.frame(t(psize(skeleton)))),
+            MoreArgs=list(cols=NULL,type=skeleton@type), output.type=skeleton@type, combine=combine,
+            nparts=nparts(skeleton))
   }
-
-  if(is.null(horizontal)) {
-    start_x_end_y <- start_x_start_y
-    end_x_start_y <- end_x_end_y
-  } else {
-    start_x_end_y <- list(end_x_end_y[[1]] - lenVertical*length(horizontal),c(start_x_start_y[[2]][[1]],end_x_end_y[[2]][[2]]))
-    end_x_start_y <- list(lenVertical*length(horizontal) + start_x_start_y[[1]], c(end_x_end_y[[2]][[1]],start_x_start_y[[2]][[2]])) 
-  }
-
-  lenHorizontal <- start_x_end_y[[1]]-start_x_start_y[[1]]
-
-  if(is.null(horizontal)) partitions_range <- start_x_start_y[[1]]:end_x_end_y[[1]]
-  else partitions_range <- start_x_start_y[[1]]:start_x_end_y[[1]] 
-  
-  partitions <- partitions_range
-
-  if(lenVertical > 0 && !is.null(horizontal)) {
-    for(i in seq(lenVertical)) {
-      partitions <- c(partitions,partitions_range+length(horizontal)*i)
-    }
-  }
-
-  offset_start <- list(start_x_start_y[[2]])
-  
-  if(is.null(horizontal)) {
-    offset_start <- c(offset_start,rep(list(1),lenVertical))
-  } else {
-    offset_start <- c(offset_start,rep(list(c(start_x_start_y[[2]][[1]],1)),lenHorizontal))
-  }
-
-  if(lenVertical > 0 && !is.null(horizontal)) {
-    for(i in seq(lenVertical)) {
-       offset_start <- c(offset_start,list(c(1,start_x_start_y[[2]][[2]])))
-       offset_start <- c(offset_start,rep(list(c(1,1)),lenHorizontal))
-    }
-  }
-
-  offset_end <- list(end_x_end_y[[2]])
-
-  partitionIdRow <- seq(end_x_end_y[[1]]-lenHorizontal,end_x_end_y[[1]]-1)
-  partitionIdRow <- rev(partitionIdRow)
-
-  partitionIdCol <- rev(seq(start_x_start_y[[1]],end_x_end_y[[1]]-1))
-
-  if(lenHorizontal > 0 || is.null(horizontal)) {
-    if(is.null(horizontal)) {
-      if(lenVertical > 0) {
-        offset_end <- c(offset_end,lapply(partitionIdCol,function(x) { psizes[x,1] } ))
-      }
-    } else {
-      offset_end <- c(offset_end,lapply(partitionIdRow,function(x) { c(end_x_end_y[[2]][[1]],psizes[x,2]) }))
-    } 
-  }  
-
-  if(lenVertical > 0 && !is.null(horizontal)) {
-    for(i in seq(lenVertical)) {
-      endPartition <- end_x_end_y[[1]] - i*length(horizontal)
-      partitionIdRow <- seq(endPartition - lenHorizontal,endPartition-1)
-      partitionIdRow <- rev(partitionIdRow)
-      offset_end <- c(offset_end,list(c(psizes[endPartition,1],end_x_end_y[[2]][[2]])))
-      if(lenHorizontal > 0) {
-        offset_end <- c(offset_end,lapply(partitionIdRow,function(x) { psizes[x,] }))
-      }
-    }
-  }
-
-  offset_end <- rev(offset_end)
-
-  list(parts=partitions,starts=offset_start,ends=offset_end)
-}
-
-# Given coordinates x and y, with horizontal and vertical cutoffs, return the partition id and offset
-getCorners <- function(x,y,vertical,horizontal=NULL) {
-  # Binary search through each dimension
-
-  times <- ifelse(is.null(horizontal),1,2)
-  indices <- NULL
-  offsets <- NULL
-
-  if(!is.null(horizontal))
-    numPerRow <- length(horizontal)
-  
-  for(i in seq(times)) {
-    lower <- 1
-    upper <- ifelse(i==1,length(vertical),length(horizontal))
-
-    if(i==2) {
-      x <- y
-      vertical <- horizontal
-    }
-
-    while(lower<=upper) {
-      index <- floor((upper + lower)/2)
-      if(vertical[index] >= x) {
-        if(index > 1) {
-          if(vertical[index-1] < x) {
-            offset <- x - vertical[index-1]
-            break
-          }
-        } else {
-           offset <- x 
-           break
-        }
-         upper <- index - 1  
-      } else {
-        if(index < length(vertical)) {
-          if(vertical[index+1] > x) {
-            index <- index+1
-            offset <- x - vertical[index-1]
-            break
-          }
-        } else {
-          stop("not found")
-          break
-         }
-         lower <- index + 1
-      }
-    } 
-     indices <- c(indices,index)
-     offsets <- c(offsets,offset)
-  }
-  
-  if(length(indices) == 1) {
-    partition_id <- indices[[1]]
-  } else {
-    partition_id <- numPerRow*(indices[[1]]-1) + indices[[2]]
-  }
-
-  list(partition_id,offsets)
 }
 
 #Helper function to check dimension and psizes when DObjects are initialized
