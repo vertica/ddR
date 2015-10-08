@@ -20,16 +20,22 @@ setClass("ParallelDDS", contains="DDSDriver")
 #' @export 
 # Exported Driver
 parallel <- new("ParallelDDS",DListClass = "ParallelObj",DFrameClass = "ParallelObj",DArrayClass = "ParallelObj",backendName = "parallel")
-
 # Driver for the parallel package. Parallel is also the default backend.
 dds.env$driver <- parallel
+
 #Set environment and default number of cores to total no. of cores (but one on windows)
 #Note that DetectCores() can return NA. If it's windows we use SNOW by default
 parallel.dds.env <- new.env(emptyenv())
 parallel.dds.env$cores <- parallel::detectCores(all.tests=TRUE, logical=FALSE) 
 parallel.dds.env$clusterType <- "FORK"
+parallel.dds.env$snowCluster <- NULL
 if(is.na(parallel.dds.env$cores)){ parallel.dds.env$cores <- 1 }
-if(.Platform$OS.type == "windows") {
+if((.Platform$OS.type == "windows")) {parallel.dds.env$clusterType <- "PSOCK"}
+
+#Function to initialize SNOW on windows
+initializeSnowOnWindows<-function(){
+  cl <- parallel::makeCluster(getOption("cl.cores", parallel.dds.env$cores))
+  parallel.dds.env$snowCluster <- cl
   parallel.dds.env$clusterType <- "PSOCK"
 }
 
@@ -44,11 +50,12 @@ setMethod("init","ParallelDDS",
   }
 
   #On windows parallel can use only a single core. We need to use socket based SNOW for more number of cores.
-  if((.Platform$OS.type == "windows" && executors!=1) || type =="PSOCK") {
+  if((.Platform$OS.type == "windows" &&  parallel.dds.env$cores!=1 ) || type =="PSOCK") {
      message("Using socket based parallel (SNOW) backend.")
-     cl <- parallel::makeCluster(getOption("cl.cores", parallel.dds.env$cores))
-     parallel.dds.env$snowCluster <- cl
-     parallel.dds.env$clusterType <- "PSOCK"
+     initializeSnowOnWindows()
+  } else{
+     if(.Platform$OS.type == "windows" && parallel.dds.env$cores>1) { stop("On windows, multi-process execution with FORK is not supported for more than one core. Use backend with type = 'PSOCK'")}
+     parallel.dds.env$clusterType <- "FORK"
   }
   return (parallel.dds.env$cores)
 })
@@ -152,6 +159,7 @@ setMethod("do_dmapply",
    #Now iterate in parallel
    if(parallel.dds.env$clusterType == "PSOCK"){
     # We are using the SNOW backend, i.e., clusterMap. Check code with print(clusterMap)
+    if(is.null(parallel.dds.env$snowCluster)){initializeSnowOnWindows()}
 
     #TODO(iR): Should change sapply to "lengths" which is available for R> 3.2
     n <- sapply(dots, length)

@@ -275,8 +275,8 @@ test_that("Operatons: max, min, head, tail works", {
   expect_equal(rowSums(da), rowSums(mat), info="check rowSums of flex darray")
   expect_equal(colMeans(da), colMeans(mat), info="check colMeans of flex darray")
   expect_equal(rowMeans(da), rowMeans(mat), info="check rowMeans of flex darray")
-  #expect_equal(head(da), head(mat), info="check head operator on flex darray")
-  #expect_equal(as.numeric(tail(da)), as.numeric(tail(mat)), info="check tail operator on flex darray")
+  expect_equal(head(da), Matrix::head(mat), info="check head operator on flex darray")
+  expect_equal(as.numeric(tail(da)), as.numeric(Matrix::tail(mat)), info="check tail operator on flex darray")
   #expect_equal(norm(da), norm(mat,"F"), info="check norm operator on flex darray")
 })
 
@@ -305,6 +305,7 @@ rsize <- sample(1:10, rblocks)
 csize <- sample(1:10, cblocks)
 
 da <- dmapply(function(index, rs, cs, cb) {
+        library(Matrix)
         nrow=rs[floor(index/cb)+1]
         ncol=cs[(index%%cb)+1]
         y<-sparseMatrix(i=1,
