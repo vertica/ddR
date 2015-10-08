@@ -151,7 +151,7 @@ List getPartitionIdsAndOffsets(List indices, NumericMatrix psizes, NumericVector
    List partitions(numElem);
    List row_offsets(numElem);  
 
-   for(int i = 0; i < numElem; i ++) {
+   for(unsigned i = 0; i < numElem; i ++) {
      partitions[i] = partition_ids[i] + 1;
      row_offsets[i] = NumericVector(partition_offsets_row[i]);
    }
@@ -162,7 +162,7 @@ List getPartitionIdsAndOffsets(List indices, NumericMatrix psizes, NumericVector
    } else {
      List col_offsets(numElem);
 
-     for(int i = 0; i < numElem; i ++) {
+     for(unsigned i = 0; i < numElem; i ++) {
        col_offsets[i] = NumericVector(partition_offsets_col[i]);
      }
 

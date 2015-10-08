@@ -684,10 +684,8 @@ repartition.DObject <- function(dobj,skeleton) {
 
   while(index < totalParts(skeleton)) {
     index <- index + 1
-
     start_x <- cur_row + 1  
     end_x <- cur_row + psize(skeleton,index)[[1]]
-
     start_y <- cur_col + 1
 
     if(dims > 1) {
@@ -738,7 +736,6 @@ repartition.DObject <- function(dobj,skeleton) {
     currentPosition <- rep(1,dims)
 
     while(index <= length(partitions)) {
-
       if(dims > 1)
         endingPosition <- currentPosition + c((length(rows[[index]])-1),(length(cols[[index]])-1))
       else
