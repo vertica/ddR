@@ -81,7 +81,7 @@ head.DObject <- function(x, n = 6L, ...) {
 }
 
 #' @export
-tail.DObject <- function(x, n = 6L, ...) {
+tail.DObject <- function(x, n = 6L, addrownums = TRUE, ...) {
   if(n<0) stop("n must be greater than or equal to 0")
 
   n <- min(n,dim(x)[[1]])

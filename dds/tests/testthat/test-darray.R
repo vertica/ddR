@@ -342,6 +342,6 @@ test_that("Operatons: max, min, head, tail works", {
   expect_equal(rowSums(da), rowSums(mat), info="check rowSums of flex sparse darray")
   expect_equal(colMeans(da), colMeans(mat), info="check colMeans of flex sparse darray")
   expect_equal(rowMeans(da), rowMeans(mat), info="check rowMeans of flex sparse darray")
-  expect_equal(head(da), head(mat), info="check head operator on flex sparse darray")
-  expect_equal(as.numeric(tail(da)), as.numeric(tail(mat)), info="check tail operator on flex sparse darray")
+  expect_equal(head(da), Matrix::head(mat), info="check head operator on flex sparse darray")
+  expect_equal(as.numeric(tail(da)), as.numeric(Matrix::tail(mat)), info="check tail operator on flex sparse darray")
 })
