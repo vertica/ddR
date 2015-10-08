@@ -19,6 +19,7 @@
 #' @importFrom Rcpp sourceCpp
 
 #' @importFrom methods setClass setGeneric setMethod 
+#' @importFrom utils head tail 
 NULL
 
 # Current driving backend package. Package global variable
