@@ -2,6 +2,8 @@
 *.Rcheck
 *.o
 *.so
+*.dll
+*.rds
 /dds/GPATH
 /dds/GRTAGS
 /dds/GTAGS
