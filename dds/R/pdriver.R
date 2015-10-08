@@ -24,11 +24,14 @@ parallel <- new("ParallelDDS",DListClass = "ParallelObj",DFrameClass = "Parallel
 # Driver for the parallel package. Parallel is also the default backend.
 dds.env$driver <- parallel
 #Set environment and default number of cores to total no. of cores (but one on windows)
-#Note that DetectCores() can return NA. 
+#Note that DetectCores() can return NA. If it's windows we use SNOW by default
 parallel.dds.env <- new.env(emptyenv())
 parallel.dds.env$cores <- parallel::detectCores(all.tests=TRUE, logical=FALSE) 
 parallel.dds.env$clusterType <- "FORK"
 if(is.na(parallel.dds.env$cores)){ parallel.dds.env$cores <- 1 }
+if(.Platform$OS.type == "windows") {
+  parallel.dds.env$clusterType <- "PSOCK"
+}
 
 #' @export
 # Initialize the no. of cores in parallel backend
@@ -150,7 +153,8 @@ setMethod("do_dmapply",
    if(parallel.dds.env$clusterType == "PSOCK"){
     # We are using the SNOW backend, i.e., clusterMap. Check code with print(clusterMap)
 
-    n <- lengths(dots)
+    #TODO(iR): Should change sapply to "lengths" which is available for R> 3.2
+    n <- sapply(dots, length)
     vlen <- max(n)
     if (vlen && min(n) == 0L) 
         stop("zero-length inputs cannot be mixed with those of non-zero length")
