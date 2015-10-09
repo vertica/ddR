@@ -229,10 +229,10 @@ setMethod("do_dmapply",
           if(nested_list) {        
             switch_statement <- eval(parse(text=paste0("substitute(",nm,"<-switch(.execId))")),envir=new.env())
             for(x in seq(1,length(temp))) {
-              # Remove contents, but maintain structure of lits
+              # Remove contents, but maintain structure of list
               skel <- rapply(temp[[x]],function(x) NULL, how="replace")
 
-              rhs <- eval(parse(text=paste0("substitute(",deparse(skel),")")),envir=new.env())
+              rhs <- eval(parse(text=paste0("substitute(",paste0(deparse(skel),collapse=""),")")),envir=new.env())
               indices <- 2
               # number the nested list items in a depth-first fashion 
               count <- 1
