@@ -126,8 +126,8 @@ setMethod("do_dmapply",
         if(!identical(unname(applyIterations), modelApplyIterations)
             || (arg@psize[1,][[1]] != arg@dim[[1]] && arg@type != "dlist")) {
           if(!warned) {
-            warning(paste0("At least one repartitioning of an input variable has been triggered. 
-              For better performance, partition your outputs and inputs in a compatible fashion."))
+            warning(paste("At least one repartitioning of an input variable has been triggered.", 
+              "For better performance, partition your outputs and inputs in a compatible fashion."))
             warned <- TRUE
           }
 
