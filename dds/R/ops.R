@@ -301,8 +301,6 @@ setReplaceMethod("dimnames", signature(x = "DObject", value = "list"), definitio
   stopifnot(length(value) == length(dim(x)))
     if(is.dlist(x)) stop("Cannot use dimnames on a DList. Use names() instead.")
 
-  if(length(value[[1]]) != dim(x)[[1]] || length(value[[2]]) != dim(x)[[2]]) stop("Length of an assigned name vector did not match the dimension of the DObject")
-
   rowBoundaries <- cumsum(psize(x,seq(1,totalParts(x),by=nparts(x)[[2]]))[,1])
   rowBoundaries <- c(0,rowBoundaries) + 1
   rowBoundaries <- rowBoundaries[seq(length(rowBoundaries) -1)]
