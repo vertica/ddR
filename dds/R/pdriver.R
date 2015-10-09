@@ -71,26 +71,6 @@ setMethod("shutdown","ParallelDDS",
     }
 })
 
-setMethod("combine",signature(driver="ParallelDDS",items="list"),
-  function(driver,items){
-    split_indices <- lapply(items,function(x) {
-      x@splits
-    })
-    dims <- lapply(items,function(x) {
-      x@dim
-    })
-
-    psizes <- lapply(items,function(x) {
-      x@psize
-    })
-
-    dims <- Reduce("+",dims) 
-    psizes <- Reduce("rbind",psizes)
-    rownames(psizes) <- NULL
-    
-    new("ParallelObj",pObj=items[[1]]@pObj,splits = unlist(split_indices), dim = dims, psize = psizes)
-})
-
 #This function calls mclapply internally when using parallel with "FORK" or 
 #snow's staticClusterApply when used with "PSOCK" option. 
 #On windows only "PSOCK" provides true parallelism.

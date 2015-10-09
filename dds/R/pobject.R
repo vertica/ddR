@@ -43,6 +43,25 @@ setMethod("initialize", "ParallelObj", function(.Object, ...) {
    .Object
 })
 
+setMethod("combine",signature(driver="ParallelDDS",items="list"),
+  function(driver,items){
+    split_indices <- lapply(items,function(x) {
+      x@splits
+    })
+    dims <- lapply(items,function(x) {
+      x@dim
+    })
+
+    psizes <- lapply(items,function(x) {
+      x@psize
+    })
+
+    dims <- Reduce("+",dims)
+    psizes <- Reduce("rbind",psizes)
+    rownames(psizes) <- NULL
+
+    new("ParallelObj",pObj=items[[1]]@pObj,splits = unlist(split_indices), dim = dims, psize = psizes)
+})
 
 #' @export
 setMethod("get_parts",signature("ParallelObj","missing"),
