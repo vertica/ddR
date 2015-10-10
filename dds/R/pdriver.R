@@ -214,6 +214,11 @@ setMethod("do_dmapply",
    combineFunc <- list
 
    if(output.type !="dlist"){
+       #Setup the partition types that we will use later to check if partitions conform to output.type.   
+       if(output.type == "darray") ptype<-"matrix"
+       if(output.type == "dframe") ptype<-"data.frame"
+       if(output.type == "sparse_darray") ptype<-c("dsCMatrix", "dgCMatrix")
+
 	if(combine == "rbind"){
 	   if(dds.env$RminorVersion > 2) #If R >3.2, use new rbind
 	   	   combineFunc <- rbind
@@ -236,10 +241,12 @@ setMethod("do_dmapply",
 	        else
 			     outputObj[[index]] <- answer[(elemInEachPart[index]+1):elemInEachPart[index+1]]
              }else {
-	        if(combine == "c" || combine =="default")
+	        if(combine == "c" || combine =="default"){
 	        	     outputObj[[index]] <- simplify2array(answer[(elemInEachPart[index]+1):elemInEachPart[index+1]], higher=FALSE)
-                else
+                }else{
 			     outputObj[[index]] <- do.call(combineFunc, answer[(elemInEachPart[index]+1):elemInEachPart[index+1]])
+                }
+	        if(!(class(outputObj[[index]]) %in% ptype)) {stop("Each partition of the result should be of type = ", ptype, ", to match with output.type =", output.type)}
 	     }
 
 	     d<-dim(outputObj[[index]])

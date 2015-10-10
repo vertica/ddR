@@ -125,9 +125,9 @@ context("check data.frame operations such as colSums on mixed col. types")
 test_that("Dframe: check data.frame operations such as colSums on mixed col. types",{
   df4<-dmapply(function(x) {
                 if(x==3) 
-                  return(c(1,2,3))
+                  return(data.frame(v=c(1,2,3)))
                 else 
-                  return(c(TRUE,FALSE,as.integer(4)))
+                  return(data.frame(v=c(TRUE,FALSE,as.integer(4))))
                }, 1:4, output.type="dframe", combine="cbind",nparts=c(4,1))
 
   df4gp <- collect(df4)
