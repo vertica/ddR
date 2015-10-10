@@ -29,7 +29,7 @@
 ### code gratefully copied from randomForest.formula (package randomForest_4.6-10).
 ###
     if (missing(nExecutor)) {
-        nExecutor <- sum(distributedR_status()$Inst)
+        stop("'nExecutor' is required argument")
     } else {
         nExecutor <- round(nExecutor)
         if(nExecutor <= 0)
@@ -719,7 +719,7 @@ predict.hpdRF_parallelForest <- function (object, newdata, trace=FALSE) {
             have.dframe = FALSE
         }
 
-	predictFunction <- function(object, new, have.dframe)
+	predictFunction <- function(object, new, have.dframe, coln)
 	{
 		result <- tryCatch({
                        colnames(new) <- coln
@@ -732,7 +732,8 @@ predict.hpdRF_parallelForest <- function (object, newdata, trace=FALSE) {
 	      return(result)
 	}
 	output <- dmapply(predictFunction, new = parts(newdata), 
-		    MoreArgs = list(object = object, have.dframe = have.dframe))
+		    MoreArgs = list(object = object, have.dframe = have.dframe,
+		    coln = colnames(newdata)))
 
 	parseError <- function(output){
 	if(inherits(output,"error")) 

@@ -3,8 +3,8 @@ library(dds.randomForest)
 nInst = 4 # Change level of parallelism
 
 # Uncomment the following lines to use Distributed R
-#library(distributedR.dds)
-#useBackend(distributedR)
+library(distributedR.dds)
+useBackend(distributedR)
 
 # Set up data size
 ncol = 10
@@ -18,7 +18,7 @@ generateRFData <- function(id, centers, nrow, ncol) {
 offsets = matrix(rnorm(nrow*ncol),nrow = nrow,ncol = ncol)
 cluster_ids = sample.int(nrow(centers),nrow,replace = TRUE)
 feature_obs = centers[cluster_ids,] + offsets
-features <- cbind(cluster_ids, feature_obs)
+features <- data.frame(cluster_ids, feature_obs)
 }
 
 
@@ -31,26 +31,26 @@ colnames(features) <- paste("X",1:ncol(features),sep="")
 
 
 cat("\nStarting random forest using formula interface:")
-training <- system.time(model <- hpdRF_parallelForest(X1 ~ ., features))[3]
+training <- system.time(model <- hpdRF_parallelForest(X1 ~ ., features,nExecutor = nInst))[3]
 predicting <- system.time(predictions <- predict(model, features))[3]
 cat("\n\ttraining model took: \t", training," seconds \n\tpredictions took: \t",predicting," seconds\n")
 
 cat("\nStarting random forest using x,y darray interface")
-features_x = dmapply(function(x) x[,-1], parts(features),
+features_x = dmapply(function(x) data.matrix(x)[,-1], parts(features),
 		output.type = "darray", combine = "rbind", 
 		nparts = nparts(features))
 features_y = dmapply(function(x) matrix(x[,1],ncol = 1), parts(features),
 		output.type = "darray", combine = "rbind", 
 		nparts = nparts(features))
 
-training <- system.time(model <- hpdRF_parallelForest(x = features_x, y = features_y))[3]
+training <- system.time(model <- hpdRF_parallelForest(x = features_x, y = features_y,nExecutor = nInst))[3]
 predicting <- system.time(predictions <- predict(model, features_x))[3]
 cat("\n\ttraining model took: \t", training," seconds\n\tpredictions took: \t",predicting," seconds\n")
 
 cat("\nStarting random forest using x,y matrix interface")
 features_x = collect(features_x)
 features_y = collect(features_y)
-training <- system.time(model <- hpdRF_parallelForest(x = features_x, y = features_y))[3]
+training <- system.time(model <- hpdRF_parallelForest(x = features_x, y = features_y,nExecutor = nInst))[3]
 predicting <- system.time(predictions <- predict(model, features_x))[3]
 cat("\n\ttraining model took: \t", training," seconds\n\tpredictions took: \t",predicting," seconds\n")
 
