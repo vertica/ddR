@@ -1,10 +1,10 @@
-library(dds)
-library(dds.randomForest)
+library(ddR)
+library(ddR.randomForest)
 nInst = 4 # Change level of parallelism
 
 # Uncomment the following lines to use Distributed R
-library(distributedR.dds)
-useBackend(distributedR)
+#library(distributedR.ddR)
+#useBackend(distributedR)
 
 # Set up data size
 ncol = 10

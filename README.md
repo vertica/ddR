@@ -1,5 +1,5 @@
 ---
-title: "dds examples"
+title: "ddR examples"
 author: "Edward Ma"
 date: "2015-09-08"
 output: rmarkdown::html_vignette
@@ -9,12 +9,12 @@ vignette: >
   \usepackage[utf8]{inputenc}
 ---
 
-Quick examples using the DDS API
+Quick examples using the ddR API
 
 Starting it up:
 
 ```r
-library(dds)
+library(ddR)
 ```
 
 Init'ing a DList:
@@ -57,7 +57,7 @@ a
 ## Backend Type: Distributed R
 ```
 
-`a` is now a distributed object in DDS. Note that we did not specify the number of partitions of the output, but by default it went to the length of the inputs (5). If we wanted to specify how the output should be partitioned, we can use the `nparts` parameter to `dmapply`:
+`a` is now a distributed object in ddR. Note that we did not specify the number of partitions of the output, but by default it went to the length of the inputs (5). If we wanted to specify how the output should be partitioned, we can use the `nparts` parameter to `dmapply`:
 
 Adding 1 to first element of `a`, 2 to the second, etc.
 
@@ -187,9 +187,9 @@ You also try the parallel K-means clustering example by first installing the HPd
 
 ## Using the Distributed R backend
 
-Use the Distributed R library for dds:
+Use the Distributed R library for ddR:
 ```r
-library(distributedR.dds)
+library(distributedR.ddR)
 ```
 
 ```
@@ -197,9 +197,9 @@ library(distributedR.dds)
 ## Loading required package: Rcpp
 ## Loading required package: RInside
 ## Loading required package: XML
-## Loading required package: dds
+## Loading required package: ddR
 ## 
-## Attaching package: 'dds'
+## Attaching package: 'ddR'
 ## 
 ## The following objects are masked from 'package:distributedR':
 ## 

@@ -14,11 +14,11 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, 
 # Boston, MA 02111-1307 USA.
 ###################################################################
-library(dds)
+library(ddR)
 
 ## Uncomment the following two lines to use Distributed R
-# library(distributedR.dds)
-# useBackend(distributedR)
+#library(distributedR.ddR)
+#useBackend(distributedR)
 
 MatrixMultiply <- function(a,b)
 {

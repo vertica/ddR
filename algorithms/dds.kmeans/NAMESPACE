@@ -1,3 +1,0 @@
-useDynLib(dds.kmeans)
-exportPattern("^[[:alpha:]]+")
-import(dds)

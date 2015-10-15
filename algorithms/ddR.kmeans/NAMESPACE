@@ -1,0 +1,3 @@
+useDynLib(ddR.kmeans)
+exportPattern("^[[:alpha:]]+")
+import(ddR)
