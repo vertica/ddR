@@ -16,10 +16,10 @@
 ###################################################################
 
 # Create Distributed R Class Union
-setClassUnion("DistRObj", c("dlist","darray","dframe"))
+#' @include driver.R
 
 setClass("DistributedRObj",contains="DObject",
-    slots=list(DRObj = "DistRObj", splits = "numeric"),
+    slots=list(DRObj = "dobject", splits = "numeric"),
     prototype = prototype(nparts = c(1L,1L), psize = matrix(1,1), 
       dim = c(1L,1L)
 ))

@@ -18,7 +18,11 @@
 # Override dimnames, colnames, and rownames to use the Distributed R package implementations
 #' @export
 setReplaceMethod("dimnames", signature(x = "DistributedRObj", value = "list"), definition = function(x,value) {
-  dimnames(x@DRObj) <- value
+  if(!is.darray(x)) {
+    x <- callNextMethod()
+  } else {
+    dimnames(x@DRObj) <- value
+  }
   x
 })
 
@@ -26,19 +30,22 @@ setReplaceMethod("dimnames", signature(x = "DistributedRObj", value = "list"), d
 setMethod("dimnames", "DistributedRObj",
   function(x) {
     if(is.dlist(x)) stop("Cannot use dimnames on a DList. Use names() instead.")
-    dimnames(x@DRObj)
+    if(!is.darray(x)) callNextMethod()
+    else dimnames(x@DRObj)
 })
 
 #' @export
 setMethod("rownames", "DistributedRObj",
   function(x) {
     if(is.dlist(x)) stop("Cannot use rownames on a DList. Use names() instead.")
-    dimnames(x@DRObj)[[1]]
+    if(!is.darray(x)) callNextMethod()
+    else dimnames(x@DRObj)[[1]]
 })
 
 #' @export
 setMethod("colnames", "DistributedRObj",
   function(x) {
     if(is.dlist(x)) stop("Cannot use colnames on a DList. Use names() instead.")
-    dimnames(x@DRObj)[[2]]
+    if(!is.darray(x)) callNextMethod()
+    else dimnames(x@DRObj)[[2]]
 })

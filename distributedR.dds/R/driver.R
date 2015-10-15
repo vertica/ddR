@@ -15,6 +15,12 @@
 # Boston, MA 02111-1307 USA.
 ###################################################################
 
+#' @import methods dds Rcpp RInside XML Executor
+#' @importFrom distributedR foreach getpartition distributedR_start 
+#' distributedR_shutdown distributedR_status partitionsize splits
+#' npartitions dimnames.dobject dimnames<-.dobject
+#' @importClassesFrom distributedR dobject 
+
 dR.env <- new.env()
 
 # Create distributedR DDSDriver
