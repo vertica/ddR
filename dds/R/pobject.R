@@ -43,6 +43,7 @@ setMethod("initialize", "ParallelObj", function(.Object, ...) {
    .Object
 })
 
+#' @rdname combine
 setMethod("combine",signature(driver="ParallelDDS",items="list"),
   function(driver,items){
     split_indices <- lapply(items,function(x) {
@@ -63,7 +64,7 @@ setMethod("combine",signature(driver="ParallelDDS",items="list"),
     new("ParallelObj",pObj=items[[1]]@pObj,splits = unlist(split_indices), dim = dims, psize = psizes)
 })
 
-#' @export
+#' @rdname get_parts
 setMethod("get_parts",signature("ParallelObj","missing"),
   function(x, ...){
   index = 1:length(x@splits)
@@ -73,7 +74,7 @@ setMethod("get_parts",signature("ParallelObj","missing"),
 }
 )
 
-#' @export
+#' @rdname get_parts
 setMethod("get_parts",signature("ParallelObj","integer"),
   function(x, index, ...){
    lapply(index,function(b) {
@@ -82,7 +83,7 @@ setMethod("get_parts",signature("ParallelObj","integer"),
   }
 )
 
-#' @export
+#' @rdname do_collect
 setMethod("do_collect",signature("ParallelObj","integer"),
   function(x, parts) {
  

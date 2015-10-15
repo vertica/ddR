@@ -2,7 +2,7 @@
 % Please edit documentation in R/dobject.R
 \name{collect}
 \alias{collect}
-\title{Fetch partition(s) of ‘darray’, ‘dframe’ or ‘dlist’ from remote workers.}
+\title{Fetch partition(s) of 'darray', 'dframe' or 'dlist' from remote workers.}
 \usage{
 collect(dobj, index = NULL)
 }
@@ -15,7 +15,7 @@ collect(dobj, index = NULL)
 An R list, array, or data.frame containing data stored in the partitions of the input.
 }
 \description{
-Fetch partition(s) of ‘darray’, ‘dframe’ or ‘dlist’ from remote workers.
+Fetch partition(s) of 'darray', 'dframe' or 'dlist' from remote workers.
 }
 \examples{
 \dontrun{

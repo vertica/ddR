@@ -26,14 +26,14 @@ cluster, i.e., the returned distributed frame has approximately as
 many partitions as the number of R instances in the session.
 
 The last set of partitions may have fewer rows or columns if input
-matrix size is not an integer multiple of partition size. If ‘A’
-is a 5x5 matrix, then ‘as.dframe(A, psize=c(2,5))’ is a
+matrix size is not an integer multiple of partition size. If 'A'
+is a 5x5 matrix, then 'as.dframe(A, psize=c(2,5))' is a
 distributed frame with three partitions. The first two partitions
 have two rows each but the last partition has only one row. All
 three partitions have five columns.
 
 To create a distributed frame with just one partition, pass the
-dimension of the input frame, i.e. ‘as.dframe(A, psize=dim(A))’
+dimension of the input frame, i.e. 'as.dframe(A, psize=dim(A))'
 }
 \examples{
 \dontrun{

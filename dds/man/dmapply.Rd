@@ -9,11 +9,11 @@ dmapply(FUN, ..., MoreArgs = list(), output.type = c("dlist", "dframe",
   "rbind", "cbind"))
 }
 \arguments{
-\item{FUN}{function to apply, found via ‘match.fun’.}
+\item{FUN}{function to apply, found via 'match.fun'.}
 
 \item{...}{arguments to vectorize over (vectors or lists of strictly positive length, or all of zero length). These may also be distributed objects, such as dlists, darrays, and dframes.}
 
-\item{MoreArgs}{a list of other arguments to ‘FUN’.}
+\item{MoreArgs}{a list of other arguments to 'FUN'.}
 
 \item{output.type}{the output type of the distributed object. The default value of "dlist" means that the result of dmapply will be stored in a distributed list. "darray" will make dmapply return a darray, just as "dframe" will make it return a dframe. "sparse_darray" results in a special version of darray where the elements are sparse.}
 
@@ -33,7 +33,8 @@ Though dmapply is modeled after mapply, there are several important differences,
 a <- dmapply(function(x,y) x+y, 1:5, 2:6, nparts=3)
 collect(a)
 
-##Create a darray with 4 partitions. Partitions are stitched in 2x2 fashion, meaning the overall dims of the darray will be 4x4.
+##Create a darray with 4 partitions. Partitions are stitched in 2x2 fashion,
+# meaning the overall dims of the darray will be 4x4.
 b <- dmapply(function(x) matrix(x,2,2), 1:4,output.type="darray",combine="rbind",nparts=c(2,2))
 collect(b,1) #First partition
 collect(b)

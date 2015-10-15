@@ -15,6 +15,52 @@
 # Boston, MA 02111-1307 USA.
 ###################################################################
 
+#' Extract parts of a distributed object.
+#' @param x The distributed object to get the parts of.
+#' @param i The row index or indices to extract with.
+#' @param j The column index or indices to extract with.
+#' @param ... Other args.
+#' @param drop If TRUE, vectorizable results will become vectors.
+#' @name [
+#' @aliases [,DObject-method
+#' @usage \S4method{[}{DObject}(x, i, j,...,drop=TRUE)
+#' @docType methods
+#' @rdname extract-methods
+setMethod("[", signature(x="DObject"), 
+  function(x, i, j, ..., drop=TRUE) {
+    stopifnot(max(i) <= dim(x)[[1]] && min(i) > 0)
+
+    if(is.dlist(x)){
+      order <- rank(i)
+      result <- getPartitionIdsAndOffsets(list(sort(i)), psize(x), nparts(x))
+
+      values <- dmapply(function(x,y) { x[y] }, parts(x, result$partitions), result$row_offsets)
+      out <- unlist(collect(values),recursive=FALSE)[order]
+    } else {
+      # TODO(etduwx): Currently this forces the second argument to exist, need to add support for 
+      # single indexing
+      stopifnot(is.numeric(j))
+      order_i <- rank(i)
+      order_j <- rank(j)
+
+      result <- getPartitionIdsAndOffsets(list(sort(i),sort(j)), psize(x), nparts(x))
+
+      starting_row <- (result$partitions[[1]]-1)/(nparts(x)[[2]])
+      starting_id <- starting_row * nparts(x)[[2]] 
+
+      nparts_across <- sum(result$partitions <= (starting_id + nparts(x)[[2]]))
+      nparts_down <- length(result$partitions) / nparts_across
+
+      values <- dmapply(function(x,y,z) { 
+                          x[y,z,drop=FALSE] 
+                        }, parts(x, result$partitions), result$row_offsets,
+                          result$col_offsets, output.type = x@type, combine="rbind", nparts=c(nparts_down,nparts_across))
+      out <- collect(values)[order_i,order_j,drop=drop]
+    }
+
+    out
+})
+
 #' @export
 length.DObject <- function(x) {
   if(is.dlist(x)) dim(x)[[1]]
@@ -28,7 +74,10 @@ names.DObject <- function(x) {
    unlist(collect(nobj))
 }
 
-#' @export
+#' Sets the names of a distributed object
+#' @param x The object whose names to set.
+#' @param value A vector with the names to set with.
+#' 
 setReplaceMethod("names", signature(x = "DObject", value = "ANY"), definition = function(x,value) { 
   stopifnot(length(value) == length(x))
 
@@ -47,11 +96,6 @@ setReplaceMethod("names", signature(x = "DObject", value = "ANY"), definition = 
   dmapply(function(x,y) { names(x) <- y; x }, parts(x), namesList,
           combine="c", nparts=totalParts(x))
 })
-
-#' @export
-unlist.DObject <- function(x, recursive, use.names) {
-  if(is.dlist(x)) unlist(collect(x),recursive,use.names)
-}
 
 #' @export
 unique.DObject <- function(x, ...) {
@@ -100,43 +144,10 @@ tail.DObject <- function(x, n = 6L, addrownums = TRUE, ...) {
   }
 }
 
-#' @export
-setMethod("[", c("DObject", "numeric", "ANY","ANY"), 
-  function(x, i, j, ..., drop=TRUE) {
-    stopifnot(max(i) <= dim(x)[[1]] && min(i) > 0)
-
-    if(is.dlist(x)){
-      order <- rank(i)
-      result <- getPartitionIdsAndOffsets(list(sort(i)), psize(x), nparts(x))
-
-      values <- dmapply(function(x,y) { x[y] }, parts(x, result$partitions), result$row_offsets)
-      out <- unlist(collect(values),recursive=FALSE)[order]
-    } else {
-      # TODO(etduwx): Currently this forces the second argument to exist, need to add support for 
-      # single indexing
-      stopifnot(is.numeric(j))
-      order_i <- rank(i)
-      order_j <- rank(j)
-
-      result <- getPartitionIdsAndOffsets(list(sort(i),sort(j)), psize(x), nparts(x))
-
-      starting_row <- (result$partitions[[1]]-1)/(nparts(x)[[2]])
-      starting_id <- starting_row * nparts(x)[[2]] 
-
-      nparts_across <- sum(result$partitions <= (starting_id + nparts(x)[[2]]))
-      nparts_down <- length(result$partitions) / nparts_across
-
-      values <- dmapply(function(x,y,z) { 
-                          x[y,z,drop=FALSE] 
-                        }, parts(x, result$partitions), result$row_offsets,
-                          result$col_offsets, output.type = x@type, combine="rbind", nparts=c(nparts_down,nparts_across))
-      out <- collect(values)[order_i,order_j,drop=drop]
-    }
-
-    out
-})
-
-#' @export
+#' Extracts elements of a distributed object matching the name.
+#' @param x The object to get the named element from.
+#' @param name The name vector to retrieve elements with.
+#' 
 setMethod("$", c("DObject") ,
   function(x, name) {
     matching <- dlapply(x, function(x,y) { 
@@ -154,7 +165,12 @@ collect(matching)[[name]]
 
 })
 
-#' @export
+#' Extracts a single element of a distributed object.
+#' @param x The object to get an element from.
+#' @param i The row index of the element.
+#' @param j The column index of the element.
+#' @param ... Other args
+#' 
 setMethod("[[", c("DObject", "numeric", "ANY"),
   function(x, i, j, ...) {
     stopifnot(length(i) < 2)
@@ -187,6 +203,10 @@ rev.DObject <- function(x) {
 setGeneric("colSums", signature="x")
 setGenericImplicit("colSums")
 
+#' Get the column sums for a distributed array or data.frame.
+#' @param x The object to get the column sums from.
+#' @param na.rm If TRUE, will remove NAs.
+#' @param dims Currently does nothing.
 #' @export
 setMethod("colSums", signature(x="DObject"),
   function(x, na.rm = FALSE, dims = 1L) {
@@ -209,6 +229,11 @@ setMethod("colSums", signature(x="DObject"),
 setGeneric("colMeans", signature="x")
 setGenericImplicit("colMeans")
 
+#' Gets the column means for a distributed array or data.frame.
+#' @param x The object to get the column means from.
+#' @param na.rm If TRUE, will remove NAs.
+#' @param dims Currently does nothing.
+#' 
 #' @export
 setMethod("colMeans", signature(x="DObject"),
   function(x, na.rm = FALSE, dims = 1L) {
@@ -221,6 +246,11 @@ setMethod("colMeans", signature(x="DObject"),
 setGeneric("rowSums", signature="x")
 setGenericImplicit("rowSums")
 
+#' Gets the row sums for a distributed array or data.frame.
+#' @param x The object to get the row sums from.
+#' @param na.rm If TRUE, will remove NAs.
+#' @param dims Currently does nothing.
+#' 
 #' @export
 setMethod("rowSums", signature(x="DObject"),
   function(x, na.rm = FALSE, dims = 1L) {
@@ -243,9 +273,14 @@ setMethod("rowSums", signature(x="DObject"),
 setGeneric("rowMeans", signature="x")
 setGenericImplicit("rowMeans")
 
+#' Gets the row means for a distributed array or data.frame.
+#' @param x The object to get the row means from.
+#' @param na.rm If TRUE, will remove NAs.
+#' @param dims Currently does nothing.
+#' 
 #' @export
 setMethod("rowMeans", signature(x="DObject"),
-  function(x, na.rm = FALSE, dims = 1L,...) {
+  function(x, na.rm = FALSE, dims = 1L) {
     if(is.dlist(x)) stop("rowMeans is only supported for DArrays and DFrames")  
 
     rowsSums <- rowSums(x,na.rm=na.rm)
@@ -296,7 +331,10 @@ min.DObject <- function(x,...,na.rm=FALSE) {
     min(minima)
 }
 
-#' @export
+#' Sets the dimnames for the distributed object.
+#' @param x The object to set the dimnames for.
+#' @param value The list of values, one vector per dimension, of names.
+#'
 setReplaceMethod("dimnames", signature(x = "DObject", value = "list"), definition = function(x,value) {
   stopifnot(length(value) == length(dim(x)))
     if(is.dlist(x)) stop("Cannot use dimnames on a DList. Use names() instead.")
@@ -340,6 +378,8 @@ setReplaceMethod("dimnames", signature(x = "DObject", value = "list"), definitio
 setGeneric("colnames", signature="x")
 setGenericImplicit("colnames")
 
+#' Gets the colnames for the distributed object.
+#' @param x The distributed object to get the colnames for.
 #' @export
 setMethod("colnames", "DObject",
   function(x) {
@@ -347,13 +387,15 @@ setMethod("colnames", "DObject",
     getColNames <- parts(x,seq(1,nparts(x)[[2]]))
 
     colNames <- dmapply(function(x) colnames(x), getColNames)
-    
+
     unlist(collect(colNames))
 })
 
 setGeneric("rownames", signature="x")
 setGenericImplicit("rownames")
 
+#' Gets the rownames for the distributed object.
+#' @param x The distributed object to get the rownames for.
 #' @export
 setMethod("rownames", "DObject",
   function(x) {
@@ -361,18 +403,24 @@ setMethod("rownames", "DObject",
     getRowNames <- parts(x,seq(1,totalParts(x),by=nparts(x)[[2]]))
 
     rowNames <- dmapply(function(x) rownames(x), getRowNames)
-   
+
     unlist(collect(rowNames))
 })
 
-#' @export
+#' Gets the dimnames for the distributed object.
+#' @param x The distributed object to get the dimnames for.
+#'
 setMethod("dimnames", "DObject",
   function(x) {
     if(is.dlist(x)) stop("Cannot use dimnames on a DList. Use names() instead.")
     list(rownames(x),colnames(x))
 })
 
-#' @export
+#' Gets the sum of the objects.
+#' @param x The first distributed object
+#' @param ... Other objects
+#' @param na.rm If TRUE, removes the NA values.
+#' 
 setMethod("sum", "DObject",
   function(x,...,na.rm=FALSE) {
     types <- vapply(list(x,...),function(y) is.darray(y) || is.dframe(y),
@@ -392,6 +440,11 @@ setMethod("sum", "DObject",
 setGeneric("mean", signature="x")
 setGenericImplicit("mean")
 
+#' Gets the mean value of the elements within the object.
+#' @param x The distributed object to get the mean of.
+#' @param trim Not supported yet.
+#' @param na.rm If TRUE, removes NA values.
+#' @param ... Other args.
 #' @export
 setMethod("mean", "DObject",
   function(x,trim=0,na.rm=FALSE,...) {
@@ -402,14 +455,23 @@ setMethod("mean", "DObject",
     mean(rowMeans(x,na.rm=na.rm))
 })
 
+#' @rdname bind_overrides
+#' @title rbinddds
+#' @param ... objects to rbind or cbind
+#' @param deparse.level Does nothing so far. 
+#' @return bound (cbind or rbind) dobject
 #' @export
 setGeneric("rbind", signature = "...")
-setGenericImplicit("rbind")
 
+#' @rdname bind_overrides
+#' @title cbinddds
 #' @export
 setGeneric("cbind", signature = "...")
-setGenericImplicit("cbind")
 
+#' row binds the arguments
+#' @param ... Arguments to row bind.
+#' @param deparse.level Does nothing so far. 
+#' @return A dobject with the opernads (and their partitions) rbinded.
 #' @export
 setMethod("rbind", "DObject",
   function(...,deparse.level = 1) {
@@ -486,6 +548,10 @@ setMethod("rbind", "DObject",
    do.call(dmapply,dmapplyArgs)
 })
 
+#' Column binds the objects.
+#' @param ... Objects to column bind.
+#' @param deparse.level Does nothing so far.
+#' @return A dobject with the operands (and their partitions) cbinded.
 #' @export
 setMethod("cbind", "DObject",
   function(...,deparse.level = 1) {

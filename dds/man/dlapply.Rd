@@ -10,7 +10,7 @@ dlapply(X, FUN, ..., nparts = NULL)
 \arguments{
 \item{X}{vector, matrix, list, data.frame, dlist, darray, or dframe or other iterable object to supply to the function in FUN.}
 
-\item{FUN}{the function to be applied to each element of ‘X’.}
+\item{FUN}{the function to be applied to each element of 'X'.}
 
 \item{...}{optional arguments to 'FUN'.}
 
@@ -25,7 +25,9 @@ always 'dlist'.
 }
 \examples{
 \dontrun{
-a <- dlapply(1:5,function(x) x, nparts=3) # A DList with 3 partitions, which in the aggregate contains the elements 1 through 5.
+a <- dlapply(1:5,function(x) x, nparts=3)
+# A DList with 3 partitions,
+# which in the aggregate contains the elements 1 through 5.
 b <- dlapply(a,function(x) x+3) # Adds 3 to each element of dlist a.
 }
 }

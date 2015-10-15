@@ -17,6 +17,11 @@
 
 setClass("ParallelDDS", contains="DDSDriver")
 
+#' The default parallel driver
+#' @examples
+#' \dontrun{
+#' useBackend(parallel,executors=4)
+#' }
 #' @export 
 # Exported Driver
 parallel <- new("ParallelDDS",DListClass = "ParallelObj",DFrameClass = "ParallelObj",DArrayClass = "ParallelObj",backendName = "parallel")
@@ -39,9 +44,11 @@ initializeSnowOnWindows<-function(){
   parallel.dds.env$clusterType <- "PSOCK"
 }
 
-#' @export
 # Initialize the no. of cores in parallel backend
-# By default we use the FORK method of parallel which works only on UNIV environments. The "PSOCK" method requires SNOW but works on all OSes.
+# By default we use the FORK method of parallel which works only on UNIx environments. The "PSOCK" method requires SNOW but works on all OSes.
+#' @param executors Number of cores to run with.
+#' @param type If "FORK", will use UNIX fork() method. If "PSOCK", will use SNOW method.
+#' @describeIn init Initialization for parallel
 setMethod("init","ParallelDDS",
   function(x, executors=NULL, type= "FORK", ...){
     if(!is.null(executors)){
@@ -60,7 +67,7 @@ setMethod("init","ParallelDDS",
   return (parallel.dds.env$cores)
 })
 
-#' @export
+#' @describeIn shutdown Shutdown for parallel
 setMethod("shutdown","ParallelDDS",
   function(x) {
     if(!is.null(parallel.dds.env$snowCluster) && parallel.dds.env$clusterType == "PSOCK") {
@@ -75,7 +82,7 @@ setMethod("shutdown","ParallelDDS",
 #snow's staticClusterApply when used with "PSOCK" option. 
 #On windows only "PSOCK" provides true parallelism.
 
-#' @export
+#' @rdname do_dmapply
 setMethod("do_dmapply",
           signature(driver="ParallelDDS", func="function"), 
           function(driver, func, ..., MoreArgs = list(),

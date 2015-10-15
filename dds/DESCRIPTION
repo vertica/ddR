@@ -1,12 +1,27 @@
 Package: dds
 Title: Package for the Standard R-Parallel-Computation API
-Version: 0.0.0.9000
+Version: 0.1
 Author: HP Vertica Analytics Team
 Maintainer: HP Vertica Analytics Team <distributedRTeam@external.groups.hp.com>
-Description: This package provides distributed data-structures. It simplifies distributed computing in R.
-Depends: methods, R (>= 3.0.0)
-Imports: Matrix, parallel,
+Description: This package provides distributed data-structures. It simplifies
+    distributed computing in R.
+Depends:
+    methods,
+    R (>= 3.0.0)
+Imports:
+    parallel,
     Rcpp
-License: GPLv2
+Suggests:
+    testthat,
+    Matrix
+License: GPL (>= 2) | file LICENSE
 LazyData: true
 LinkingTo: Rcpp
+Collate:
+    'RcppExports.R'
+    'dds.R'
+    'dobject.R'
+    'ops.R'
+    'pdriver.R'
+    'pobject.R'
+    'zzz.R'

@@ -2,11 +2,14 @@
 % Please edit documentation in R/dobject.R
 \name{repartition}
 \alias{repartition}
+\alias{repartition.DObject}
 \title{Repartitions a distributed object.
 This function takes two inputs, a distributed object and a skeleton. These inputs must both be distributed objects of the same type and same dimension.
 If 'dobj' and 'skeleton' have different internal partitioning, this function will return a new distributed object with the same internal data as in 'dobj' but with the partitioning scheme of 'skeleton'.}
 \usage{
 repartition(dobj, skeleton)
+
+\method{repartition}{DObject}(dobj, skeleton)
 }
 \arguments{
 \item{dobj}{distributed object whose data is to be preserved, but repartitioned.}
@@ -21,6 +24,10 @@ Repartitions a distributed object.
 This function takes two inputs, a distributed object and a skeleton. These inputs must both be distributed objects of the same type and same dimension.
 If 'dobj' and 'skeleton' have different internal partitioning, this function will return a new distributed object with the same internal data as in 'dobj' but with the partitioning scheme of 'skeleton'.
 }
+\section{Methods (by class)}{
+\itemize{
+\item \code{DObject}: The default implementation of repartition.
+}}
 \examples{
 \dontrun{
 a <- dlist(1,2,3,4,nparts=2)

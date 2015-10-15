@@ -18,14 +18,25 @@
 # Defines the base class for a distributed object, as well as their methods
 # DList, DArray, and DFrame inherit from class DObject
 
+#' The baseline distributed object class to be extended by each backend driver.
+#' Backends may elect to extend once for all distributed object types ('dlist',
+#' 'darray', 'dframe,', etc.) for one per type, depending on needs.
+#'
+#' @slot nparts Stores the 2d-partitioning scheme of the distributed object.
+#' @slot psize Stores, as a 2d-matrix (1d-for dlists) of the size of each
+#' partition.
+#' @slot dim The dimensions of the distributed object.
+#' @slot backend A character vector of the name of the backend that created
+#' the object.
+#' @slot type The distributed object type for this object (e.g,. 'dlist').
 #' @export
 setClass("DObject",
   representation(nparts = "numeric", psize = "matrix",
-          dim = "numeric", dim.names = "list", backend = "character", type = "character"),
+          dim = "numeric", backend = "character", type = "character"),
   prototype = prototype(nparts = c(1L, 1L),psize = matrix(1,1),
-              dim = c(1L), dim.names = list()))
+              dim = c(1L)))
 
-#' Fetch partition(s) of ‘darray’, ‘dframe’ or ‘dlist’ from remote workers.
+#' Fetch partition(s) of 'darray', 'dframe' or 'dlist' from remote workers.
 #' @param dobj input distributed array, distributed data frame or distributed list.
 #' @param index a vector indicating partitions to fetch. If multiple indices are provided, the result is assembled in the same order as the indices provided, though be aware that for dframes and darrays the result may lose its structure.
 #' @return An R list, array, or data.frame containing data stored in the partitions of the input.
@@ -254,6 +265,7 @@ dlist <- function(...,nparts = NULL) {
   }
 }
 
+#' @rdname dlist
 #' @export
 DList <- dlist
 
@@ -315,9 +327,11 @@ is.dlist <- function(x) {
   is(x,"DObject") && x@type == "dlist"
 }
 
+#' @rdname is.dlist
 #' @export
 is.DList <- is.dlist
 
+#' @rdname as.dlist
 #' @export
 as.DList <- as.dlist
 
@@ -335,6 +349,7 @@ is.dobject <- function(x) {
   is(x,"DObject")
 }
 
+#' @rdname is.dobject
 #' @export 
 is.DObject <- is.dobject
 
@@ -352,14 +367,14 @@ is.DObject <- is.dobject
 #'  matrices. Last set of partitions may have fewer 
 #'  rows or columns if the array size is not an integer
 #'  multiple of partition size. For example, the distributed array
-#'  ‘darray(dim=c(5,5), psize=c(2,5))’ has three partitions. The
+#'  'darray(dim=c(5,5), psize=c(2,5))' has three partitions. The
 #'  first two partitions have two rows each but the last partition has
 #'  only one row. All three partitions have five columns.
 #'
 #'  Distributed arrays can also be defined by specifying just the
 #'  number of partitions, but not their sizes. This flexibility is
 #'  useful when the size of an array is not known apriori. For
-#'  example, ‘darray(nparts=c(5,1))’ is a dense array with five
+#'  example, 'darray(nparts=c(5,1))' is a dense array with five
 #'  partitions.  Each partition can contain any number of rows, though
 #'  the number of columns should be same to conform to a well formed array.
 #'
@@ -455,6 +470,7 @@ darray <- function(nparts = NULL, dim=NULL, psize = NULL, data = 0, sparse=FALSE
   }
 }
 
+#' @rdname darray
 #' @export
 DArray <- darray
 
@@ -471,6 +487,7 @@ is.darray <- function(x) {
   is(x,"DObject") && (x@type == "darray" || x@type == "sparse_darray")
 }
 
+#' @rdname is.darray
 #' @export
 is.DArray <- is.darray
 
@@ -501,14 +518,14 @@ is.sparse_darray <- function(x) {
 #'  objects. Last set of partitions may have fewer 
 #'  rows or columns if the dframe dimension is not an integer
 #'  multiple of partition size. For example, the distributed data.frame
-#'  ‘dframe(dim=c(5,5), psize=c(2,5))’ has three partitions. The
+#'  'dframe(dim=c(5,5), psize=c(2,5))' has three partitions. The
 #'  first two partitions have two rows each but the last partition has
 #'  only one row. All three partitions have five columns.
 #'
 #'  Distributed data.frames can also be defined by specifying just the
 #'  number of partitions, but not their sizes. This flexibility is
 #'  useful when the size of an dframe is not known apriori. For
-#'  example, ‘dframe(nparts=c(5,1))’ is a dense array with five
+#'  example, 'dframe(nparts=c(5,1))' is a dense array with five
 #'  partitions.  Each partition can contain any number of rows, though
 #'  the number of columns should be same to conform to a well formed array.
 #'
@@ -590,6 +607,7 @@ dframe <- function(nparts = NULL, dim=NULL, psize = NULL, data = 0) {
   }
 }
 
+#' @rdname dframe
 #' @export
 DFrame <- dframe
 
@@ -606,10 +624,10 @@ is.dframe <- function(x) {
   is(x,"DObject") && x@type == "dframe"
 }
 
+#' @rdname is.dframe
 #' @export
 is.DFrame <- is.dframe
 
-#' @export
 setMethod("show",signature("DObject"),function(object) {
 
   partsStr <- ""
@@ -661,6 +679,7 @@ repartition <- function(dobj, skeleton) {
   UseMethod("repartition")
 }
 
+#' @describeIn repartition The default implementation of repartition.
 #' @export
 repartition.DObject <- function(dobj,skeleton) {
  
@@ -804,14 +823,14 @@ checkDimAndPsize<-function(dim, psize){
 #' many partitions as the number of R instances in the session.
 #'
 #' The last set of partitions may have fewer rows or columns if input
-#' matrix size is not an integer multiple of partition size. If ‘A’
-#' is a 5x5 matrix, then ‘as.darray(A, psize=c(2,5))’ is a
+#' matrix size is not an integer multiple of partition size. If 'A'
+#' is a 5x5 matrix, then 'as.darray(A, psize=c(2,5))' is a
 #' distributed array with three partitions. The first two partitions
 #' have two rows each but the last partition has only one row. All
 #' three partitions have five columns.
 #'
 #' To create a distributed darray with just one partition, pass the
-#' dimension of the input frame, i.e. ‘as.darray(A, psize=dim(A))’
+#' dimension of the input frame, i.e. 'as.darray(A, psize=dim(A))'
 #' @references 
 #' Prasad, S., Fard, A., Gupta, V., Martinez, J., LeFevre, J., Xu, V., Hsu, M., Roy, I. 
 #' Large scale predictive analytics in Vertica: Fast data transfer, distributed model creation 
@@ -857,14 +876,14 @@ as.darray <- function(input, psize=NULL) {
 #' many partitions as the number of R instances in the session.
 #'
 #' The last set of partitions may have fewer rows or columns if input
-#' matrix size is not an integer multiple of partition size. If ‘A’
-#' is a 5x5 matrix, then ‘as.dframe(A, psize=c(2,5))’ is a
+#' matrix size is not an integer multiple of partition size. If 'A'
+#' is a 5x5 matrix, then 'as.dframe(A, psize=c(2,5))' is a
 #' distributed frame with three partitions. The first two partitions
 #' have two rows each but the last partition has only one row. All
 #' three partitions have five columns.
 #'
 #' To create a distributed frame with just one partition, pass the
-#' dimension of the input frame, i.e. ‘as.dframe(A, psize=dim(A))’
+#' dimension of the input frame, i.e. 'as.dframe(A, psize=dim(A))'
 #' @references 
 #' Prasad, S., Fard, A., Gupta, V., Martinez, J., LeFevre, J., Xu, V., Hsu, M., Roy, I. 
 #' Large scale predictive analytics in Vertica: Fast data transfer, distributed model creation 
