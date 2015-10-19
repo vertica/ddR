@@ -16,5 +16,5 @@
 ###################################################################
 
 .onAttach <- function(libname, pkgname) {
-  packageStartupMessage("\nWelcome to 'ddR' (Distributed Data-structures in R)!\nFor more information, visit: https://github.com/vertica/Standard-R-API")
+  packageStartupMessage("\nWelcome to 'ddR' (Distributed Data-structures in R)!\nFor more information, visit: https://github.com/vertica/ddR")
 }

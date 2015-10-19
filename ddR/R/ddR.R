@@ -48,7 +48,7 @@ ddR.env$nexecutors <- 1
 #' Schreiber, R. (2013) Presto: Distributed Machine Learning and
 #' Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
 #'
-#' Homepage: https://github.com/vertica/DistributedR
+#' Homepage: https://github.com/vertica/ddR
 #' @examples
 #' \dontrun{
 #' useBackend(parallel,executors=2)
@@ -175,7 +175,7 @@ setGeneric("do_collect", function(x, parts) standardGeneric("do_collect"))
 #' Schreiber, R. (2013) Presto: Distributed Machine Learning and
 #' Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
 #'
-#' Homepage: https://github.com/vertica/DistributedR
+#' Homepage: https://github.com/vertica/ddR
 #' @examples
 #' \dontrun{
 #' a <- dlapply(1:5,function(x) x, nparts=3) 
@@ -208,7 +208,7 @@ dlapply <- function(X,FUN,...,nparts=NULL) {
 #' Schreiber, R. (2013) Presto: Distributed Machine Learning and
 #' Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
 #'
-#' Homepage: https://github.com/vertica/DistributedR
+#' Homepage: https://github.com/vertica/ddR
 #' @examples
 #' \dontrun{
 #' ## A dlist created by adding two input vectors

@@ -220,8 +220,8 @@ Now you can try the different list examples which were used with the 'parallel' 
 
 You can help us in different ways:
 
-1. Reporting [issues](https://github.com/vertica/Standard-R-API/issues).
-2. Contributing code and sending a [Pull Request](https://github.com/vertica/Standard-R-API/pulls).
+1. Reporting [issues](https://github.com/vertica/ddR/issues).
+2. Contributing code and sending a [Pull Request](https://github.com/vertica/ddR/pulls).
 
 In order to contribute the code base of this project, you must agree to the Developer Certificate of Origin (DCO) 1.1 for this project under GPLv2+:
 

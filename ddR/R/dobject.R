@@ -49,7 +49,7 @@ setClass("DObject",
 #' Schreiber, R. (2013) Presto: Distributed Machine Learning and
 #' Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
 #'
-#' Homepage: https://github.com/vertica/DistributedR
+#' Homepage: https://github.com/vertica/ddR
 #' @examples
 #' \dontrun{
 #' a <- darray(dim=c(9,9),psize=c(3,3),data=5)
@@ -102,7 +102,7 @@ collect <- function(dobj, index=NULL) {
 #' Schreiber, R. (2013) Presto: Distributed Machine Learning and
 #' Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
 #'
-#' Homepage: https://github.com/vertica/DistributedR
+#' Homepage: https://github.com/vertica/ddR
 #' @examples
 #' \dontrun{
 #' a <- darray(psize=c(3,3),dim=c(9,9),data=3) # A darray of 9 partitions, each 3x3
@@ -163,7 +163,7 @@ parts <- function(dobj, index=NULL) {
 #' Schreiber, R. (2013) Presto: Distributed Machine Learning and
 #' Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
 #'
-#' Homepage: https://github.com/vertica/DistributedR
+#' Homepage: https://github.com/vertica/ddR
 #' @examples 
 #' \dontrun{
 #' a <- darray(psize=c(3,3),dim=c(9,9)) # 9 partitions of 3x3
@@ -204,7 +204,7 @@ psize <- function(dobj,index=NULL) {
 #' Schreiber, R. (2013) Presto: Distributed Machine Learning and
 #' Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
 #'
-#' Homepage: https://github.com/vertica/DistributedR
+#' Homepage: https://github.com/vertica/ddR
 #' @examples
 #' \dontrun{
 #' a <- darray(psize=c(3,3),dim=c(9,9)) # 9 partitions of 3x3
@@ -243,7 +243,7 @@ totalParts <- function(dobj) {
 #' Schreiber, R. (2013) Presto: Distributed Machine Learning and
 #' Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
 #'
-#' Homepage: https://github.com/vertica/DistributedR
+#' Homepage: https://github.com/vertica/ddR
 #' @examples
 #' \dontrun{
 #' ## A dlist containing 2 partitions, with data 1 to 4.
@@ -286,7 +286,7 @@ DList <- dlist
 #' Schreiber, R. (2013) Presto: Distributed Machine Learning and
 #' Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
 #'
-#' Homepage: https://github.com/vertica/DistributedR
+#' Homepage: https://github.com/vertica/ddR
 #' @examples
 #' \dontrun{
 #' a <- as.dlist(list(1,2,3,4)) # A dlist with elements 1 to 4.
@@ -392,7 +392,7 @@ is.DObject <- is.dobject
 #' Schreiber, R. (2013) Presto: Distributed Machine Learning and
 #' Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
 #'
-#' Homepage: https://github.com/vertica/DistributedR
+#' Homepage: https://github.com/vertica/ddR
 #' @examples
 #' \dontrun{
 #' ## A 9 partition (each partition 3x3), 9x9 DArray with each element initialized to 5.
@@ -543,7 +543,7 @@ is.sparse_darray <- function(x) {
 #' Schreiber, R. (2013) Presto: Distributed Machine Learning and
 #' Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
 #'
-#' Homepage: https://github.com/vertica/DistributedR
+#' Homepage: https://github.com/vertica/ddR
 #' @examples
 #' \dontrun{
 #' ## A 9 partition (each partition 3x3), 9x9 dframe with each element initialized to 5.
@@ -667,7 +667,7 @@ setMethod("show",signature("DObject"),function(object) {
 #' Schreiber, R. (2013) Presto: Distributed Machine Learning and
 #' Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
 #'
-#' Homepage: https://github.com/vertica/DistributedR
+#' Homepage: https://github.com/vertica/ddR
 #' @examples
 #' \dontrun{
 #' a <- dlist(1,2,3,4,nparts=2)
@@ -840,7 +840,7 @@ checkDimAndPsize<-function(dim, psize){
 #' Schreiber, R. (2013) Presto: Distributed Machine Learning and
 #' Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
 #'
-#' Homepage: https://github.com/vertica/DistributedR
+#' Homepage: https://github.com/vertica/ddR
 #' @examples
 #' \dontrun{
 #' ##Create 4x4 matrix
@@ -893,7 +893,7 @@ as.darray <- function(input, psize=NULL) {
 #' Schreiber, R. (2013) Presto: Distributed Machine Learning and
 #' Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
 #'
-#' Homepage: https://github.com/vertica/DistributedR
+#' Homepage: https://github.com/vertica/ddR
 #' @examples
 #' \dontrun{
 #'     ##Create 4x4 matrix

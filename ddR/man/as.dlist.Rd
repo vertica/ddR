@@ -39,7 +39,7 @@ Venkataraman, S., Bodzsar, E., Roy, I., AuYoung, A., and
 Schreiber, R. (2013) Presto: Distributed Machine Learning and
 Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
 
-Homepage: https://github.com/vertica/DistributedR
+Homepage: https://github.com/vertica/ddR
 }
 \seealso{
 \code{\link{dlist}}

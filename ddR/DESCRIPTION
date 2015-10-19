@@ -1,9 +1,9 @@
 Package: ddR
-Title: Package for the Standard R-Parallel-Computation API
+Title: Distributed Data-structures in R
 Version: 0.1
-Author: HP Vertica Analytics Team
+Author: Edward Ma, Indrajit Roy, Michael Lawrence
 Maintainer: HP Vertica Analytics Team <distributedRTeam@external.groups.hp.com>
-Description: This package provides distributed data-structures in R. It simplifies
+Description: This package provides distributed data-structures. It simplifies
     distributed computing in R.
 Depends:
     methods,
