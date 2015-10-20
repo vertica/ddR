@@ -1,5 +1,5 @@
 ---
-title: "ddR README"
+title: "ddR User Guide"
 author: "Edward Ma, Indrajit Roy"
 date: "2015-10-20"
 output: rmarkdown::html_vignette
