@@ -461,7 +461,8 @@ darray <- function(nparts = NULL, dim=NULL, psize = NULL, data = 0, sparse=FALSE
       dmapply(function(d, v){ matrix(data=v,nrow=d[1], ncol=d[2]) }, sizes, MoreArgs=list(v=data), output.type="darray", combine="rbind", nparts=nparts)
     }
     else {
-      dmapply(function(d, v) { library(Matrix); new("dgCMatrix", i=as.integer({}), 
+      dmapply(function(d, v) { requireNamespace("Matrix"); 
+      			       new("dgCMatrix", i=as.integer({}), 
                                x=as.numeric({}),
                                p=as.integer(rep(v, d[2] + 1)),
                                Dim=as.integer(d))
