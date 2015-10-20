@@ -1,9 +1,9 @@
 Package: ddR
-Title: Distributed Data-structures in R
+Title: Distributed Data Structures in R
 Version: 0.1
 Author: Edward Ma, Indrajit Roy, Michael Lawrence
 Maintainer: HP Vertica Analytics Team <distributedRTeam@external.groups.hp.com>
-Description: This package provides distributed data-structures. It simplifies
+Description: Provides distributed data structures and simplifies
     distributed computing in R.
 Depends:
     methods,
