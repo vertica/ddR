@@ -18,7 +18,7 @@
 #' @useDynLib ddR
 #' @importFrom Rcpp sourceCpp
 
-#' @importFrom methods setClass setGeneric setMethod 
+#' @importFrom methods setClass setGeneric setMethod callNextMethod extends is new rbind2
 #' @importFrom utils head tail 
 NULL
 
