@@ -15,22 +15,45 @@ To learn how to use ddR, please refer to the user guide under vignettes/.
 
 ### Some quick examples
 
+
+```r
+library(ddR)
+```
+
+```
+## 
+## Welcome to 'ddR' (Distributed Data-structures in R)!
+## For more information, visit: https://github.com/vertica/ddR
+## 
+## Attaching package: 'ddR'
+## 
+## The following objects are masked from 'package:base':
+## 
+##     cbind, rbind
+```
+
 Init'ing a dlist:
 
 ```r
 a <- dmapply(function(x) { x }, rep(3,5))
-```
-
-```
-## Error in eval(expr, envir, enclos): could not find function "dmapply"
-```
-
-```r
 collect(a)
 ```
 
 ```
-## Error in eval(expr, envir, enclos): could not find function "collect"
+## [[1]]
+## [1] 3
+## 
+## [[2]]
+## [1] 3
+## 
+## [[3]]
+## [1] 3
+## 
+## [[4]]
+## [1] 3
+## 
+## [[5]]
+## [1] 3
 ```
 
 Printing `a`:
@@ -40,7 +63,14 @@ a
 ```
 
 ```
-## Error in eval(expr, envir, enclos): object 'a' not found
+## 
+## ddR Distributed Object
+## Type: dlist
+## # of partitions: 5
+## Partitions per dimension: 5x1
+## Partition sizes: [1], [1], [1], [1], [1]
+## Length: 5
+## Backend: parallel
 ```
 
 `a` is now a distributed object in ddR. Note that we did not specify the number of partitions of the output, but by default it went to the length of the inputs (5). If we wanted to specify how the output should be partitioned, we can use the `nparts` parameter to `dmapply`:
@@ -50,18 +80,18 @@ Adding 1 to first element of `a`, 2 to the second, etc.
 
 ```r
 b <- dmapply(function(x,y) { x + y }, a, 1:5,nparts=1)
-```
-
-```
-## Error in eval(expr, envir, enclos): could not find function "dmapply"
-```
-
-```r
 b
 ```
 
 ```
-## Error in eval(expr, envir, enclos): object 'b' not found
+## 
+## ddR Distributed Object
+## Type: dlist
+## # of partitions: 1
+## Partitions per dimension: 1x1
+## Partition sizes: [5]
+## Length: 5
+## Backend: parallel
 ```
 
 As you can see, `b` only has one partition of 5 elements.
@@ -72,7 +102,20 @@ collect(b)
 ```
 
 ```
-## Error in eval(expr, envir, enclos): could not find function "collect"
+## [[1]]
+## [1] 4
+## 
+## [[2]]
+## [1] 5
+## 
+## [[3]]
+## [1] 6
+## 
+## [[4]]
+## [1] 7
+## 
+## [[5]]
+## [1] 8
 ```
 Some other operations:
 `
@@ -84,18 +127,24 @@ addThenSubtract <- function(x,y,z) {
   x + y - z
 }
 c <- dmapply(addThenSubtract,a,b,MoreArgs=list(z=5))
-```
-
-```
-## Error in eval(expr, envir, enclos): could not find function "dmapply"
-```
-
-```r
 collect(c)
 ```
 
 ```
-## Error in eval(expr, envir, enclos): could not find function "collect"
+## [[1]]
+## [1] 2
+## 
+## [[2]]
+## [1] 3
+## 
+## [[3]]
+## [1] 4
+## 
+## [[4]]
+## [1] 5
+## 
+## [[5]]
+## [1] 6
 ```
 
 Accessing dobjects by parts:
@@ -103,18 +152,24 @@ Accessing dobjects by parts:
 
 ```r
 d <- dmapply(function(x) length(x),parts(a))
-```
-
-```
-## Error in eval(expr, envir, enclos): could not find function "dmapply"
-```
-
-```r
 collect(d)
 ```
 
 ```
-## Error in eval(expr, envir, enclos): could not find function "collect"
+## [[1]]
+## [1] 1
+## 
+## [[2]]
+## [1] 1
+## 
+## [[3]]
+## [1] 1
+## 
+## [[4]]
+## [1] 1
+## 
+## [[5]]
+## [1] 1
 ```
 
 We partitioned `a` with 5 parts and it had 5 elements, so the length of each partition is of course 1.
@@ -124,18 +179,12 @@ However, `b` only had one partition, so that one partition should be of length 5
 
 ```r
 e <- dmapply(function(x) length(x),parts(b))
-```
-
-```
-## Error in eval(expr, envir, enclos): could not find function "dmapply"
-```
-
-```r
 collect(e)
 ```
 
 ```
-## Error in eval(expr, envir, enclos): could not find function "collect"
+## [[1]]
+## [1] 5
 ```
 
 Note that `parts()` and non-parts arguments can be used in any combination to dmapply. `parts(dobj)` returns a list of the partitions of that dobject, which can be passed into dmapply like any other list. `parts(dobj,index)`, where `index` is a list, vector, or scalar, returns a specific partition or range of partitions of `dobj`.

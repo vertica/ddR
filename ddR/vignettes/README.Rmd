@@ -15,6 +15,10 @@ To learn how to use ddR, please refer to the user guide under vignettes/.
 
 ### Some quick examples
 
+```{r}
+library(ddR)
+```
+
 Init'ing a dlist:
 ```{r}
 a <- dmapply(function(x) { x }, rep(3,5))
