@@ -9,9 +9,26 @@ vignette: >
   \usepackage[utf8]{inputenc}
 ---
 
-ddR is both an API and an R package that permits the declaration of 'distributed' objects (i.e., `dlist`, `dframe`, `darray`), and facilitates parallel operations on these data structures using R-style `apply` functions. It also allows different backends (that support ddR, and have ddR "drivers" written for them), to be dynamically activated in the R user's environment, to be selected for use with the API.
+The 'ddR' package aims to provide an unified R interface for writing
+parallel and distributed applications.  Our goal is to ensure that R
+programs written using the 'ddR' API work across different distributed
+backends, therefore, reducing the effort required by users to
+understand and program on different backends.  Currently 'ddR'
+programs can be executed on R's default 'parallel' package as well as
+the open source HP Distributed R.  We plan to add support for
+SparkR. This package is an outcome of feedback and collaboration
+across different companies and R-core members!
 
-To learn how to use ddR, please refer to the user guide under vignettes/.
+
+'ddR' is an API, and includes a default execution engine, to express
+and execute distributed applications. Users can declare distributed
+objects (i.e., `dlist`, `dframe`, `darray`), and execute parallel
+operations on these data structures using R-style `apply`
+functions. It also allows different backends (that support ddR, and
+have ddR "drivers" written for them) to be dynamically activated in
+the R user's environment to execute applications.
+
+Please refer to the user guide under vignettes/ for a detailed description on how to use the package.
 
 ### Some quick examples
 
@@ -32,7 +49,9 @@ library(ddR)
 ##     cbind, rbind
 ```
 
-Init'ing a dlist:
+By default, the `parallel` backend is used with all the cores present on the machine. You can switch backends or specify the number of cores to use with the `useBackend` function. For example, you can specify that the `parallel` backend should be used with only 4 cores by executing `useBackend(parallel, executors=4)`.
+
+Initializing a distributed list (dlist):
 
 ```r
 a <- dmapply(function(x) { x }, rep(3,5))
@@ -73,9 +92,9 @@ a
 ## Backend: parallel
 ```
 
-`a` is now a distributed object in ddR. Note that we did not specify the number of partitions of the output, but by default it went to the length of the inputs (5). If we wanted to specify how the output should be partitioned, we can use the `nparts` parameter to `dmapply`:
+`a` is a distributed object in ddR. Note that we did not specify the number of partitions of the output, but by default it is equal to the length of the inputs (5). Use the parameter `nparts` to specify how the output should be partitioned:
 
-Adding 1 to first element of `a`, 2 to the second, etc.
+Below is the code to add 1 to the first element of `a`, 2 to the second, etc. The syntax of `dmapply` is similar to R's standard `mapply` function.
 
 
 ```r
@@ -94,7 +113,7 @@ b
 ## Backend: parallel
 ```
 
-As you can see, `b` only has one partition of 5 elements.
+Since we specified `nparts=1` in `dmapply`, `b` only has one partition of 5 elements. Note that the argument `nparts` is optional, and a user can always ignore it.
 
 
 ```r
@@ -147,7 +166,7 @@ collect(c)
 ## [1] 6
 ```
 
-Accessing dobjects by parts:
+We can also process distributed objects partitionwise. Below is an example where we calculate the length of each partition:
 
 
 ```r
@@ -172,7 +191,7 @@ collect(d)
 ## [1] 1
 ```
 
-We partitioned `a` with 5 parts and it had 5 elements, so the length of each partition is of course 1.
+We partitioned `a` with 5 parts and it had 5 elements, so the length of each partition is 1.
 
 However, `b` only had one partition, so that one partition should be of length 5:
 
@@ -187,15 +206,15 @@ collect(e)
 ## [1] 5
 ```
 
-Note that `parts()` and non-parts arguments can be used in any combination to dmapply. `parts(dobj)` returns a list of the partitions of that dobject, which can be passed into dmapply like any other list. `parts(dobj,index)`, where `index` is a list, vector, or scalar, returns a specific partition or range of partitions of `dobj`.
+Note that `parts()` and non-parts arguments can be used in any combination inside dmapply. `parts(dobj)` returns a list of the partitions of that dobject, which can be passed into dmapply like any other list. The function `parts(dobj,index)`, where `index` is a list, vector, or scalar, returns a specific partition or range of partitions of `dobj`.
 
-We also have support for `darrays` and `dframes`. Their APIs are a bit more complex, and this guide will be updated shortly with that content.
+We also have support for `darrays` and `dframes`. Check vignettes/ on how to use them.
 
-For a more detailed example, you may view (and run) the example scripts under /examples.
+For more interesting parallel machine learning algorithms, you may view (and run) the example scripts under /examples.
 
 ## Using the Distributed R backend
 
-Use the Distributed R library for ddR:
+To use the Distributed R library for ddR, first install `distributedR.ddR` and then load it:
 ```r
 library(distributedR.ddR)
 ```
