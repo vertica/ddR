@@ -1,7 +1,7 @@
 ---
 title: "ddR README"
-author: "Edward Ma, Indrajit Roy"
-date: "2015-10-20"
+author: "Edward Ma, Indrajit Roy, Michael Lawrence"
+date: "2015-10-22"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Vignette Title}
@@ -26,7 +26,7 @@ objects (i.e., `dlist`, `dframe`, `darray`), and execute parallel
 operations on these data structures using R-style `apply`
 functions. It also allows different backends (that support ddR, and
 have ddR "drivers" written for them) to be dynamically activated in
-the R user's environment to execute applications.
+the R user's environment to execute applications
 
 Please refer to the user guide under vignettes/ for a detailed description on how to use the package.
 
@@ -48,10 +48,10 @@ library(ddR)
 ## 
 ##     cbind, rbind
 ```
-
 By default, the `parallel` backend is used with all the cores present on the machine. You can switch backends or specify the number of cores to use with the `useBackend` function. For example, you can specify that the `parallel` backend should be used with only 4 cores by executing `useBackend(parallel, executors=4)`.
 
 Initializing a distributed list (dlist):
+
 
 ```r
 a <- dmapply(function(x) { x }, rep(3,5))
@@ -91,7 +91,6 @@ a
 ## Length: 5
 ## Backend: parallel
 ```
-
 `a` is a distributed object in ddR. Note that we did not specify the number of partitions of the output, but by default it is equal to the length of the inputs (5). Use the parameter `nparts` to specify how the output should be partitioned:
 
 Below is the code to add 1 to the first element of `a`, 2 to the second, etc. The syntax of `dmapply` is similar to R's standard `mapply` function.
@@ -112,7 +111,6 @@ b
 ## Length: 5
 ## Backend: parallel
 ```
-
 Since we specified `nparts=1` in `dmapply`, `b` only has one partition of 5 elements. Note that the argument `nparts` is optional, and a user can always ignore it.
 
 
@@ -139,7 +137,7 @@ collect(b)
 Some other operations:
 `
 
-Adding `a` to `b`, then subtracting a constant value
+Adding `a` to `b`, and then subtracting a constant value
 
 ```r
 addThenSubtract <- function(x,y,z) {
@@ -165,7 +163,6 @@ collect(c)
 ## [[5]]
 ## [1] 6
 ```
-
 We can also process distributed objects partitionwise. Below is an example where we calculate the length of each partition:
 
 
@@ -206,7 +203,7 @@ collect(e)
 ## [1] 5
 ```
 
-Note that `parts()` and non-parts arguments can be used in any combination inside dmapply. `parts(dobj)` returns a list of the partitions of that dobject, which can be passed into dmapply like any other list. The function `parts(dobj,index)`, where `index` is a list, vector, or scalar, returns a specific partition or range of partitions of `dobj`.
+Note that `parts()` and non-parts arguments can be used in any combination to dmapply. `parts(dobj)` returns a list of the partitions of that dobject, which can be passed into dmapply like any other list. `parts(dobj,index)`, where `index` is a list, vector, or scalar, returns a specific partition or range of partitions of `dobj`.
 
 We also have support for `darrays` and `dframes`. Check vignettes/ on how to use them.
 
@@ -215,6 +212,7 @@ For more interesting parallel machine learning algorithms, you may view (and run
 ## Using the Distributed R backend
 
 To use the Distributed R library for ddR, first install `distributedR.ddR` and then load it:
+
 ```r
 library(distributedR.ddR)
 ```
