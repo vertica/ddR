@@ -36,18 +36,6 @@ Please refer to the user guide under vignettes/ for a detailed description on ho
 ```r
 library(ddR)
 ```
-
-```
-## 
-## Welcome to 'ddR' (Distributed Data-structures in R)!
-## For more information, visit: https://github.com/vertica/ddR
-## 
-## Attaching package: 'ddR'
-## 
-## The following objects are masked from 'package:base':
-## 
-##     cbind, rbind
-```
 By default, the `parallel` backend is used with all the cores present on the machine. You can switch backends or specify the number of cores to use with the `useBackend` function. For example, you can specify that the `parallel` backend should be used with only 4 cores by executing `useBackend(parallel, executors=4)`.
 
 Initializing a distributed list (dlist):

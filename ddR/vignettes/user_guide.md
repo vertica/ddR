@@ -1,7 +1,7 @@
 ---
-title: "ddR User Guide"
-author: "Edward Ma, Indrajit Roy"
-date: "2015-10-20"
+title: "User Guide for ddR"
+author: "Edward Ma, Indrajit Roy, Michael Lawrence"
+date: "2015-10-22"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Vignette Title}
@@ -9,43 +9,62 @@ vignette: >
   \usepackage[utf8]{inputenc}
 ---
 
-ddR is both an API and an R package that permits the declaration of 'distributed' objects (i.e., `dlist`, `dframe`, `darray`), and facilitates parallel operations on these data structures using R-style `apply` functions. It also allows different backends (that support ddR, and have ddR "drivers" written for them), to be dynamically activated in the R user's environment, to be selected for use with the API.
+The 'ddR' package aims to provide an unified R interface for writing
+parallel and distributed applications.  Our goal is to ensure that R
+programs written using the 'ddR' API work across different distributed
+backends, therefore, reducing the effort required by users to
+understand and program on different backend infrastructures.  Currently 'ddR'
+programs can be executed on R's default 'parallel' package as well as
+the open source HP Distributed R.  We plan to add support for
+SparkR. This package is an outcome of feedback and collaboration
+across different companies and R-core members!
 
-To get started, simply load the library and select a backend to use. If you'd like to use a custom backend that isn't `Parallel`, you'll also need to load the library or code containing the driver for that backend. (For example, if you'd like to use the driver packaged in distributedR.ddR, below, you'd also run the lines that are commented out)
+'ddR' is an API, and includes a default execution engine, to express
+and execute distributed applications. Users can declare distributed
+objects (i.e., `dlist`, `dframe`, `darray`), and execute parallel
+operations on these data structures using R-style `apply`
+functions. It also allows different backends (that support ddR, and
+have ddR "drivers" written for them) to be dynamically activated in
+the R user's environment to execute applications
+
+To get started, first install the 'ddR' package using
+`install.packages("ddR")`.  Next, load the library. By default the
+package will use R's 'parallel' package as the backend. If you'd like
+to use a custom backend you will need to first install that backend
+and the 'ddR' driver for that backend.  For example, if you'd like to
+use HP Distributed R, you will need to first install the
+`distributedR` package followed by the the driver `distributedR.ddR`.
 
 
 ```r
 library(ddR)
-```
-
-```
-## 
-## Welcome to 'ddR' (Distributed Data-structures in R)!
-## For more information, visit: https://github.com/vertica/ddR
-## 
-## Attaching package: 'ddR'
-## 
-## The following objects are masked from 'package:base':
-## 
-##     cbind, rbind
-```
-
-```r
 ## Run the next two lines also to use the Distributed R backend
 # library(distributedR.ddR)
 # useBackend(distributedR)
 ```
 
-### Creating Distributed Objects
+By default, the `parallel` backend is used with all the cores present
+on the machine. You can switch backends or specify the number of cores
+to use with the `useBackend` function. For example, you can specify
+that the `parallel` backend should be used with only 4 cores by
+executing `useBackend(parallel, executors=4)`. If you want to use SNOW
+based backend (also exported by `parallel`), you can set the `type`
+field to use sockets: `useBackend(parallel, type="PSOCK",
+executors=4)`. This command will launch four R processes that use
+sockets to communicate with each other. If the type field is not used,
+then the default is to fork multiple processes (not available on
+Windows).
 
-There are two ways to create distributed objects in ddR.
+### Creating distributed objects
+
+There are two ways to create distributed objects in 'ddR'.
 
 1. Using the constructor functions.
-2. Using `dmapply` and/or `dlapply` (`dlists` only).
+2. Using `dmapply` or `dlapply` (`dlists` only).
 
-## Using the constructor functions
+## Using constructor functions
 
-A `dlist` may be created using the constructor with a comma-separated list of arguments. For example:
+A distributed list (`dlist`) may be created using the constructor with a comma-separated list of arguments. For example:
 
 
 ```r
@@ -64,7 +83,10 @@ my.dlist
 ## Backend: parallel
 ```
 
-Note that this printout shows you a lot of useful information, including metadata about the object, partition sizes, etc. There are 5 partitions in `my.dlist`, because by default, the constructor creates as many partitions as there are arugments.
+Note that the output shows you a lot of useful information, including
+metadata about the object, partition sizes, etc. There are 5
+partitions in `my.dlist`, because by default, the constructor creates
+as many partitions as the elements in input.
 
 However, you may also specify the partitioning directly using the constructor:
 
@@ -85,9 +107,12 @@ my.dlist
 ## Backend: parallel
 ```
 
-When `nparts` is supplied, it will create that many partitions in the output object, with a best effort splitting of data between those partitions. In this case, since 5 isn't divisible by 3, it divided the data into lengths of 2, 2, and 1.
+When `nparts` is supplied, it will create the requested number of
+partitions in the output object, with a best effort splitting of data
+between those partitions. In this case, since 5 isn't divisible by 3,
+it divides data into groups of 2, 2, and 1.
 
-The constructors for `darray` and `dframe` are different. For example, you might initialize a `darray` in the following manner:
+The constructors for `darray` and `dframe` are different. For example, you may initialize a `darray` in the following manner:
 
 
 ```r
@@ -106,13 +131,20 @@ my.darray
 ## Backend: parallel
 ```
 
-This makes `my.darray` a `darray` that's filled with 3s. Each partition is of size 2x2, and the dimensions of `my.darray` are 4x4. For `dframe`, the constructor follows the same format.
+This makes `my.darray` a `darray` that is filled with 3. Each
+partition is of size 2x2, and the dimension of `my.darray` is
+4x4. For `dframe`, the constructor has the same format.
 
 ## Using `dmapply` or `dlapply`
 
-Constructors are handy when you want to initialize distributed objects quickly, but as `ddR` is a functional-programming API, every operation you do will generate new objects. This means that the primary way in which you will create distributed objects will be via `dmapply` and `dlapply`.
+Constructors are handy when you want to initialize distributed objects
+quickly. However, the flexible way to create distributed objects is
+via `dmapply` and `dlapply`. Similar to the functional-programming
+behavior of R's mapply and lapply, distributed functions in 'ddR' also
+return new objects.
 
-Here's how we would create the same `dlist` that we created above using `dlapply`:
+Below is an example on how to create the same `dlist` as before but by
+using `dlapply`:
 
 
 ```r
@@ -131,7 +163,11 @@ my.dlist
 ## Backend: parallel
 ```
 
-What did I do? I ran the distributed `lapply` function, `dlapply`, on the function argument vector `1:5`, assigning to each element the value of the vector for that iteration. To specify `nparts`, I could also supply `nparts`, just as I did in the constructor function:
+Why does it work? The distributed `lapply` function, `dlapply`,
+executes on the function argument vector `1:5`, assigning to each
+element the value of the vector for that iteration. To specify
+`nparts`, you can also supply `nparts`, just as in the constructor
+function:
 
 
 ```r
@@ -150,13 +186,19 @@ my.dlist
 ## Backend: parallel
 ```
 
-The API with `dmapply` for `darray` and `dframe` is slightly more complex, though not substantially so. When creating these data structures using `dmapply`, the API needs to know some information, such as how to partition the output in 2d-manner, as well as how to combine intermediate results of dmapply within each partition. Therefore, you need to also supply arguments for the following parameters:
+The behavior of `dmapply` for `darray` and `dframe` is slightly
+involved, though not substantially so. When creating these data
+structures using `dmapply`, the API needs to know some information,
+such as how to partition the output in 2d-manner, as well as how to
+combine intermediate results of dmapply within each
+partition. Therefore, you may need to also supply arguments for the
+following parameters is you want to override the defaults:
 
 1. `output.type`, as either `"darray"` or `"dframe"` (default is `"dlist"`).
-2. `nparts`. Instead of just a scalar value, this needs to be a vector of length 2, in order to specify how to two-dimensionally partition the output `darray` or `dframe`. For example, `nparts=c(2,2)` means you want the four partitions resulting from `dmapply` to be stitched together in a 2 by 2 fashion.
-3. `combine` This is needed if you ever have more than one `dmapply` iteration per partition. For example, you may `dmapply` on arguments of length 10, when you only have 4 partitions in your output `darray` or `dframe`. When that happens, `combine` allows you to specify how you'd like to combine this data. You may like to think of this operation as what is called within each partition together on the results, before the aggregate data of the partition assumes its form. `combine` can be either `c` (default), `rbind`, or `cbind`.
+2. `nparts`. Instead of just a scalar value, this parameter needs to be a vector of length 2, in order to specify how to two-dimensionally partition the output `darray` or `dframe`. For example, `nparts=c(2,2)` means you want the four partitions resulting from `dmapply` to be stitched together in a 2 by 2 fashion. We expect most people to use only single dimension such as row partitioned data, `nparts=c(N,1)`.
+3. `combine` This argument is needed to fit the output of `dmapply` into the correct number of partitions. For example, there may be cases where `dmapply` returns 10 elements, but you have specified only 4 partitions in your output via `nparts`. In such as case, `combine` allows you to specify how elements should be combined to form only 4 partitions. You may like to think of this operation as what is called within each partition together on the results, to fit the output partitioning. `combine` can be either `c` (default), `rbind`, or `cbind`.
 
-So, let's create a 4x4 `darray`, consisting of 4 2x2 partitions, where each partition contains values equal to its partition id. To do that, we can do the following:
+So, let's create a 4x4 `darray`, consisting of 4 2x2 partitions, where each partition contains values equal to its partition identifier:
 
 
 ```r
@@ -175,7 +217,15 @@ my.darray2
 ## Backend: parallel
 ```
 
-Even though we didn't `rbind` anything, as each iteration of `dmapply` was one partition of the result, the `combine` value was necessary, since the default value of `combine` is `c`, which flattens and vectorizes the results within each partition (this is the default behavior of R's `mapply`). So `rbind` prevents this from happening, and the matrix structure is retained. We can look at what's stored in `my.darray2` by using the `collect` operator, which brings the data from the distributed backend to the local R instance, as a local R object:
+Even though we didn't `rbind` anything, as each iteration of `dmapply`
+was one partition of the result, the `combine` value was necessary.
+Since the default value of `combine` is `c`, which flattens and
+vectorizes the results within each partition (this is the default
+behavior of R's `mapply`). So `rbind` prevents this from happening,
+and the matrix structure is retained. We can look at what's stored in
+`my.darray2` by using the `collect` operator, which brings the data
+from the distributed backend to the local R instance, as a local R
+object:
 
 
 ```r
@@ -191,11 +241,15 @@ my.array
 ## [4,]    3    3    4    4
 ```
 
-### Collect, parts
+### Collect() and parts()
 
-As mentioned above, `collect` allows you to pull the data from the partitions of a distributed object and convert it into a local R object.
+As mentioned above, `collect` allows you to gather data from the
+partitions of a distributed object and convert it into a local R
+object.
 
-You may also pull an individual partition of the distributed object by using the second parameter of `collect`. For example, to get the third partition of our previous darray, `my.array2`, we can do:
+You can gather individual partitions of the distributed object by
+using the second parameter of `collect`. For example, to get the third
+partition of our previous darray, `my.array2`, you can write:
 
 
 ```r
@@ -208,7 +262,10 @@ collect(my.darray2,3)
 ## [2,]    3    3
 ```
 
-`parts` is a construct which takes a distributed object, and returns a `list` of new distributed objects, each of which represents one partition of the original distributed object. For example, let's take a look at `my.darray2` again:
+`parts` is a construct which takes a distributed object, and returns a
+`list` of new distributed objects, each of which represents one
+partition of the original distributed object. For example, let's take
+a look at `my.darray2` again:
 
 
 ```r
@@ -226,7 +283,7 @@ my.darray2
 ## Backend: parallel
 ```
 
-Now what happens when we run `parts` on it:
+Let's call `parts` on it:
 
 
 ```r
@@ -275,7 +332,10 @@ parts(my.darray2)
 ## Backend: parallel
 ```
 
-As you can see, we now have a list of length 4, each item is itself a `darray`, with partitioning and size equal to one partition of the original. We can also subset using `parts`:
+In the above example the output is a list of length 4, where each item
+is itself a `darray`, with partitioning and size equal to one
+partition of the original. We can also subset using `parts` to obtain
+just the second and third parts, respectively.
 
 
 ```r
@@ -304,12 +364,17 @@ parts(my.darray2,2:3)
 ## Backend: parallel
 ```
 
-to get just the second and third parts, respectively. The primary use of `parts` is to permit partition-based `dmapply`, where you would operate on one partition at a time. This is explained more in the next section.
+The primary use of `parts` is to execute `dmapply` on partitions of
+the distributed objects.  This is explained more in the next section.
 
 
 ### Performing "work" with dmapply
 
-When performing any computation with `dmapply', the inputs to the function can be any combination of distributed objects (`dlist`, `dframe`, `darray`), `parts` of distributed objects, and standard R objects. More specifically, `dlapply` and `dmapply` statements generally take the following form:
+When performing any computation with `dmapply', the inputs to the
+function can be any combination of distributed objects (`dlist`,
+`dframe`, `darray`), `parts` of distributed objects, and standard R
+objects. More specifically, `dlapply` and `dmapply` statements
+generally take the following form:
 
 
 ```r
@@ -330,13 +395,24 @@ Valid types for the above arguments are the following:
 5. `combine`: a string of either `default`, `rbind`, `cbind`, or `c`. The default `default` means `c` for `darray` and `dframe`, but nothing for `dlist`. For more information, please consult the user guide.
 6. `nparts`: A numeric vector, of length 1 or 2. `dlist` objects can only have 1d-partitioning, but `darray` and `dframe` objects have 2d-partitioning. 
 
-When `parts` is used, a list of partitions of the underlying distributed object is returned, so `dmapply` operates on that list in the traditional manner, which means you get to apply `FUN` to each partition of the distributed object. For all other types, the standard rules of R objects when used in `lapply`, `vapply`, and `mapply` functions are followed: we apply by per column in a `data.frame`, once per item for `list` objects, and once per element (in column-major order) for `matrix` variables. 
+When distributed objects are passed in `dmapply`, the semantics is
+same as R's `lapply` and `mapply` on regular R objects. This means `FUN` is applied
+per column in a `dframe`, once per item for `dlist` objects, and once per
+element (in column-major order) for `darray` objects.
 
-The distributed objects follow the same conventions as their regular R counterparts (per column of a `dframe`, per element of a `darray`, etc.). 
+When `parts` is used, a list of partitions of the underlying
+distributed object is returned. Therefore, `dmapply` operates on the
+list in the traditional manner, which means the function `FUN` is
+applied to each partition of the distributed object. 
+
+Scroll to end of this document for more examples on how to use
+`dmapply` on distributed objects and their partitions.
 
 ### Operators
 
-ddR supports a number of R-style, R-equivalent, operations on distributed objects. These are implemented "generically" based on `dmapply`, so they should work on all supported backends.
+'ddR' supports a number of R-style, R-equivalent, operations on
+distributed objects. These are implemented "generically" based on
+`dmapply`, so they should work on all supported backends.
 
 Examples:
 
@@ -386,13 +462,13 @@ max(my.darray2)
 ## [1] 4
 ```
 
-There are many more, and many more to come!
+There are many more!
 
 ### Repartitioning
 
 You may sometimes like to repartition your data. This can be done with the `repartition` command.
 
-Say you have a 4x4 `darray` filled with 3s:
+Say you have a 4x4 `darray` filled with 3:
 
 
 ```r
@@ -411,14 +487,23 @@ da
 ## Backend: parallel
 ```
 
-`da` is currently partitioned into 4 pieces of 2x2 arrays. You could repartition it to be two parts of 4x2 arrays. Currently this requires you to have another `skeleton` object against which to repartition your input. This object acts as the "model" by which your input should be repartitioned. The skeleton should have the same dimensions as the input, but a different partitioning scheme. For example:
+`da` is currently partitioned into 4 pieces of 2x2 arrays. You could
+repartition it to be two parts of 4x2 arrays. Currently this requires
+you to have another `skeleton` object against which to repartition
+your input. This object acts as the "model" by which your input should
+be repartitioned. The skeleton should have the same dimensions as the
+input, but a different partitioning scheme. For example:
+
 
 
 ```r
 skel <- darray(psize=c(4,2),dim=c(4,4),data=0)
 ```
 
-`skel`, like `da`, is also a 4x4 darray, but it's partitioned differently. Now we can do `repartition`. `repartition(input,skeleton)` returns a new distributed object that retains the data of `input`, but has the partitioning scheme of `skeleton`:
+`skel`, like `da`, is also a 4x4 darray, but it is partitioned
+differently. In such cases `repartition(input,skeleton)` can be used
+to return a new distributed object that retains the data of `input`,
+but has the partitioning scheme of `skeleton`:
 
 
 ```r
@@ -437,7 +522,8 @@ da
 ## Backend: parallel
 ```
 
-As you can see, `da` is now partitioned like how `skel` was. If we run `collect`, we see that it still has the same data as before:
+As you can see, `da` is now partitioned just like `skel`. Executing
+`collect` shows that it still has the same data as before:
 
 
 ```r
@@ -452,13 +538,19 @@ collect(da)
 ## [4,]    3    3    3    3
 ```
 
-We will soon add a way to easily (and cheaply) create skeleton objects (without having to initialize another distributed object that may be very large).
-
-Note that `repartition` may be called implicitly and automatically by some backends during `dmapply` or `dlapply`. If the inputs and outputs (based on `nparts`) are not partitioned compatibly, each execution unit may not have the data required to process its chunk of computation. In this case, the backend may automatically call `repartition` on one or more of your inputs. In this case, performance may be impacted, so it is good practice to learn what results in compatible partitioning.
+Note that `repartition` may be called implicitly and automatically by
+some backends during `dmapply` or `dlapply`. If the inputs and outputs
+(based on `nparts`) are not partitioned compatibly, each execution
+unit may not have the data required to process its chunk of
+computation. In this case, the backend may automatically call
+`repartition` on one or more of your inputs. In this case, performance
+may be impacted, so it is good practice to learn what results in
+compatible partitioning.
 
 ### More Examples
 
-Init'ing a dlist:
+Initializing a distributed list (`dlist`):
+
 
 ```r
 a <- dmapply(function(x) { x }, rep(3,5))
@@ -499,9 +591,15 @@ a
 ## Backend: parallel
 ```
 
-`a` is now a distributed object in ddR. Note that we did not specify the number of partitions of the output, but by default it went to the length of the inputs (5). If we wanted to specify how the output should be partitioned, we can use the `nparts` parameter to `dmapply`:
+`a` is a distributed object in ddR. Note that we did not specify the
+number of partitions of the output, but by default it is equal to the
+length of the inputs (5). Use the parameter `nparts` to specify how
+the output should be partitioned:
 
-Adding 1 to first element of `a`, 2 to the second, etc.
+Below is the code to add 1 to the first element of `a`, 2 to the
+second, etc. The syntax of `dmapply` is similar to R's standard
+`mapply` function.
+
 
 
 ```r
@@ -613,15 +711,15 @@ collect(e)
 ## [1] 5
 ```
 
-Note that `parts()` and non-parts arguments can be used in any combination to dmapply. `parts(dobj)` returns a list of the partitions of that dobject, which can be passed into dmapply like any other list. `parts(dobj,index)`, where `index` is a list, vector, or scalar, returns a specific partition or range of partitions of `dobj`.
-
-We also have support for `darrays` and `dframes`. Their APIs are a bit more complex, and this guide will be updated shortly with that content.
-
-For a more detailed example, you may view (and run) the example scripts under /examples.
+For more example, check out our GitHub repo: https://github.com/vertica/ddR
 
 ## Using the Distributed R backend
 
-Use the Distributed R library for ddR:
+To use the Distributed R library for ddR, first install `distributedR` from https://github.com/vertica/DistributedR
+and `distributedR.ddR` from https://github.com/vertica/ddR.
+
+
+Load the Distributed R driver library for ddR:
 ```r
 library(distributedR.ddR)
 ```
@@ -648,38 +746,5 @@ useBackend(distributedR)
 ## Master address:port - 127.0.0.1:50000
 ```
 
-Now you can try the different list examples which were used with the 'parallel' backend.
+Now you can try the different examples above which were used with the 'parallel' backend!
 
-## How to Contribute
-
-You can help us in different ways:
-
-1. Reporting [issues](https://github.com/vertica/ddR/issues).
-2. Contributing code and sending a [Pull Request](https://github.com/vertica/ddR/pulls).
-
-In order to contribute the code base of this project, you must agree to the Developer Certificate of Origin (DCO) 1.1 for this project under GPLv2+:
-
-    By making a contribution to this project, I certify that:
-    
-    (a) The contribution was created in whole or in part by me and I have the 
-        right to submit it under the open source license indicated in the file; or
-    (b) The contribution is based upon previous work that, to the best of my 
-        knowledge, is covered under an appropriate open source license and I 
-        have the right under that license to submit that work with modifications, 
-        whether created in whole or in part by me, under the same open source 
-        license (unless I am permitted to submit under a different license), 
-        as indicated in the file; or
-    (c) The contribution was provided directly to me by some other person who 
-        certified (a), (b) or (c) and I have not modified it.
-    (d) I understand and agree that this project and the contribution are public and
-        that a record of the contribution (including all personal information I submit 
-        with it, including my sign-off) is maintained indefinitely and may be 
-        redistributed consistent with this project or the open source license(s) involved.
-
-To indicate acceptance of the DCO you need to add a `Signed-off-by` line to every commit. E.g.:
-
-    Signed-off-by: John Doe <john.doe@hisdomain.com>
-
-To automatically add that line use the `-s` switch when running `git commit`:
-
-    $ git commit -s
