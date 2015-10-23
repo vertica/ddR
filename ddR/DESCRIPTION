@@ -2,7 +2,7 @@ Package: ddR
 Title: Distributed Data Structures in R
 Version: 0.1
 Author: Edward Ma, Indrajit Roy, Michael Lawrence
-Maintainer: Edward Ma <ema at hpe.com>
+Maintainer: Edward Ma <ema@hpe.com>
 Description: Provides distributed data structures and simplifies
     distributed computing in R.
 Depends:
