@@ -1,20 +1,19 @@
-\name{hpdRF_parallelForest}
-\alias{hpdRF_parallelForest}
+\name{drandomForest}
+\alias{drandomForest}
+\alias{drandomForest.default}
+\alias{drandomForest.formula}
 \title{Distributed randomForest with parallelism in sub-forest level}
 \description{
-hpdRF_parallelForest function runs \code{randomForest} function of randomForest package in a distributed fashion with parallelism in sub-forest level.
-}
-\description{
-  \code{hpdRF_parallelForest} calls several instances of \code{randomForest} distributed across a cluster system in order to create sub-forests concurrently. Therefore, the master distributes the input data among all R-executors of the distributedR environment, and trees on different sub-sections of the forest are created simultaneously. At the end, all these trees are combined to result a single forest.
+drandomForest function runs \code{randomForest} function of randomForest package in a distributed fashion with parallelism in sub-forest level. \code{drandomForest} calls several instances of \code{randomForest} distributed across a cluster system in order to create sub-forests concurrently. Therefore, the master distributes the input data among all R-executors of the distributedR environment, and trees on different sub-sections of the forest are created simultaneously. At the end, all these trees are combined to result a single forest.
 
-  The interface of \code{hpdRF_parallelForest} is similar to \code{randomForest}. Indeed it adds two arguments \code{nExecutor} and \code{trace}, and removes several other arguments: \code{subset}, \code{do.trace}, \code{corr.bias}, \code{keep.inbag}, and \code{oob.prox}. Nevertheless, it must be noticed that default value of some arguments are changed as well to make the algorithm more scalable for big data problems; e.g, \code{proximity} is FALSE by default. Its returned result is also completely compatible to the result of \code{randomForest}.
+  The interface of \code{drandomForest} is similar to \code{randomForest}. Indeed it adds two arguments \code{nExecutor} and \code{trace}, and removes several other arguments: \code{subset}, \code{do.trace}, \code{corr.bias}, \code{keep.inbag}, and \code{oob.prox}. Nevertheless, it must be noticed that default value of some arguments are changed as well to make the algorithm more scalable for big data problems; e.g, \code{proximity} is FALSE by default. Its returned result is also completely compatible to the result of \code{randomForest}.
 }
 
 \usage{ 
-\method{hpdRF_parallelForest}{formula}(formula, data=NULL, ..., ntree=500, 
+\method{drandomForest}{formula}(formula, data=NULL, ..., ntree=500, 
          na.action=na.fail, nExecutor, trace=FALSE, 
-         completeModel=FALSE)
-\method{hpdRF_parallelForest}{default}(x, y=NULL,  xtest=NULL, ytest=NULL, ntree=500,
+         completeModel=FALSE, setSeed)
+\method{drandomForest}{default}(x, y=NULL,  xtest=NULL, ytest=NULL, ntree=500,
          mtry=if (!is.null(y) && !is.factor(y) && !is.dframe(y))
          max(floor(ncol(x)/3), 1) else floor(sqrt(ncol(x))),
          replace=TRUE, classwt=NULL, cutoff, strata,
@@ -23,7 +22,8 @@ hpdRF_parallelForest function runs \code{randomForest} function of randomForest 
          !is.dframe(y)) 5 else 1,
          maxnodes=NULL, importance=FALSE, localImp=FALSE, nPerm=1,
          proximity=FALSE,norm.votes=TRUE, keep.forest=TRUE,
-         nExecutor, trace=FALSE, completeModel=FALSE, ...)
+         nExecutor, trace=FALSE, completeModel=FALSE, ...,
+	 setSeed, formula, na.action = na.fail)
 }
 
 \arguments{
@@ -93,18 +93,20 @@ hpdRF_parallelForest function runs \code{randomForest} function of randomForest 
     Ignored for regression.}
   \item{keep.forest}{If set to \code{FALSE}, the forest will not be
     retained in the output object.}
-  \item{nExecutor}{a positive integer number indicating the number of tasks for running the function. To have optimal performance, it is recommended to have this number smaller than or equal to the number of R-executors in the distributedR environment. It cannot be bigger than ntree. When it is not specified, it will be equal to the number of available executors by default.}
+  \item{nExecutor}{a positive integer number indicating the number of tasks for running the function. To have optimal performance, it is recommended to have this number smaller than or equal to the total number of cores.}
   \item{trace}{when this argument is true, intermediate steps of the progress are displayed.}
   \item{completeModel}{
     when it is FALSE (default), the output values that preserve information per sample are discarded. They are 'oob.times', 'votes', 'predicted', 'confusion', 'err.rate', 'mse', 'rsq', 'proximity', and 'test'. This feature is intended to keep the size of the output model small.}
   \item{...}{optional parameters to be passed to the low level function.}
+  \item{setSeed}{if setSeed is a valid integer, the output model will be deterministic assuming nExecutor parameter does not change}
+
 }
 
 \value{
 An object of class \code{randomForest}. The result is similar to the result of the combine function in randomForest package
  and will contain the following components.
 
-  \item{call}{the original call to \code{hpdRF_parallelForest}}
+  \item{call}{the original call to \code{drandomForest}}
   \item{type}{one of \code{regression}, \code{classification}, or
     \code{unsupervised}.}
   \item{predicted}{(only when completeModel=TRUE) the predicted values of 
@@ -181,26 +183,25 @@ Three scenarios can be imagined for the type of input data. When ordinary R type
 \examples{
  \dontrun{
     
-library(HPdclassifier)
-distributedR_start()
+library(ddR.randomForest)
 
 ## Classification:
 ##data(iris)
-iris.rf <- hpdRF_parallelForest(Species ~ ., data=iris, importance=TRUE)
+iris.rf <- drandomForest(Species ~ ., data=iris, importance=TRUE)
 print(iris.rf)
 
 ## The 'unsupervised' case:
-iris.urf <- hpdRF_parallelForest(iris[, -5], 
+iris.urf <- drandomForest(iris[, -5], 
                             proximity=TRUE, completeModel=TRUE)
 MDSplot(iris.urf, iris$Species)
 
 ## stratified sampling: draw 20, 30, and 20 of the species to grow each tree.
-(iris.rf2 <- hpdRF_parallelForest(iris[1:4], iris$Species, 
+(iris.rf2 <- drandomForest(iris[1:4], iris$Species, 
                           sampsize=c(20, 30, 20)))
 
 ## Regression:
 ## data(airquality)
-ozone.rf <- hpdRF_parallelForest(Ozone ~ ., data=airquality, mtry=3,
+ozone.rf <- drandomForest(Ozone ~ ., data=airquality, mtry=3,
                     importance=TRUE, na.action=na.omit, 
                     completeModel=TRUE)
 print(ozone.rf)
@@ -210,19 +211,19 @@ round(importance(ozone.rf), 2)
 ## "x" can be a matrix instead of a data frame:
 x <- matrix(runif(5e2), 100)
 y <- gl(2, 50)
-(myrf <- hpdRF_parallelForest(x, y))
+(myrf <- drandomForest(x, y))
 (predict(myrf, x))
 
 ## "complicated" formula:
-(swiss.rf <- hpdRF_parallelForest(sqrt(Fertility)~. - Catholic + I(Catholic<50),
+(swiss.rf <- drandomForest(sqrt(Fertility)~. - Catholic + I(Catholic<50),
                           data=swiss))
 (predict(swiss.rf, swiss))
 ## Test use of 32-level factor as a predictor:
 x <- data.frame(x1=gl(32, 5), x2=runif(160), y=rnorm(160))
-(rf1 <- hpdRF_parallelForest(x[-3], x[[3]], ntree=10))
+(rf1 <- drandomForest(x[-3], x[[3]], ntree=10))
 
 ## Grow no more than 4 nodes per tree:
-(treesize(hpdRF_parallelForest(Species ~ ., data=iris, maxnodes=4, ntree=30)))
+(treesize(drandomForest(Species ~ ., data=iris, maxnodes=4, ntree=30)))
 
 distributedR_shutdown()
  }
