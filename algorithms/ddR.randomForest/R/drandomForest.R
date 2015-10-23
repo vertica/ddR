@@ -5,7 +5,7 @@
 #  Its based on the technique of parallel creation of sub-forests.
 #
 #########################################################
-"drandomForest" <- function(x, nExecutor, ...)   UseMethod("drandomForest")
+"drandomForest" <- function(...)   UseMethod("drandomForest")
 
 "drandomForest.formula" <-
     function(formula, data = NULL, ..., ntree=500, na.action = na.fail, nExecutor, trace=FALSE, completeModel=FALSE, setSeed) {
@@ -662,7 +662,7 @@
 
 
 
-predict.drandomForest <- function (object, newdata, trace=FALSE) {
+predict.drandomForest <- function (object, newdata, trace = FALSE, ...) {
     # validating arguments
     if (!inherits(object, "randomForest"))
         stop("object not of class randomForest")

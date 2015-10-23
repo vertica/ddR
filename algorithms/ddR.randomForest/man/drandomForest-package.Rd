@@ -1,35 +1,29 @@
-\name{HPdclassifier-package}
-\alias{HPdclassifier-package}
-\alias{HPdclassifier}
+\name{ddR.randomForest-package}
+\alias{ddR.randomForest-package}
+\alias{ddR.randomForest}
 \docType{package}
-\title{Distributed algorithms for classifiers}
+\title{distributed version of randomForest package}
 \description{
-\pkg{HPdclassifier} provides several distributed algorithms for classifiers. It is written based on the infrastructure created in HP-Labs for distributed computing in R.
+\pkg{ddR.randomForest} leverages the randomForest package to provide a parallel training and prediction function 
 }
 
 \details{
     \tabular{ll}{
-        Package: \tab HPdclassifier\cr
+        Package: \tab ddR.randomForest\cr
         Type: \tab Package\cr
-        Version: \tab 1.2.0\cr
-        Date: \tab 2015-01-16\cr
+        Version: \tab 0.1.0\cr
+        Date: \tab 2015-10-23\cr
     }
  Main Functions:
  \itemize{
-  \item {hpdRF_parallelTree:} {It is a distributed function for randomForest that utilizes parallelism in creating each tree of the forest}
-  \item {hpdRF_parallelForest:} {It is a distributed function for randomForest that utilizes parallelism in creating sub-forests of the forest}
+  \item {drandomForest:} {It is a distributed function for randomForest that utilizes parallelism in creating sub-forests of the forest}
  }
 }
 
 \author{
 HP Vertica Analytics Team <distributedRTeam@external.groups.hp.com>
 }
-\references{
- \enumerate{
-  \item{Using R for Iterative and Incremental Processing. Shivaram Venkataraman, Indrajit Roy, Alvin AuYoung, Rob Schreiber. HotCloud 2012, Boston, USA.}
- }   
-}
-\keyword{Distributed R}
+
 \keyword{Scalable Machine Learning algorithms}
 \keyword{Big Data Analytics}
 
