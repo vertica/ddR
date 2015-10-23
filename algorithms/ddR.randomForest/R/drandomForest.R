@@ -233,7 +233,7 @@
         # parallel creation of the sub-forests
 
         trainModel <- function(idx, inputD, x, y, xtest, ytest, .tryCatchWE, completeModel) {
-            library(randomForest)
+            requireNamespace("randomForest")
             inputD$x <- x
             if(!is.logical(y)) {
                 if(is.character(y))
@@ -257,7 +257,7 @@
 
             set.seed(inputD$setSeed[idx])
 
-            oli <- .tryCatchWE( do.call("randomForest", inputD) )
+            oli <- .tryCatchWE( do.call(randomForest::randomForest, inputD) )
 
             if( inherits(oli[[1]], "randomForest") ) { # when there is no error
                 # y is the same for all trees
@@ -335,7 +335,7 @@
 		.tryCatchWE, completeModel,
                 xcoln, xtestcoln) {
 
-            library(randomForest)
+            requireNamespace("randomForest")
             colnames(x) <- xcoln
             inputD$x <- x
             if(! all(is.na(y)))
@@ -355,7 +355,7 @@
 
             set.seed(inputD$setSeed[idx])
 
-            oli <- .tryCatchWE( do.call("randomForest", inputD) )
+            oli <- .tryCatchWE( do.call(randomForest::randomForest, inputD) )
 
             if( inherits(oli[[1]], "randomForest") ) { # when there is no error
                 # y is the same for all trees
@@ -404,7 +404,7 @@
 
         trainModel <- function(idx, inputD, x, formula, 
 		   .tryCatchWE, na.action, completeModel) {
-            library(randomForest)
+            requireNamespace("randomForest")
             nsamples1 <- nrow(x)
             x <- na.action(x)
             nsamples.delta <- nsamples1 - nrow(x)
@@ -438,7 +438,7 @@
 
             set.seed(inputD$setSeed[idx])
 
-            oli <- .tryCatchWE( do.call("randomForest", inputD) )
+            oli <- .tryCatchWE( do.call(randomForest::randomForest, inputD) )
 
             if( inherits(oli[[1]], "randomForest") ) { # when there is no error
                 # y is the same for all trees
@@ -524,7 +524,8 @@
         set.seed(setSeed)   # setting seed before calling combine function
     }
 
-    rf <- do.call("combine", rflist)
+
+    rf <- do.call(randomForest::combine, rflist)
     rf$call <- m
     class(rf) <- c("drandomForest", "randomForest")
 

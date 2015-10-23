@@ -5,6 +5,7 @@ Version: 0.1.0
 Date: 2015-10-23
 Author: HP Vertica Analytics Team
 Maintainer: HP Vertica Analytics Team <distributedRTeam@external.groups.hp.com>
-Depends: R (>= 3.0.0), randomForest (>= 4.6-10), ddR
+Depends: R (>= 3.0.0)
+Imports: ddR, stats, randomForest (>= 4.6-10)
 Description: Distributed training and prediction of random forest models based upon randomForest package.
 License:  GPL (>= 2) | file LICENSE
