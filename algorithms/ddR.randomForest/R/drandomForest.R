@@ -1,31 +1,15 @@
-# Copyright [2013] Hewlett-Packard Development Company, L.P.
-#
-# This program is free software; you can redistribute it and/or
-# modify it under the terms of the GNU General Public License
-# as published by the Free Software Foundation; either version 2
-# of the License, or (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU General Public License for more details.
-# 
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
-
 #########################################################
-#  File hpdRF_parallelForest.R
+#  File drandomForest.R
 #
 #  This code is a distributed version based on randomForest function available in randomForest package.
 #  Its based on the technique of parallel creation of sub-forests.
 #
 #########################################################
-"hpdRF_parallelForest" <- function(x, nExecutor, ...)   UseMethod("hpdRF_parallelForest")
+"drandomForest" <- function(x, nExecutor, ...)   UseMethod("drandomForest")
 
-"hpdRF_parallelForest.formula" <-
+"drandomForest.formula" <-
     function(formula, data = NULL, ..., ntree=500, na.action = na.fail, nExecutor, trace=FALSE, completeModel=FALSE, setSeed) {
-### formula interface for hpdRF_parallelForest.
+### formula interface for drandomForest.
 ### code gratefully copied from randomForest.formula (package randomForest_4.6-10).
 ###
     if (missing(nExecutor)) {
@@ -55,24 +39,20 @@
     m$completeModel <- NULL
 
     if(!is.null(data)) {
-        if(ddR::is.dframe(data)) {
-            ret <- hpdRF_parallelForest.default(data, ..., ntree=ntree, nExecutor=nExecutor,trace=trace,setSeed=setSeed, completeModel=completeModel, formula=formula, na.action=na.action)
+        if(is.dframe(data)) {
+            ret <- drandomForest.default(data, ..., ntree=ntree, nExecutor=nExecutor,trace=trace,setSeed=setSeed, completeModel=completeModel, formula=formula, na.action=na.action)
         } else {
             m <- eval(m, parent.frame())
             y <- model.response(m)
             Terms <- attr(m, "terms")
             attr(Terms, "intercept") <- 0
             attr(y, "na.action") <- attr(m, "na.action")
-            ## Drop any "negative" terms in the formula.
-            ## test with:
-            ## randomForest(Fertility~.-Catholic+I(Catholic<50),data=swiss,mtry=2)
             m <- model.frame(terms(reformulate(attributes(Terms)$term.labels)),
                              data.frame(m))
-            ## if (!is.null(y)) m <- m[, -1, drop=FALSE]
             for (i in seq(along=m)) {
                 if (is.ordered(m[[i]])) m[[i]] <- as.numeric(m[[i]])
             }
-            ret <- hpdRF_parallelForest.default(m, y, ..., ntree=ntree, nExecutor=nExecutor,trace=trace,setSeed=setSeed, completeModel=completeModel)
+            ret <- drandomForest.default(m, y, ..., ntree=ntree, nExecutor=nExecutor,trace=trace,setSeed=setSeed, completeModel=completeModel)
             ret$terms <- Terms
             if (!is.null(attr(y, "na.action")) && completeModel) {
                 attr(ret$predicted, "na.action") <- ret$na.action <- attr(y, "na.action")
@@ -81,23 +61,23 @@
     }
 
     cl <- match.call()
-    cl[[1]] <- as.name("hpdRF_parallelForest")
+    cl[[1]] <- as.name("drandomForest")
     ret$call <- cl
-    class(ret) <- c("hpdRF_parallelForest.formula", "hpdRF_parallelForest", "hpdrandomForest", "randomForest.formula", "randomForest")
+    class(ret) <- c("drandomForest.formula", "drandomForest", "randomForest.formula", "randomForest")
     return(ret)
-} # "hpdRF_parallelForest.formula"
+} # "drandomForest.formula"
 
 ## x, y, xtest, ytest should have all follow one of these cases:
 ## Case 1- compatible to their types in randomForest
 ## Case 2- They are all (in the case of existance) of type darray
 ## Case 3- x is of type dframe, and there is a formula. y is null; xtest and ytest are not supported at this case
-"hpdRF_parallelForest.default"  <-
+"drandomForest.default"  <-
     function(x, y=NULL,  xtest=NULL, ytest=NULL, ntree=500,
-             mtry=if (!is.null(y) && !is.factor(y) && !ddR::is.dframe(y))
+             mtry=if (!is.null(y) && !is.factor(y) && !is.dframe(y))
              max(floor(ncol(x)/3), 1) else floor(sqrt(ncol(x))),
              replace=TRUE, classwt=NULL, cutoff, strata,
              sampsize = if (replace) nrow(x) else ceiling(.632*nrow(x)),
-             nodesize = if (!is.null(y) && !is.factor(y) && !ddR::is.dframe(y)) 5 else 1,
+             nodesize = if (!is.null(y) && !is.factor(y) && !is.dframe(y)) 5 else 1,
              maxnodes=NULL,importance=FALSE, localImp=FALSE, nPerm=1,
              proximity=FALSE,
              norm.votes=TRUE, keep.forest=TRUE,
@@ -109,19 +89,19 @@
     # validating the inputs
     ntree <- round(ntree)
     if (missing(nExecutor)) {
-        nExecutor <- sum(distributedR_status()$Inst)
+        stop("'nExecutor' is required argument")
     } else {
         nExecutor <- round(nExecutor)
         if(nExecutor <= 0 || nExecutor > ntree)
             stop("nExecutor should be a positive integer number and smaller than 'ntree'")
     }
 
-    nSamples <- NROW(x)
+    nSamples <- nrow(x)
     if (nSamples == 0) stop("data (x) has 0 rows")
     Stratify <- length(sampsize) > 1
     if ((!Stratify) && sampsize > nSamples) stop("sampsize too large")
 
-    if(ddR::is.dframe(x)) { # when x is dframe
+    if(is.dframe(x)) { # when x is dframe
         if (missing(formula))
             formula <- ~.
         if (!is.null(y))
@@ -143,12 +123,12 @@
             if("." %in% features) nFeatures <- length(colnames(x)) -1
             else nFeatures <- length(features)
         } else { # there is no response (unsupervised)
-            nFeatures <- NCOL(x)
+            nFeatures <- ncol(x)
             keep.forest <- FALSE
             sampsize <- sampsize * 2
         }
     } else {
-        nFeatures <- NCOL(x)
+        nFeatures <- ncol(x)
 
         if (!is.null(xtest)) {
             if (is.null(y))
@@ -159,9 +139,9 @@
                 stop("assigned xtest is empty")
         }
         if(!is.null(y)) {
-            if(NCOL(y) != 1)
+            if(ncol(y) != 1)
                 stop("y should have a single column")
-            if(NROW(y) != nSamples)
+            if(nrow(y) != nSamples)
                 stop("length of response must be the same as predictors")
             if(is.data.frame(y))    y <- y[,1]
         } else { # there is no response (unsupervised)
@@ -169,14 +149,14 @@
             sampsize <- sampsize * 2
         }
         if(!is.null(ytest)) {
-            if(NCOL(ytest) != 1)
+            if(ncol(ytest) != 1)
                 stop("ytest should have a single column")
             if (!is.factor(ytest) && NROW(ytest) == 0)
                 stop("assigned ytest is empty")
             if(is.data.frame(ytest)) ytest <- ytest[,1]
             if(is.null(xtest)) 
                 stop("xtest is not available")
-            if(NROW(ytest) != NROW(xtest))
+            if(nrow(ytest) != (xtest))
                 stop("length of ytest must be the same as xtest")
         }
     } # if-else
@@ -230,23 +210,22 @@
         starttime <- proc.time()
     }
     # the ouptput dlist
-    outdl <- dlist(nExecutor)
 
     if (is.matrix(x) || is.data.frame(x)) {
     ## Case 1- compatible to their types in randomForest
         # validating xtest
         if(!is.null(xtest)) {
-            if(ddR::is.darray(xtest) || ddR::is.dframe(xtest) || ddR::is.dlist(xtest))
+            if(is.darray(xtest) || is.dframe(xtest) || is.dlist(xtest))
                 stop("The type of 'xtest' should be consistent with 'x'")
         }
         # validating y
         if(!is.null(y)) {
-            if(ddR::is.darray(y) || ddR::is.dframe(y) || ddR::is.dlist(y))
+            if(is.darray(y) || is.dframe(y) || is.dlist(y))
                 stop("'y' cannot be a distributed type when 'x' is not")
         }
         # validating ytest
         if(!is.null(ytest)) {
-            if(ddR::is.darray(ytest) || ddR::is.dframe(ytest) || ddR::is.dlist(ytest) || is.null(y))
+            if(is.darray(ytest) || is.dframe(ytest) || is.dlist(ytest) || is.null(y))
                 stop("The type of 'ytest' should be consistent with 'y'")
         }
 
@@ -301,6 +280,14 @@
 
             return(oli)
         }
+	outdl <- dlapply(1:nExecutor, trainModel,
+	      	 .tryCatchWE=.tryCatchWE, 
+	      	 completeModel=completeModel,
+	      	 inputD = inputData,
+	      	 x = x,
+	      	 y=if(is.null(y)) TRUE else y, 
+	      	 xtest=if(is.null(xtest)) TRUE else xtest,
+	      	 ytest=if(is.null(ytest)) TRUE else ytest)
 	outdl = dmapply(trainModel, 
 	      idx=1:nExecutor, 
 	      MoreArgs = list(.tryCatchWE=.tryCatchWE, 
@@ -312,14 +299,14 @@
 	      	       ytest=if(is.null(ytest)) TRUE else ytest),
 	      nparts = nExecutor)
 
-    } else if (ddR::is.darray(x)) {
+    } else if (is.darray(x)) {
     ## Case 2- They are all (in the case of existance) of type darray
         if(nrow(x)==0) stop("'x' should not be an empty darray")
         if(is.sparse_darray(x))
             stop("Sparse darray is not supported for x")
         # validating xtest
         if(!is.null(xtest)) {
-            if(!ddR::is.darray(xtest))
+            if(!is.darray(xtest))
                 stop("The type of 'xtest' should be consistent with 'x'")
             if(nrow(xtest)==0) stop("'xtest' should not be an empty darray")
             if(is.sparse_darray(xtest))
@@ -329,7 +316,7 @@
 	    	  output.type = "darray",combine = "rbind",nparts = c(totalParts(x),1))
         # validating y
         if(!is.null(y)) {
-            if(!ddR::is.darray(y))
+            if(!is.darray(y))
                 stop("The type of 'y' should be consistent with 'x'")
             if(nrow(y)==0) stop("'y' should not be an empty darray")
             if(is.sparse_darray(y))
@@ -342,7 +329,7 @@
         if(!is.null(ytest)) {
             if(is.null(y))
                 stop("The type of 'ytest' should be consistent with 'y'")
-            if(!ddR::is.darray(ytest))
+            if(!is.darray(ytest))
                 stop("The type of 'ytest' should be consistent with 'y'")
             if(nrow(ytest)==0) stop("'ytest' should not be an empty darray")
             if(is.sparse_darray(ytest))
@@ -416,7 +403,7 @@
 	      ytest = ytest),
 	      nparts = nExecutor)
 
-    } else if (ddR::is.dframe(x)) {
+    } else if (is.dframe(x)) {
     ## Case 3- x is of type dframe; y, xtest, and ytest are not supported at this case
         # validating xtest
             # it is already checked that xtest is NULL
@@ -553,7 +540,7 @@
 
     rf <- do.call("combine", rflist)
     rf$call <- m
-    class(rf) <- c("hpdRF_parallelForest", "hpdrandomForest", "randomForest")
+    class(rf) <- c("drandomForest", "randomForest")
 
     if(trace) {
         endtime <- proc.time()
@@ -607,7 +594,7 @@
     
     # Saving the terms
     if(rf$type == "classification" || rf$type == "regression") {
-        if(ddR::is.dframe(x)) {
+        if(is.dframe(x)) {
             yname <- all.vars(formula[[2]])
             xnames <- all.vars(formula[[3]])
             if("." %in% xnames) {
@@ -651,7 +638,7 @@
     }
 
     rf
-} # "hpdRF_parallelForest.default"
+} # "drandomForest.default"
 
 ##' We want to catch *and* save both errors and warnings, and in the case of
 ##' a warning, also keep the computed result.
@@ -673,28 +660,9 @@
          warnings = list_of_Warnings)
 }
 
-## A supplementary function for deployment
-# inputModel: it is the model that is going to be prepared for deployment
-deploy.hpdRF_parallelForest <- function(inputModel) {
-    if(is.null(inputModel$forest))
-        stop("The model does not contain a forest and cannot be used for prediction")
-    # clearing environment
-    environment(inputModel$terms) <- globalenv()
-    # removing unnecessary elements
-    inputModel$y <- NULL
-    inputModel$oob.times <- NULL
-    inputModel$votes <- NULL
-    inputModel$predicted <- NULL
-    inputModel$importanceSD <- NULL
-    inputModel$localImportance <- NULL
-    inputModel$proximity <- NULL
-    inputModel$test <- NULL
-    inputModel$proximity <- NULL
-    
-    inputModel
-}
 
-predict.hpdRF_parallelForest <- function (object, newdata, trace=FALSE) {
+
+predict.drandomForest <- function (object, newdata, trace=FALSE) {
     # validating arguments
     if (!inherits(object, "randomForest"))
         stop("object not of class randomForest")
@@ -706,14 +674,14 @@ predict.hpdRF_parallelForest <- function (object, newdata, trace=FALSE) {
     else
         class(object) <- "randomForest"
 
-    if (!ddR::is.darray(newdata) && !ddR::is.dframe(newdata)) {
+    if (!is.darray(newdata) && !is.dframe(newdata)) {
         output <- predict(object, newdata)
     } else {
         nparts <- totalParts(newdata)
-        nSamples <- NROW(newdata)
+        nSamples <- nrow(newdata)
         if(nSamples == 0) stop("No sample found in the newdata")
 
-        if((object$type == "classification") || ddR::is.dframe(newdata)) { # the output will be a dframe; either because the output is categorical or to be consistent with the input
+        if((object$type == "classification") || is.dframe(newdata)) { # the output will be a dframe; either because the output is categorical or to be consistent with the input
             have.dframe = TRUE
         } else { # the output will be a darray because it would be regression and the input type is darray
             have.dframe = FALSE
