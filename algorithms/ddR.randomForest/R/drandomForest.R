@@ -233,7 +233,9 @@
         # parallel creation of the sub-forests
 
         trainModel <- function(idx, inputD, x, y, xtest, ytest, .tryCatchWE, completeModel) {
+	    suppressMessages({
             requireNamespace("randomForest")
+	    })
             inputD$x <- x
             if(!is.logical(y)) {
                 if(is.character(y))
@@ -334,8 +336,9 @@
         trainModel <- function(idx, inputD, x, y, xtest, ytest, 
 		.tryCatchWE, completeModel,
                 xcoln, xtestcoln) {
-
+	    suppressMessages({
             requireNamespace("randomForest")
+	    })
             colnames(x) <- xcoln
             inputD$x <- x
             if(! all(is.na(y)))
@@ -404,7 +407,9 @@
 
         trainModel <- function(idx, inputD, x, formula, 
 		   .tryCatchWE, na.action, completeModel) {
+	    suppressMessages({
             requireNamespace("randomForest")
+	    })
             nsamples1 <- nrow(x)
             x <- na.action(x)
             nsamples.delta <- nsamples1 - nrow(x)
