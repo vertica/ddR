@@ -232,7 +232,7 @@
         # Each argument of foreach function is limited to 2GB
         # parallel creation of the sub-forests
 
-        trainModel <- function(inputD, x, y, xtest, ytest, idx, .tryCatchWE, completeModel) {
+        trainModel <- function(idx, inputD, x, y, xtest, ytest, .tryCatchWE, completeModel) {
             library(randomForest)
             inputD$x <- x
             if(!is.logical(y)) {
@@ -280,7 +280,7 @@
 
             return(oli)
         }
-	outdl <- dlapply(1:nExecutor, trainModel,
+	outdl <- dlapply( 1:nExecutor, trainModel,
 	      	 .tryCatchWE=.tryCatchWE, 
 	      	 completeModel=completeModel,
 	      	 inputD = inputData,
@@ -288,16 +288,6 @@
 	      	 y=if(is.null(y)) TRUE else y, 
 	      	 xtest=if(is.null(xtest)) TRUE else xtest,
 	      	 ytest=if(is.null(ytest)) TRUE else ytest)
-	outdl = dmapply(trainModel, 
-	      idx=1:nExecutor, 
-	      MoreArgs = list(.tryCatchWE=.tryCatchWE, 
-	      	       completeModel=completeModel,
-	      	       inputD = inputData,
-	      	       x = x,
-	      	       y=if(is.null(y)) TRUE else y, 
-	      	       xtest=if(is.null(xtest)) TRUE else xtest,
-	      	       ytest=if(is.null(ytest)) TRUE else ytest),
-	      nparts = nExecutor)
 
     } else if (is.darray(x)) {
     ## Case 2- They are all (in the case of existance) of type darray
@@ -341,7 +331,8 @@
         # Each argument of foreach function is limited to 2GB
         # parallel creation of the sub-forests
 	
-        trainModel <- function(inputD, x, y, xtest, ytest, idx, .tryCatchWE, completeModel,
+        trainModel <- function(idx, inputD, x, y, xtest, ytest, 
+		.tryCatchWE, completeModel,
                 xcoln, xtestcoln) {
 
             library(randomForest)
@@ -388,10 +379,7 @@
             return(oli)
         }
 
-
-	outdl <- dmapply(trainModel,
-	      idx=1:nExecutor, 
-	      MoreArgs = list(
+	outdl <- dlapply(1:nExecutor, trainModel,
 	      inputD=inputData, 
 	      .tryCatchWE=.tryCatchWE, 
 	      completeModel=completeModel,
@@ -400,8 +388,8 @@
 	      x = x,
 	      y = y,
 	      xtest = xtest,
-	      ytest = ytest),
-	      nparts = nExecutor)
+	      ytest = ytest)
+
 
     } else if (is.dframe(x)) {
     ## Case 3- x is of type dframe; y, xtest, and ytest are not supported at this case
@@ -414,9 +402,9 @@
         # Each argument of foreach function is limited to 2GB
         # parallel creation of the sub-forests
 
-        trainModel <- function(inputD, x, formula, idx, .tryCatchWE, na.action, completeModel) {
+        trainModel <- function(idx, inputD, x, formula, 
+		   .tryCatchWE, na.action, completeModel) {
             library(randomForest)
-            x <- do.call(rbind,x)
             nsamples1 <- nrow(x)
             x <- na.action(x)
             nsamples.delta <- nsamples1 - nrow(x)
@@ -473,16 +461,14 @@
 
             return(oli)
         }
-	outdl <- dmapply(trainModel, 
-	      x=lapply(1:nExecutor,function(a) parts(x)),
-	      idx=1:nExecutor, 
-	      MoreArgs = list(
+
+	outdl <- dlapply(1:nExecutor, trainModel, 
+	      x=x,
               formula=formula, 
 	      inputD=inputData, 
 	      .tryCatchWE=.tryCatchWE, 
 	      na.action=na.action, 
-	      completeModel=completeModel),
-	      nparts = nExecutor)
+	      completeModel=completeModel)
 
     } else {
     ## Not supported type
