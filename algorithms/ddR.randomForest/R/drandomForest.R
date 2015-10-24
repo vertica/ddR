@@ -232,7 +232,7 @@
         # Each argument of foreach function is limited to 2GB
         # parallel creation of the sub-forests
 
-        trainModel <- function(idx, inputD, x, y, xtest, ytest, .tryCatchWE, completeModel) {
+        trainModel_local <- function(idx, inputD, x, y, xtest, ytest, .tryCatchWE, completeModel) {
 	    suppressMessages({
             requireNamespace("randomForest")
 	    })
@@ -282,7 +282,7 @@
 
             return(oli)
         }
-	outdl <- dlapply( 1:nExecutor, trainModel,
+	outdl <- dlapply( 1:nExecutor, trainModel_local,
 	      	 .tryCatchWE=.tryCatchWE, 
 	      	 completeModel=completeModel,
 	      	 inputD = inputData,
@@ -333,7 +333,7 @@
         # Each argument of foreach function is limited to 2GB
         # parallel creation of the sub-forests
 	
-        trainModel <- function(idx, inputD, x, y, xtest, ytest, 
+        trainModel_darray <- function(idx, inputD, x, y, xtest, ytest, 
 		.tryCatchWE, completeModel,
                 xcoln, xtestcoln) {
 	    suppressMessages({
@@ -382,7 +382,7 @@
             return(oli)
         }
 
-	outdl <- dlapply(1:nExecutor, trainModel,
+	outdl <- dlapply(1:nExecutor, trainModel_darray,
 	      inputD=inputData, 
 	      .tryCatchWE=.tryCatchWE, 
 	      completeModel=completeModel,
@@ -405,7 +405,7 @@
         # Each argument of foreach function is limited to 2GB
         # parallel creation of the sub-forests
 
-        trainModel <- function(idx, inputD, x, formula, 
+        trainModel_dframe <- function(idx, inputD, x, formula, 
 		   .tryCatchWE, na.action, completeModel) {
 	    suppressMessages({
             requireNamespace("randomForest")
@@ -467,7 +467,7 @@
             return(oli)
         }
 
-	outdl <- dlapply(1:nExecutor, trainModel, 
+	outdl <- dlapply(1:nExecutor, trainModel_dframe, 
 	      x=x,
               formula=formula, 
 	      inputD=inputData, 
