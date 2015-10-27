@@ -43,7 +43,7 @@
             ret <- drandomForest.default(data, ..., ntree=ntree, nExecutor=nExecutor,trace=trace,setSeed=setSeed, completeModel=completeModel, formula=formula, na.action=na.action)
         } else {
             m <- eval(m, parent.frame())
-            y <- model.response(m)
+            y <- data.frame(model.response(m))
             Terms <- attr(m, "terms")
             attr(Terms, "intercept") <- 0
             attr(y, "na.action") <- attr(m, "na.action")
@@ -153,10 +153,11 @@
                 stop("ytest should have a single column")
             if (!is.factor(ytest) && NROW(ytest) == 0)
                 stop("assigned ytest is empty")
+
             if(is.data.frame(ytest)) ytest <- ytest[,1]
             if(is.null(xtest)) 
                 stop("xtest is not available")
-            if(nrow(ytest) != (xtest))
+            if(length(ytest) != nrow(xtest))
                 stop("length of ytest must be the same as xtest")
         }
     } # if-else
@@ -701,11 +702,16 @@ predict.drandomForest <- function (object, newdata, trace = FALSE, ...) {
 	else return(NULL)
 	}
 	
-	errors <- dmapply(parseError, output = parts(output))
+	errors <- dmapply(parseError, output = output)
 	errors <- collect(errors)
 	errors <- errors[!sapply(errors,is.null)]
 	if(length(errors) > 0)
 		stop(errors[[1]])
+	
+	have.dframe <- if(have.dframe) "dframe" else "darray"
+	output = dmapply(function(output) output, output = output,
+	       output.type=have.dframe, 
+	       combine = "rbind", nparts = c(totalParts(output),1))
     }
     output
 }

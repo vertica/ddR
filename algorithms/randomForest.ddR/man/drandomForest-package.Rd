@@ -1,15 +1,15 @@
-\name{ddR.randomForest-package}
-\alias{ddR.randomForest-package}
-\alias{ddR.randomForest}
+\name{randomForest.ddR-package}
+\alias{randomForest.ddR-package}
+\alias{randomForest.ddR}
 \docType{package}
 \title{distributed version of randomForest package}
 \description{
-\pkg{ddR.randomForest} leverages the randomForest package to provide a parallel training and prediction function 
+\pkg{randomForest.ddR} leverages the randomForest package to provide a parallel training and prediction function 
 }
 
 \details{
     \tabular{ll}{
-        Package: \tab ddR.randomForest\cr
+        Package: \tab randomForest.ddR\cr
         Type: \tab Package\cr
         Version: \tab 0.1.0\cr
         Date: \tab 2015-10-23\cr

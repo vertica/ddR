@@ -1,11 +1,12 @@
-Package: ddR.randomForest
+Package: randomForest.ddR
 Type: Package
 Title: Distributed randomForest for Big Data
 Version: 0.1.0
 Date: 2015-10-23
-Author: HP Vertica Analytics Team
-Maintainer: HP Vertica Analytics Team <distributedRTeam@external.groups.hp.com>
+Author: Vishrut Gupta, Arash Fard
+Maintainer: Vishrut Gupta <vishrut.gupta@hpe.com>
 Depends: R (>= 3.0.0)
 Imports: ddR, stats, randomForest (>= 4.6-10)
+Suggests: testthat
 Description: Distributed training and prediction of random forest models based upon randomForest package.
 License:  GPL (>= 2) | file LICENSE
