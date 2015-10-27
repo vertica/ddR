@@ -2,11 +2,6 @@
 title: "ddR README"
 author: "Edward Ma, Indrajit Roy, Michael Lawrence"
 date: "2015-10-22"
-output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{Vignette Title}
-  %\VignetteEngine{knitr::rmarkdown}
-  \usepackage[utf8]{inputenc}
 ---
 
 The 'ddR' package aims to provide an unified R interface for writing
@@ -221,10 +216,6 @@ library(distributedR.ddR)
 
 ```r
 useBackend(distributedR)
-```
-
-```
-## Master address:port - 127.0.0.1:50000
 ```
 
 Now you can try the different list examples which were used with the 'parallel' backend.
