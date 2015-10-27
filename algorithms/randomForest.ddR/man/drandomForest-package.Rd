@@ -21,7 +21,7 @@
 }
 
 \author{
-HP Vertica Analytics Team <distributedRTeam@external.groups.hp.com>
+Vishrut Gupta, Arash Fard, Winston Li, Mathew Saltz
 }
 
 \keyword{Scalable Machine Learning algorithms}

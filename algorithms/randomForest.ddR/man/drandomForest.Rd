@@ -170,9 +170,6 @@ Three scenarios can be imagined for the type of input data. When ordinary R type
 \references{
   Breiman, L. (2001), \emph{Random Forests}, Machine Learning 45(1),5-32.
 
-  Breiman, L (2002), ''Manual On Setting Up, Using, And Understanding
-  Random Forests V3.1'', \url{http://oz.berkeley.edu/users/breiman/Using_random_forests_V3.1.pdf}.
-
   Random Forests V4.6-10, \url{http://cran.r-project.org/web/packages/randomForest/randomForest.pdf}.
 }
 
