@@ -1,13 +1,13 @@
-\name{hpdkmeans}
-\alias{hpdkmeans}
-\alias{fitted.hpdkmeans}
-\alias{print.hpdkmeans}
+\name{dkmeans}
+\alias{dkmeans}
+\alias{fitted.dkmeans}
+\alias{print.dkmeans}
 \title{Distributed kmeans}
 \description{
-hpdkmeans function is intended to be a distributed alternative for kmeans function.
+dkmeans function is intended to be a distributed alternative for kmeans function.
 }
 \usage{
-hpdkmeans(X, centers, iter.max = 10, nstart = 1, 
+dkmeans(X, centers, iter.max = 10, nstart = 1, 
             sampling_threshold = 1e+06, trace = FALSE, 
             na_action = c("exclude","fail"), 
             completeModel = FALSE)
@@ -42,10 +42,10 @@ hpdkmeans(X, centers, iter.max = 10, nstart = 1,
 \details{
 The data given by X is clustered by the k-means method, which aims to partition the points into k groups such that the sum of squares from points to the assigned cluster centres is minimized. At the minimum, all cluster centres are at the mean of their Voronoi sets (the set of data points which are nearest to the cluster centre).
 
-The algorithm of Lloyd–Forgy (Lloyd 1957 and Forgy 1965) is used at the current version. If an initial matrix of centres is supplied, it is possible that no point will be closest to one or more centres, which currently generates a warning message.
+The algorithm of Lloyd-Forgy (Lloyd 1957 and Forgy 1965) is used at the current version. If an initial matrix of centres is supplied, it is possible that no point will be closest to one or more centres, which currently generates a warning message.
 }
 \value{
-hpdkmeans returns an object of class "hpdkmeans" which has a print and a fitted method. It is a list with components:
+dkmeans returns an object of class "dkmeans" which has a print and a fitted method. It is a list with components:
   \item{cluster}{(available only when completeModel=TRUE; otherwise it is NULL) a darray of integers (from 1:k) indicating the cluster to which each point is allocated.}
   \item{centers}{a matrix of cluster centres.}
   \item{totss}{(available only when completeModel=TRUE; otherwise it is NA) the total sum of squares.}
@@ -56,9 +56,9 @@ hpdkmeans returns an object of class "hpdkmeans" which has a print and a fitted 
   \item{iter}{the number of iterations used for clustering. Its value will be iter.max+1 when the algorithm is not converged.}
 }
 \references{
-Forgy, E. W. (1965) Cluster analysis of multivariate data: efficiency vs interpretability of classifications. Biometrics 21, 768–769.
+Forgy, E. W. (1965) Cluster analysis of multivariate data: efficiency vs interpretability of classifications. Biometrics 21, 768-769.
 
-Lloyd, S. P. (1957, 1982) Least squares quantization in PCM. Technical Note, Bell Laboratories. Published in 1982 in IEEE Transactions on Information Theory 28, 128–137.
+Lloyd, S. P. (1957, 1982) Least squares quantization in PCM. Technical Note, Bell Laboratories. Published in 1982 in IEEE Transactions on Information Theory 28, 128-137.
 }
 \author{
     HP Vertica Analytics Team
@@ -67,10 +67,10 @@ Lloyd, S. P. (1957, 1982) Least squares quantization in PCM. Technical Note, Bel
 \seealso{
  \code{\link[stats]{kmeans}}
 }
+
 \examples{
  \dontrun{
-    library(HPdcluster)
-    distributedR_start()
+    library(kmeans.ddR)
 
     iris2 <- iris[,-5]
     centers <- matrix(c(5.901613,5.006000,6.850000,2.748387,3.428000,
@@ -79,13 +79,14 @@ Lloyd, S. P. (1957, 1982) Least squares quantization in PCM. Technical Note, Bel
 
     X <- as.darray(data.matrix(iris2))
 
-    (mykm1 <- hpdkmeans(X,centers=centers))
+    (mykm1 <- dkmeans(X,centers=centers))
     
-    (mykm2 <- hpdkmeans(X,centers=3, completeModel=TRUE))
+    (mykm2 <- dkmeans(X,centers=3, completeModel=TRUE))
  }
 }
 
-\keyword{distributed R}
-\keyword{Big Data Analytics}
+\keyword{clustering}
+\keyword{kmeans}
+\keyword{distributed}
 \keyword{distributed clustering}
 \keyword{distributed kmeans}
