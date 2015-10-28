@@ -2,7 +2,16 @@ Package: Spark.ddR
 Title: A ddR Driver Package for SparkR
 Version: 0.0.0.9000
 Author: Edward Ma
-Description: An in-progress barebones R package to support the ddR API with Spark as the backend.
-Depends: R (>= 3.0.0)
+Description: An in-progress barebones R package to support the ddR API with
+    Spark as the backend.
+Depends:
+    methods,
+    ddR,
+    R (>= 3.0.0)
+Imports:
+    SparkR
 License: GPL (>= 2) | file LICENSE
 LazyData: true
+Collate:
+    'driver.R'
+    'object.R'
