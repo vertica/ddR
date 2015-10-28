@@ -1,0 +1,6 @@
+useDynLib(kmeans.ddR)
+exportPattern("^[[:alpha:]]+")
+import(stats)
+import(ddR)
+import(Rcpp)
+S3method(predict, dkmeans)

@@ -1,22 +1,5 @@
 /********************************************************************
- * Copyright (C) [2013] Hewlett-Packard Development Company, L.P.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or (at
- * your option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.  You should have received a
- * copy of the GNU General Public License along with this program; if
- * not, write to the Free Software Foundation, Inc., 59 Temple Place,
- * Suite 330, Boston, MA 02111-1307 USA
- ********************************************************************/
-
-/********************************************************************
- *  Functions related to the hpdkmeans algorithm
+ *  Functions related to the dkmeans algorithm
  ********************************************************************/
 
 #include <Rcpp.h>
@@ -34,7 +17,7 @@ using namespace std;
 **  Rnc: the number of points in each cluster
 */
 
-RcppExport SEXP hpdkmeans_Lloyd(SEXP Rx, SEXP Rnorm, SEXP Rcen, SEXP Rcl, SEXP Rnc)
+RcppExport SEXP dkmeans_Lloyd(SEXP Rx, SEXP Rnorm, SEXP Rcen, SEXP Rcl, SEXP Rnc)
 {
     BEGIN_RCPP
     int n, k, p, cencol;
