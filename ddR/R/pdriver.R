@@ -148,58 +148,21 @@ setMethod("do_dmapply",
     # We are using the SNOW backend, i.e., clusterMap. Check code with print(clusterMap)
     if(is.null(parallel.ddR.env$snowCluster)){initializeSnowOnWindows()}
 
-    #TODO(iR): Should change sapply to "lengths" which is available for R> 3.2
-    n <- sapply(dots, length)
-    vlen <- max(n)
-    if (vlen && min(n) == 0L) 
-        stop("zero-length inputs cannot be mixed with those of non-zero length")
-    if (!all(n == vlen)) 
-         stop("Unequal length of input arguments. Length of largest argument is ", n)
-
-    argfun <- function(i) c(lapply(dots, function(x) x[[i]]), MoreArgs)
-
-    #TODO(iR): For now we only use static scheduling
-    answer <- parallel:::staticClusterApply(parallel.ddR.env$snowCluster, func, vlen, argfun)
+    #Wrap the input arguments and use do.call()
+    dots <- c(list(cl = parallel.ddR.env$snowCluster, fun = func, MoreArgs = MoreArgs, RECYCLE = FALSE, SIMPLIFY = FALSE), dots)
+    answer <- do.call(parallel::clusterMap, dots)
 
    } else {
-   #We directly call the internal mcmapply function. Check code by print(mcmapply) 
+   #Wrap inputs in a list to call mcmapply via do.call()
 
-   FUN <- match.fun(func)
-   if (!length(dots)) 
-        stop("Length of dmapply argument is zero")
-   lens <- sapply(dots, length)
-   n <- max(lens)
-   if (n && min(lens) == 0L) 
-       stop("Zero-length inputs cannot be mixed with those of non-zero length")
-   answer <- if (n < 2L) 
-       .mapply(FUN, dots, MoreArgs)
-   else {
-        X <- if (!all(lens == n)){ 
-	    stop("Unequal length of input arguments. Length of largest argument is ", n)
-	}
-        else dots
-        do_one <- function(indices, ...) {
-            dots <- lapply(X, function(x) x[indices])
-            .mapply(FUN, dots, MoreArgs)
-        }
-        answer <- parallel::mclapply(seq_len(n), do_one, mc.preschedule = TRUE, 
-            mc.set.seed = TRUE, mc.silent = FALSE, 
-            mc.cores = parallel.ddR.env$cores, mc.cleanup = TRUE)
-        do.call(c, answer)
-    }
+   dots <- c(list(FUN = func, MoreArgs = MoreArgs, SIMPLIFY = FALSE, mc.cores = parallel.ddR.env$cores), dots)
+   answer <- do.call(parallel::mcmapply, dots)
+
    }
 
    #Perform a cheap check on whether there was an error since man pages say that an error on one core will result in error messages on all. TODO: Sometimes the class of the error is "character"
    if(class(answer[[1]]) == "try-error") {stop(answer[[1]])}
    if(class(answer[[1]]) == "character" && grepl("Error", answer[[1]])) {stop(answer[[1]])}
-
-   USE.NAMES<-TRUE #TODO(ir): What should the default be?
-   if (USE.NAMES && length(dots)) {
-        if (is.null(names1 <- names(dots[[1L]])) && is.character(dots[[1L]])) 
-            names(answer) <- dots[[1L]]
-        else if (!is.null(names1)) 
-            names(answer) <- names1
-    }
 
    #Create the output object, since we store partitions
    totalParts <- prod(nparts)

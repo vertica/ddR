@@ -1,17 +1,17 @@
-\name{dds}
-\alias{dds}
+\name{ddR}
+\alias{ddR}
 \docType{package}
 \title{Distributed Data-structures in R}
 
-\description{\pkg{dds} simplifies large-scale data analysis. It
+\description{\pkg{ddR} simplifies large-scale data analysis. It
   includes new language constructs to express distributed programs in R.
-  Distributed programs writted in \pkg{dds} can work across multiple execution engines such
- as \pkg{parallel}, \pkg{distributedR}, and others. \pkg{dds} provides
+  Distributed programs writted in \pkg{ddR} can work across multiple execution engines such
+ as \pkg{parallel}, \pkg{distributedR}, and others. \pkg{ddR} provides
   data-structures such as distributed array \code{\link{darray}} to
   partition and share data across multiple R instances. Users can
   express parallel execution using \code{\link{dmapply}}.}
 
-\section{Commands}{ \pkg{dds} contains the following commands. For
+\section{Commands}{ \pkg{ddR} contains the following commands. For
 more details use help function on each command.
 
 \subsection{Session manangement}{
@@ -63,7 +63,7 @@ more details use help function on each command.
 }
 \examples{
 \dontrun{                  
-  library(dds)
+  library(ddR)
   useBackend(parallel)
   a <- dmapply(function(x,y) x+y, 1:5, 2:6, nparts=3) 
   collect(a)
