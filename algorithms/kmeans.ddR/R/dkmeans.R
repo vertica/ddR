@@ -27,6 +27,7 @@ function(X, centers, iter.max = 10, nstart = 1,
 
     # validating the input arguments
     if(is.null(X)) stop("'X' is a required argument")
+    if(!is.darray(X)) stop("'X' must be a darray")
     nSample <- nrow(X)    # number of samples
     if(is.na(nSample)) stop("invalid nrow(X)")
     p <- ncol(X)    # number of predictors
