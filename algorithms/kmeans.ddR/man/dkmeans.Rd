@@ -61,7 +61,7 @@ Forgy, E. W. (1965) Cluster analysis of multivariate data: efficiency vs interpr
 Lloyd, S. P. (1957, 1982) Least squares quantization in PCM. Technical Note, Bell Laboratories. Published in 1982 in IEEE Transactions on Information Theory 28, 128-137.
 }
 \author{
-    HP Vertica Analytics Team
+    Vishrut Gupta, Arash Fard
 }
 
 \seealso{
