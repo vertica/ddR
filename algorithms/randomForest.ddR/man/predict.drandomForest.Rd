@@ -30,7 +30,7 @@
   5-32.
 }
 \author{
-    HP Vertica Analytics Team
+    Vishrut Gupta, Arash Fard, Winston Li, Matthew Saltz
 }
 
 \seealso{\code{\link{drandomForest}}}

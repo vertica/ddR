@@ -39,7 +39,7 @@ drandomForest function runs \code{randomForest} function of randomForest package
     dframe and the first interface should be used for classification
     problems of large datasets with categorical data.}
   \item{y}{a response vector. If a factor, classification is assumed,
-    otherwise regression is assumed.  If omitted, \code{hpdRF_parallelForest}
+    otherwise regression is assumed.  If omitted, \code{drandomForest}
     will run in unsupervised mode. When \code{x} is a darray), \code{y} 
     should be also a darray with a single column.}
   \item{xtest}{a data frame or matrix (like \code{x}) containing
@@ -130,7 +130,7 @@ An object of class \code{randomForest}. The result is similar to the result of t
   \item{ntree}{number of trees grown.}
   \item{mtry}{number of predictors sampled for spliting at each node.}
   \item{forest}{(a list that contains the entire forest; \code{NULL} if
-    \code{hpdRF_parallelForest} is run in unsupervised mode or if
+    \code{drandomForest} is run in unsupervised mode or if
     \code{keep.forest=FALSE}.}
   \item{err.rate}{(classification only) 
     vector error rates of the prediction on the input data, the i-th element
@@ -174,7 +174,7 @@ Three scenarios can be imagined for the type of input data. When ordinary R type
 }
 
 \author{
-    HP Vertica Analytics Team
+    Vishrut Gupta, Arash Fard, Winston Li, Matthew Saltz
 }
 
 \examples{
