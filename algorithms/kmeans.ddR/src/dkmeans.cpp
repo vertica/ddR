@@ -107,7 +107,7 @@ RcppExport SEXP dkmeans_Lloyd(SEXP Rx, SEXP Rnorm, SEXP Rcen, SEXP Rcl, SEXP Rnc
 }
 
 /*
-** Calculates the norm of input vectors (used in hpdkmeans)
+** Calculates the norm of input vectors (used in dkmeans)
 **  Rx: the matrix of samples
 **  Rnorm: the matrix of norms
 */
@@ -146,7 +146,7 @@ RcppExport SEXP calculate_norm(SEXP Rx, SEXP Rnorm) {
 }
 
 /*
-** Calculates wss (used in hpdkmeans)
+** Calculates wss (used in dkmeans)
 **  Rx: the matrix of samples
 **  Rcen: the matrix of centers
 **  Rcl: the vector of cluster labels
