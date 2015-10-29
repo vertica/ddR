@@ -59,6 +59,7 @@ setMethod("do_dmapply",
 
   # Each argument will be an RDD
   all.RDDs <- vector(mode = "list", length = length(all.args))
+  wrap <- vector(mode = "logical", length = length(all.args))
 
   current.index <- 0
 
@@ -68,10 +69,15 @@ setMethod("do_dmapply",
   ## number of partitions as the output
 
   for(arg in all.args) {
+    is_dobject <- FALSE
     current.index = current.index + 1
+    wrap[[current.index]] <- FALSE
     # If not a dobject or parts of dobjects
-    is_dobject <- rapply(arg, function(x) is(x,"ddR_RDD"),how="unlist")
-    is_dobject <- any(is_dobject)
+    if(!is.list(arg)) is_dobject <- is(arg,"ddR_RDD")
+    else {
+      is_dobject <- rapply(arg, function(x) is(x,"ddR_RDD"),how="unlist")
+      is_dobject <- any(is_dobject)
+    }
 
     if(!is_dobject) new.RDD <- 
       SparkR:::parallelize(Spark.ddR.env$context,arg,totParts)
@@ -85,11 +91,14 @@ setMethod("do_dmapply",
                # code for direct list of parts
         # TODO(etduwx): Is there any way to make this more efficient?
         # Get all parts referred to in this list
+ 
+        wrap[[current.index]] <- TRUE       
+
         part.ids <- vapply(arg, function(x)
-          x@partitions, FUN.VALUE=numeric(1))
+          x@partitions, FUN.VALUE=integer(1))
 
         # If the selection is a superset or a subset, we need to pick them out
-        if(!identical(1:totalParts(arg[[1]]))) {
+        if(!identical(part.ids,1:SparkR:::numPartitions(arg[[1]]@RDD))) {
           ## TODO: implement
           # new.RDD <- getPartitionPrunedRDD(arg[[1]]@RDD,part.ids)
         } else {
@@ -107,7 +116,7 @@ setMethod("do_dmapply",
 
   if(length(all.RDDs) > 1) {
     for(j in seq(2,length(all.RDDs))) {
-      compound.RDD <- SparkR:::zipRDD(compoundRDD,all.RDDs[[j]])
+      compound.RDD <- SparkR:::zipRDD(compound.RDD,all.RDDs[[j]])
     }
   } 
 
@@ -126,7 +135,11 @@ setMethod("do_dmapply",
     if(nchar(nms[[p]]) != 0 && !is.null(nms))
       argsStr <- paste0(argsStr, nms[[p]], "=")
     
-    argsStr <- paste0(argsStr, "RDD_part[[",p,"]]")
+    if(!wrap[[p]]) {
+      argsStr <- paste0(argsStr, "lapply(RDD_part, function(x) x[[",p,"]])")
+    } else {
+      argsStr <- paste0(argsStr, "list(lapply(RDD_part, function(x) x[[",p,"]]))")
+    }
   }
 
   execLine <- paste0(".newDObj <- mapply(.funct,",argsStr,",MoreArgs=MoreArgs,SIMPLIFY=FALSE)")

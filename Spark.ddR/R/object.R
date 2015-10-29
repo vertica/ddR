@@ -51,12 +51,15 @@ setMethod("get_parts",signature("ddR_RDD","integer"),
 setMethod("do_collect",signature("ddR_RDD","integer"),
   function(x, parts) {
     if(identical(x@partitions, parts) && length(parts) > 1) {
-       SparkR:::collect(x@RDD)
+       temp <- SparkR:::collect(x@RDD,flatten=FALSE)
+       if(is.dlist(x)) { unlist(temp,recursive=FALSE) }
+       else {# Use nparts to stitch together here
+            }
     } else if(length(parts) > 1) {
       stop("Cannot collect on more than one index at a time")
     }
    else {
-      SparkR:::collect(x@RDD,x@partitions[[parts]])
+      SparkR:::collectPartition(x@RDD,(x@partitions[[parts]])-1L)
    }
 })
 
