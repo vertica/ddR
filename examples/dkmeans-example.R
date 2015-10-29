@@ -1,14 +1,14 @@
 library(ddR)
-library(ddR.kmeans)
+library(kmeans.ddR)
 
 nInst = 2 # Change level of parallelism
-
+useBackend(parallel,executors = nInst)
 # Uncomment the following lines to use Distributed R 
 #library(distributedR.ddR)
 #useBackend(distributedR)
 
 # Set up data size
-ncol = 10
+ncol = 100
 nrow = 1000000
 K = 10
 centers = 100*matrix(rnorm(K*ncol),nrow = K)
@@ -27,5 +27,10 @@ feature <- dmapply(generateKMeansData,id = 1:nInst,
 		output.type = "darray", 
 		combine = "rbind", nparts = c(nInst,1))
 
-# model <- hpdkmeans(feature,K, trace = TRUE)  # For version using dlists
-model <- hpdkmeansv2(feature,K, trace = TRUE)  # For version using darrays
+training_time <- system.time({model <- dkmeans(feature,K)})[3]
+cat("training dkmeans model on distributed data: ", training_time,"\n")
+
+feature <- collect(feature)
+training_time <- system.time({model <- kmeans(feature, K, algorithm = "Lloyd")})[3]
+cat("training normal kmeans model on centralized data: ", training_time,"\n")
+
