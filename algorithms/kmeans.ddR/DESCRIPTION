@@ -1,6 +1,6 @@
 Package: kmeans.ddR
 Type: Package
-Title: Distributed k-means for Big Data using 'ddR' API
+Title: Distributed k-Means for Big Data using 'ddR' API
 Version: 0.1.0
 Date: 2015-10-28
 Author: Vishrut Gupta, Arash Fard
