@@ -30,7 +30,7 @@ This function applies the centers found by dkmeans on a new set of samples in or
 This function returns a darray or a matrix based on the type of newdata which contains the corresponding label of each sample.
 }
 \author{
-    HP Vertica Analytics Team
+    Vishrut Gupta, Arash Fard
 }
 
 \examples{
@@ -42,10 +42,10 @@ This function returns a darray or a matrix based on the type of newdata which co
 
     X <- as.darray(data.matrix(iris2))
 
-    mykm <- hpdkmeans(X,centers=3)
+    mykm <- dkmeans(X,centers=3)
 
     newdata <- matrix(c(5,4,3,5,7,1,0,8),2,4)
-    labels <- hpdapply(newdata,mykm$centers)
+    labels <- predict(mykm,newdata)
  }
 }
 

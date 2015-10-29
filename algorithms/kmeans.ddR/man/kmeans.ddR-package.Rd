@@ -21,7 +21,7 @@
 }
 
 \author{
-Vishrut Gupta, Arash Fard, Winston Li, Mathew Saltz
+Vishrut Gupta, Arash Fard
 }
 
 \keyword{kmeans}
