@@ -150,13 +150,18 @@ setMethod("do_dmapply",
   output.RDD <- SparkR:::lapplyPartition(compound.RDD,exec.func)
 
   ## Step 6: Collect and compute psizes
+  if(output.type == "dlist")
+    getSizes <- "length(RDD_part)"
+  else
+    getSizes <- "dim(RDD_part[[1]])"
+
+  body(exec.func)[[2]] <- eval(parse(text=paste0("substitute(",getSizes,")")),envir=new.env())
+  sizes.RDD <- SparkR:::lapplyPartition(output.RDD,exec.func)
+
+  psizes <- t(as.data.frame(SparkR:::collect(sizes.RDD)))
+  dims <- sum(psizes)
 
   ## Step 7: Create new ddR_RDD object
 
-  ## Placeholder
- 
-  if(output.type == "dlist") num.dims <- 1
-  else num.dims <- 2
-
-  new("ddR_RDD", RDD = output.RDD, nparts=nparts, psize=matrix(1,prod(nparts), num.dims), partitions = 1:prod(nparts))
+  new("ddR_RDD", RDD = output.RDD, nparts=nparts, psize=psizes, dim=dims, partitions = 1:prod(nparts))
 })
