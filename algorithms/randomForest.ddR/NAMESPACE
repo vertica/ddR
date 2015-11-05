@@ -1,6 +1,7 @@
 exportPattern("^[[:alpha:]]+")
 import(stats)
 import(ddR)
+import(Matrix)
 S3method(drandomForest, default)
 S3method(drandomForest, formula)
 S3method(predict, drandomForest)

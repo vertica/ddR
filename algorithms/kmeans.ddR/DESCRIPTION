@@ -9,5 +9,5 @@ Depends: R (>= 3.0.0)
 Imports: ddR, Rcpp (>= 0.11.0)
 Suggests: testthat
 LinkingTo: Rcpp
-Description: Distributed k-means clustering algorithm written using 'ddR' API.
+Description: Distributed k-means clustering algorithm written using 'ddR' (Distributed Data Structures) API in the 'ddR' package. 
 License:  GPL (>= 2) | file LICENSE

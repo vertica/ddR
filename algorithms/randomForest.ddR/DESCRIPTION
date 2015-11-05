@@ -6,7 +6,7 @@ Date: 2015-10-23
 Author: Vishrut Gupta, Arash Fard, Winston Li, Matthew Saltz
 Maintainer: Vishrut Gupta <vishrut.gupta@hpe.com>
 Depends: R (>= 3.0.0)
-Imports: ddR, stats, randomForest (>= 4.6-10)
+Imports: ddR, stats, randomForest (>= 4.6-10), Matrix
 Suggests: testthat
-Description: Distributed training and prediction of random forest models based upon 'randomForest' package.
+Description: Distributed training and prediction of random forest models based upon 'randomForest' package using 'ddR' (Distributed Data Structures) API in the 'ddR' package.
 License:  GPL (>= 2) | file LICENSE
