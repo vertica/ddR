@@ -179,7 +179,7 @@ test_that("the results are returned correctly for regression", {
     hrsq <- rSquared(y, hpredicted)
     rrsq <- rSquared(y, rpredicted)
 
-    expect_true( abs(hrsq - rrsq)/rrsq < 0.01)
+    expect_true( abs(hrsq - rrsq) < 0.01)
 
     # complete mode
     expect_warning(hRFc <- drandomForest(x=x, y=y, nExecutor = nInst, completeModel=TRUE, proximity=TRUE, xtest=x, ytest=y))
@@ -240,7 +240,7 @@ test_that("the results are returned correctly", {
     hrsq <- rSquared(y, hpredicted)
     rrsq <- rSquared(y, rpredicted)
 
-    expect_true( abs(hrsq - rrsq)/rrsq < 0.01)
+    expect_true( abs(hrsq - rrsq) < 0.01)
 
     # complete mode
     expect_warning(hRFc <- drandomForest(x=x, y=y, nExecutor = nInst, completeModel=TRUE, proximity=TRUE, xtest=x, ytest=y))
