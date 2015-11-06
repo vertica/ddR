@@ -1,5 +1,5 @@
 ---
-title: "randomForest.ddR README"
+title: "glm.ddR README"
 author: "Vishrut Gupta, Arash Fard"
 date: "2015-11-03"
 ---
