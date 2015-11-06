@@ -17,7 +17,7 @@ useBackend(parallel,executors = nInst)
 
 
 ### Generate some data:
-#### K = 10 clusters, ncol = 10 features, nrow ~ 1000 observations
+#### K = 10 clusters, ncol = 10 features, nrow ~ 10000 observations
 ```
 ncol = 10
 nrow = 10000
