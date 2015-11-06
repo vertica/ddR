@@ -1,0 +1,8 @@
+exportPattern("^[[:alpha:]]+")
+import(stats)
+import(ddR)
+import(Matrix)
+S3method(print, dglm)
+S3method(summary, dglm)
+S3method(predict, dglm)
+S3method(summary, dglm)

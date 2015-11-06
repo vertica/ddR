@@ -1,0 +1,12 @@
+Package: glm.ddR
+Type: Package
+Title: Distributed 'glm' for Big Data using 'ddR' API
+Version: 0.1.0
+Date: 2015-11-03
+Author: Vishrut Gupta, Arash Fard
+Maintainer: Vishrut Gupta <vishrut.gupta@hpe.com>
+Depends: R (>= 3.0.0)
+Imports: ddR, stats, Matrix
+Suggests: testthat
+Description: Distributed training and prediction of glm models using 'ddR' (Distributed Data Structures) API in the 'ddR' package.
+License:  GPL (>= 2) | file LICENSE
