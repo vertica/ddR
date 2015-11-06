@@ -13,10 +13,10 @@ useBackend(parallel,executors = nInst)
 ```
 
 ### Generate some data:
-#### ncol =200 features, nrow ~ 1000000 observations
+#### ncol =200 features, nrow ~ 100000 observations
 ```
 ncol = 200
-nrow = 1000000
+nrow = 100000
 nrow = as.integer(nrow/nInst)
 coefficients = 10*matrix(rnorm(ncol),nrow = ncol)
 ```
@@ -44,7 +44,7 @@ y <- dmapply(generateGLMResponses,features = parts(x),
 
 ### Example of dglm function using responses,predictors interface on darray data
 ```
-training_time <- system.time({model <- hpdglm(responses = y, predictors = x, completeModel = TRUE)})[3]
+training_time <- system.time({model <- dglm(responses = y, predictors = x, completeModel = TRUE)})[3]
 cat("training dglm model on distributed data: ", training_time," sec \n")
 prediction_time <- system.time({predictions <- predict(model, x)})[3]
 cat("predicting from dglm model on same distributed data: ", prediction_time," sec \n")
