@@ -34,6 +34,7 @@ Please refer to the user guide under vignettes/ for a detailed description on ho
 
 ```{r}
 library(ddR)
+useBackend(parallel,executors=2)
 ```
 By default, the `parallel` backend is used with all the cores present on the machine. You can switch backends or specify the number of cores to use with the `useBackend` function. For example, you can specify that the `parallel` backend should be used with only 4 cores by executing `useBackend(parallel, executors=4)`.
 
@@ -98,7 +99,7 @@ For more interesting parallel machine learning algorithms, you may view (and run
 
 To use the Distributed R library for ddR, first install `distributedR.ddR` and then load it:
 
-```r
+```{r eval=FALSE}
 library(distributedR.ddR)
 ```
 
@@ -116,7 +117,7 @@ library(distributedR.ddR)
 ##     darray, dframe, dlist, is.dlist
 ```
 
-```r
+```{r eval=FALSE}
 useBackend(distributedR)
 ```
 

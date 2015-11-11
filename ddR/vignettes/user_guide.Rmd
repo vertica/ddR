@@ -37,6 +37,7 @@ use HP Distributed R, you will need to first install the
 
 ```{r}
 library(ddR)
+useBackend(parallel,executors=2)
 ## Run the next two lines also to use the Distributed R backend
 # library(distributedR.ddR)
 # useBackend(distributedR)
@@ -383,7 +384,7 @@ and `distributedR.ddR` from https://github.com/vertica/ddR.
 
 
 Load the Distributed R driver library for ddR:
-```r
+```{r eval=FALSE}
 library(distributedR.ddR)
 ```
 
@@ -401,8 +402,8 @@ library(distributedR.ddR)
 ##     darray, dframe, dlist, is.dlist
 ```
 
-```r
-useBackend(distributedR)
+```{r eval=FALSE}
+useBackend(distributedR,executors=2)
 ```
 
 ```
