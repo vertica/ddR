@@ -141,7 +141,7 @@ dpagerank <- function(dgraph, niter = 1000, eps = 0.001, damping=0.85, personali
                             .Call("pagerank_spvm", prOld, dg, TPs, damping, NULL, NULL, PACKAGE="pagerank.ddR")
                         }                        
                     }, dg=parts(dgraph), 
-                    MoreArgs=list(prOld=PR, damping=damping, TPs=OutDegree), output.type="darray", combine="rbind")
+                    MoreArgs=list(prOld=PR, damping=damping, TPs=OutDegree), output.type="darray", combine="cbind")
 
     } else if(!is.null(weights) && is.null(personalized)) {
         PR_new <- dmapply(function(dg, prOld, damping, TPs, peri, wi) {
@@ -151,7 +151,7 @@ dpagerank <- function(dgraph, niter = 1000, eps = 0.001, damping=0.85, personali
                             .Call("pagerank_spvm", prOld, dg, TPs, damping, NULL, wi, PACKAGE="pagerank.ddR")
                         }                        
                     }, dg=parts(dgraph), wi=parts(weights), 
-                    MoreArgs=list(prOld=PR, damping=damping, TPs=OutDegree), output.type="darray", combine="rbind")
+                    MoreArgs=list(prOld=PR, damping=damping, TPs=OutDegree), output.type="darray", combine="cbind")
 
     } else if(is.null(weights) && !is.null(personalized)) {
         PR_new <- dmapply(function(dg, prOld, damping, TPs, peri, wi) {
@@ -161,7 +161,7 @@ dpagerank <- function(dgraph, niter = 1000, eps = 0.001, damping=0.85, personali
                             .Call("pagerank_spvm", prOld, dg, TPs, damping, peri, NULL, PACKAGE="pagerank.ddR")
                         }                        
                     }, dg=parts(dgraph), peri=parts(personalized), 
-                    MoreArgs=list(prOld=PR, damping=damping, TPs=OutDegree), output.type="darray", combine="rbind")
+                    MoreArgs=list(prOld=PR, damping=damping, TPs=OutDegree), output.type="darray", combine="cbind")
 
     } else {
         PR_new <- dmapply(function(dg, prOld, damping, TPs, peri, wi) {
@@ -171,7 +171,7 @@ dpagerank <- function(dgraph, niter = 1000, eps = 0.001, damping=0.85, personali
                             .Call("pagerank_spvm", prOld, dg, TPs, damping, peri, wi, PACKAGE="pagerank.ddR")
                         }                        
                     }, dg=parts(dgraph), wi=parts(weights), peri=parts(personalized), 
-                    MoreArgs=list(prOld=PR, damping=damping, TPs=OutDegree), output.type="darray", combine="rbind")
+                    MoreArgs=list(prOld=PR, damping=damping, TPs=OutDegree), output.type="darray", combine="cbind")
     }
 
     # normalizing the PR_new vector and finding maxdiff

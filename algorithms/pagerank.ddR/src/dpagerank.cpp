@@ -1,5 +1,5 @@
 /********************************************************************
- *  Functions related to the hpdpagerank algorithm
+ *  Functions related to the dpagerank algorithm
  ********************************************************************/
 
 #include <Rcpp.h>
@@ -45,7 +45,7 @@ RcppExport SEXP pagerank_spvm(SEXP PR, SEXP mx, SEXP TP, SEXP damping, SEXP pers
   int nVertices = INTEGER(dim)[0]; // the splits are column-wise partitioned, so #rows == nVertices
   int y = INTEGER(dim)[1];
 
-  NumericVector newPR(y);
+  NumericMatrix newPR(1, y);
 
   int *dim_pr = INTEGER(Rf_getAttrib(PR, R_DimSymbol));
   if (dim_pr[0] != 1 || dim_pr[1] != nVertices)
@@ -140,7 +140,7 @@ RcppExport SEXP pagerank_vm(SEXP PR, SEXP mx, SEXP TP, SEXP damping, SEXP person
   int nVertices = INTEGER(dim)[0]; // the splits are column-wise partitioned, so #rows == nVertices
   int y = INTEGER(dim)[1];
 
-  NumericVector newPR(y);
+  NumericMatrix newPR(1, y);
 
   int *dim_pr = INTEGER(Rf_getAttrib(PR, R_DimSymbol));
   if (dim_pr[0] != 1 || dim_pr[1] != nVertices)
