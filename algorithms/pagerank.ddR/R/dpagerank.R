@@ -55,7 +55,8 @@ dpagerank <- function(dgraph, niter = 1000, eps = 0.001, damping=0.85, personali
   if (!is.null(personalized)) {
       if(!is.darray(personalized)) stop("personalized argument must be a darray")
       if(personalized@type == "sparse_darray") stop("personalized argument must be a dense darray")
-      if(any(dim(personalized) != c(1,nVertices)) || any(psize(personalized)[,2] != psize(dgraph)[,2]) )
+      if(any(dim(personalized) != c(1,nVertices)) || (nparts(personalized)[2] != nparts(dgraph)[2]) || 
+                                                    any(psize(personalized)[,2] != psize(dgraph)[,2]) )
         stop("dimensions and partitions in personalized should be compatible with dgraph")
       if(.naCheckPageRank(personalized, trace)$found > 0) stop("missed values in personalized darray!") 
   }

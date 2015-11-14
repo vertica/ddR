@@ -79,56 +79,53 @@ test_that("the returns result is correct with available weights darray", {
     expect_equal(dwhich.max(pg), 4)
 })
 
-context("Checking the results of dpagerank for a sparse graph")
+if(require(Matrix)) {
+    context("Checking the results of dpagerank for a sparse graph")
 
-library(Matrix)
-mygraph <- Matrix(0, 6,6)
-mygraph[2,1] <- 1L;mygraph[2,3] <- 1L;mygraph[3,1] <- 1L;mygraph[3,2] <- 1L;
-mygraph[3,4] <- 1L;mygraph[4,5] <- 1L;mygraph[4,6] <- 1L;mygraph[5,4] <- 1L; 
-mygraph[5,6] <- 1L;mygraph[6,4] <- 1L
+    Sdgraph <- darray(dim=c(6,6), psize=c(6,2), sparse=TRUE)
+    Sdgraph <- dmapply(function(sg, i) {
+                        if(i == 1) {
+                            sg[2,1] <- 1L; sg[3,1] <- 1L; sg[3,2] <- 1L;
+                        } else if (i == 2) {
+                            sg[2,1] <- 1L; sg[3,2] <- 1L;  sg[5,2] <- 1L; 
+                            sg[6,2] <- 1L
+                        } else {
+                            sg[4,1] <- 1L; sg[4,2] <- 1L; sg[5,2] <- 1L; 
+                        }
+                        sg
+                    }, sg=parts(Sdgraph), i=1:totalParts(Sdgraph),
+                    output.type = "sparse_darray", combine = "cbind", nparts=nparts(Sdgraph))
 
-generateDgraph <- function(id, graph, npartitions) {
-	nColumns <- ceiling(ncol(graph) / npartitions)
-    start <- (id -1) * nColumns + 1
-    end <- min(ncol(graph), start + nColumns -1)
 
-    graph[, start:end, drop=FALSE]
+    test_that("the returns result is correct", {
+
+        pg <- dpagerank(Sdgraph)
+
+        ## the result calculated by the old method of igraph 0.7.1, which uses exactly the same algorithm
+        # library(igraph)
+        # ig <- graph.adjacency(graph)
+        # (rpg <- page.rank.old(ig))
+        # 0.05704882 0.03939800 0.04393000 0.38021881 0.19588465 0.28351973
+        expect_equivalent(collect(pg), matrix(c(0.05704882, 0.03939800, 0.04393000, 0.38021881, 0.19588465, 0.28351973), nrow=1))
+        expect_equal(dwhich.max(pg), 4)
+    })
+
+    test_that("the returns result is correct with weights", {
+        expect_error(dpagerank(Sdgraph, weights = correct_weights))
+
+        Sweights <- dmapply(function(x) x, parts(Sdgraph), 
+		    output.type = Sdgraph@type, 
+		    combine = "cbind", nparts = nparts(Sdgraph))
+
+        pg <- dpagerank(Sdgraph, weights = Sweights)
+
+        ## the result calculated by the old method of igraph 0.7.1, which uses exactly the same algorithm
+        # library(igraph)
+        # ig <- graph.adjacency(graph)
+        # (rpg <- page.rank.old(ig))
+        # 0.05704882 0.03939800 0.04393000 0.38021881 0.19588465 0.28351973
+        expect_equivalent(collect(pg), matrix(c(0.05704882, 0.03939800, 0.04393000, 0.38021881, 0.19588465, 0.28351973), nrow=1))
+        expect_equal(dwhich.max(pg), 4)
+    })
 }
-
-Sdgraph <- dmapply(generateDgraph, id = 1:nInst,
-                MoreArgs = list(graph = mygraph, npartitions = nInst),
-		output.type = "sparse_darray", 
-		combine = "cbind", nparts = c(1,nInst))
-
-test_that("the returns result is correct", {
-
-    pg <- dpagerank(Sdgraph)
-
-    ## the result calculated by the old method of igraph 0.7.1, which uses exactly the same algorithm
-    # library(igraph)
-    # ig <- graph.adjacency(graph)
-    # (rpg <- page.rank.old(ig))
-    # 0.05704882 0.03939800 0.04393000 0.38021881 0.19588465 0.28351973
-    expect_equivalent(collect(pg), matrix(c(0.05704882, 0.03939800, 0.04393000, 0.38021881, 0.19588465, 0.28351973), nrow=1))
-    expect_equal(dwhich.max(pg), 4)
-})
-
-test_that("the returns result is correct with weights", {
-    expect_error(dpagerank(Sdgraph, weights = correct_weights))
-
-    Sweights <- dmapply(function(x) x, parts(Sdgraph), 
-		output.type = Sdgraph@type, 
-		combine = "cbind", nparts = nparts(Sdgraph))
-
-    pg <- dpagerank(Sdgraph, weights = Sweights)
-
-    ## the result calculated by the old method of igraph 0.7.1, which uses exactly the same algorithm
-    # library(igraph)
-    # ig <- graph.adjacency(graph)
-    # (rpg <- page.rank.old(ig))
-    # 0.05704882 0.03939800 0.04393000 0.38021881 0.19588465 0.28351973
-    expect_equivalent(collect(pg), matrix(c(0.05704882, 0.03939800, 0.04393000, 0.38021881, 0.19588465, 0.28351973), nrow=1))
-    expect_equal(dwhich.max(pg), 4)
-})
-
 
