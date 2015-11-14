@@ -1,0 +1,6 @@
+useDynLib(pagerank.ddR)
+exportPattern("^[[:alpha:]]+")
+import(stats)
+import(ddR)
+import(Rcpp)
+
