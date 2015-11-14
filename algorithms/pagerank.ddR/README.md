@@ -23,6 +23,7 @@ mygraph <- Matrix(0, 6,6)
 mygraph[2,1] <- 1L;mygraph[2,3] <- 1L;mygraph[3,1] <- 1L;mygraph[3,2] <- 1L;
 mygraph[3,4] <- 1L;mygraph[4,5] <- 1L;mygraph[4,6] <- 1L;mygraph[5,4] <- 1L; 
 mygraph[5,6] <- 1L;mygraph[6,4] <- 1L
+```
 
 #### Generate the distributed copy of the graph
 ```
