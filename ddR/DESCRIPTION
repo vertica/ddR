@@ -3,6 +3,7 @@ Title: Distributed Data Structures in R
 Version: 0.1
 Author: Edward Ma, Indrajit Roy, Michael Lawrence
 Maintainer: Edward Ma <ema@hpe.com>
+VignetteBuilder: knitr
 Description: Provides distributed data structures and simplifies
     distributed computing in R.
 Depends:
@@ -13,7 +14,8 @@ Imports:
     Rcpp
 Suggests:
     testthat,
-    Matrix
+    Matrix,
+    knitr
 License: GPL (>= 2) | file LICENSE
 LazyData: true
 LinkingTo: Rcpp

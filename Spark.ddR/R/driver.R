@@ -135,7 +135,7 @@ setMethod("do_dmapply",
             global.col <- part_ind %% obj.nparts[[2]]
             if(global.row == 0) row.offset <- 0
             else {   
-              row.parts <- seq(1,global.row*obj.nparts[[2]] + 1,by=obj.nparts[[2]])
+              row.parts <- seq(1,global.row*obj.nparts[[2]],by=obj.nparts[[2]])
               row.offset <- sum(all.psizes[row.parts,][[1]])
             }
             if(global.col == 0) col.offset <- 0
@@ -146,7 +146,7 @@ setMethod("do_dmapply",
 
           global.offset <- row.offset + col.offset * nrows
     
-          local.colsize <- all.psizes[part_ind,][[1]]
+          local.colsize <- all.psizes[part_ind + 1,][[1]]
           x <- mapply(function(x,y) {
             row <- y %% local.colsize
             col <- y / local.colsize + 1
@@ -173,10 +173,10 @@ setMethod("do_dmapply",
           },
           FUN.VALUE=numeric(1))
 
-        dims.map <- new.env()
+        dims.map <- list()
         
         for(a in seq(length(all.objs))) {
-          dims.map[[as.character(all.parts[[a]])]] <- all.objs[[a]]@dim
+          dims.map[[as.character(all.parts[[a]]-1)]] <- all.objs[[a]]@dim
         }
 
         # Currently, we don't have support of using the same partition more than once
@@ -198,15 +198,15 @@ setMethod("do_dmapply",
           wrap.FUN <- function(x) {
             dimensions <- 
               dims.map[[as.character(x[[1]])]]
-            x <- list(x[[1]],list(
+            x <- list(x[[1]],
              matrix(unlist(x[[2]]),
-               dimensions[[1]],dimensions[[2]])))
+               dimensions[[1]],dimensions[[2]]))
           }        
         } else {
             wrap.FUN <- function(x) {
-            x <- list(x[[1]],list(
+            x <- list(x[[1]],
                do.call(data.frame(x[[2]]))
-               ))
+               )
           }
         }
 
@@ -224,7 +224,8 @@ setMethod("do_dmapply",
         body(repartition.fun)[[3]] <- substitute(x)
 
         # Now partition by new ID
-        new.RDD <- partitionBy(new.RDD,totParts,repartition.fun)
+        new.RDD <- map(new.RDD,repartition.fun)
+        new.RDD <- partitionBy(new.RDD,totParts,function(x) x[[1]])
       }                              
     }
     
@@ -317,17 +318,19 @@ setMethod("do_dmapply",
     }
 
     getSizes <- "dim(data)"
+    combined.RDD <- mapValues(groupByKey(output.RDD,totParts), exec.func)
   }
-
-  combined.RDD <- mapValues(groupByKey(output.RDD,totParts), exec.func)
 
   exec.func <- function(data){}
   body(exec.func)[[length(body(exec.func))+ 1]] <- eval(parse(text=paste0("substitute(",getSizes,")")),envir=new.env())
 
+  if(output.type=="dlist")
+    combined.RDD <- groupByKey(output.RDD,totParts)
+
   sizes.RDD <- mapValues(combined.RDD, exec.func)
   
   if(output.type != "dlist") {
-   output.RDD <- partitionBy(flatMapValues(combined.RDD, function(x) {
+   output.RDD <- partitionBy(flatMapValues(output.RDD, function(x) {
      as.list(x)
      }), totParts, function(x) x[[1]]) 
   }
