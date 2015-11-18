@@ -161,7 +161,7 @@ setMethod("do_dmapply",
    }
 
    #Perform a cheap check on whether there was an error since man pages say that an error on one core will result in error messages on all. TODO: Sometimes the class of the error is "character"
-   if(class(answer[[1]]) == "try-error") {stop(answer[[1]])}
+   if(inherits(answer[[1]], "try-error")) {stop(answer[[1]])}
    if(class(answer[[1]]) == "character" && grepl("Error", answer[[1]])) {stop(answer[[1]])}
 
    #Create the output object, since we store partitions
