@@ -19,6 +19,8 @@ Suggests:
 License: GPL (>= 2) | file LICENSE
 LazyData: true
 LinkingTo: Rcpp
+BugReports: https://github.com/vertica/ddR/issues
+URL: https://github.com/vertica/ddR/
 Collate:
     'RcppExports.R'
     'ddR.R'
