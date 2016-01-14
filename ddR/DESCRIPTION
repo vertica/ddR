@@ -1,6 +1,6 @@
 Package: ddR
 Title: Distributed Data Structures in R
-Version: 0.1.2
+Version: 0.1.3
 Author: Edward Ma, Indrajit Roy, Michael Lawrence
 Maintainer: Edward Ma <ema@hpe.com>
 VignetteBuilder: knitr

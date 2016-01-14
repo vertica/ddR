@@ -1,6 +1,8 @@
 ---
 title: "ddR Releases"
 ---
+### 0.1.3
+* Added links to Github
 
 ### 0.1.2
 * Fixed warning message in error checking with parallel
