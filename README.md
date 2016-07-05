@@ -14,6 +14,11 @@ the open source HP Distributed R.  We plan to add support for
 SparkR. This package is an outcome of feedback and collaboration
 across different companies and R-core members!
 
+Through funding provided by the
+[R-consortium](https://www.r-consortium.org/projects) this package is under
+active development for the summer of 2016. Check out the [mailing
+list](https://groups.google.com/forum/#!forum/ddr-devel) to see the latest
+discussions.
 
 'ddR' is an API, and includes a default execution engine, to express
 and execute distributed applications. Users can declare distributed

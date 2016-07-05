@@ -19,7 +19,6 @@ the open source HP Distributed R.  We plan to add support for
 SparkR. This package is an outcome of feedback and collaboration
 across different companies and R-core members!
 
-
 'ddR' is an API, and includes a default execution engine, to express
 and execute distributed applications. Users can declare distributed
 objects (i.e., `dlist`, `dframe`, `darray`), and execute parallel
