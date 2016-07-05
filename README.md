@@ -17,8 +17,8 @@ across different companies and R-core members!
 Through funding provided by the
 [R-consortium](https://www.r-consortium.org/projects) this package is under
 active development for the summer of 2016. Check out the [mailing
-list](https://groups.google.com/forum/#!forum/ddr-devel) to see the latest
-discussions.
+list](https://lists.r-consortium.org/mailman/listinfo/rconsortium-wg-ddr)
+to see the latest discussions.
 
 'ddR' is an API, and includes a default execution engine, to express
 and execute distributed applications. Users can declare distributed
