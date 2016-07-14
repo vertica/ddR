@@ -860,7 +860,7 @@ checkDimAndPsize<-function(dim, psize){
 #' } 
 #' @export
 as.darray <- function(input, psize=NULL) {
-   convertToDobject(input, psize, type="array") 
+    convertToDobject(input, psize, type="array")
 }
 
 #' Convert input matrix or data.frame into a distributed data.frame.
@@ -924,12 +924,16 @@ as.darray <- function(input, psize=NULL) {
 #' } 
 #' @export
 as.dframe <- function(input, psize=NULL) {
-   convertToDobject(input, psize, type="data.frame") 
+    convertToDobject(input, psize, type="data.frame")
 }
 
 convertToDobject<-function(input, psize, type){
+# The logic for as.dframe and as.array
 
-   mdim <- dim(input)
+    if (!is.null(psize) && length(psize) != 2){
+        stop('psize should be NULL or a vector of length 2')
+    }
+    mdim <- dim(input)
     if(is.null(psize)){
 	#Create as many partitions as the no. of executors in the system
 	psize<-mdim

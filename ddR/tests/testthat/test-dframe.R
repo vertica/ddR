@@ -230,4 +230,7 @@ mtx <- matrix(c(1:100),nrow=20)
   df <- as.dframe(large_mat, c(2900,2800))
   gpdf <- collect(df)
   expect_true(all(as.matrix(gpdf)== large_mat))
+
+  # informative error message if only 1 dimension for psize
+  expect_error(as.dframe(df, 2), regexp = "length")
 })
