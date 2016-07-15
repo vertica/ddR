@@ -356,7 +356,7 @@ is.DObject <- is.dobject
 #' Creates a distributed array with the specified partitioning and contents.
 #' @param nparts vector specifying number of partitions. If missing, 'psize' and 'dim' must be provided.
 #' @param dim the dim attribute for the array to be created. A vector specifying number of rows and columns. 
-#' @param psize size of each partition as a vector specifying number of rows and columns. 
+#' @param psize vector of length 2 specifying the number of rows and columns in each partition
 #' This parameter is provided together with dim.
 #' @param data initial value of all elements in array. Default is 0.
 #' @param sparse If TRUE, the output darray will be of type sparse_darray. The default value is FALSE.
@@ -406,12 +406,7 @@ is.DObject <- is.dobject
 darray <- function(nparts = NULL, dim=NULL, psize = NULL, data = 0, sparse=FALSE) {
   if(sparse && data!=0) stop("Cannot initialize data in a sparse matrix. Initialization makes a matrix dense. Set sparse=FALSE or data=0.") 
 
-  if(!is.null(dim) || !is.null(psize)) {
-    if(is.null(psize) || is.null(dim)) stop("Need to supply both psize and dim")
-    if(!is.null(nparts)) stop("Cannot supply nparts as well as psize and dimensions")
-
-    # Test for legality of dim and psize specifications
-    checkDimAndPsize(dim, psize)
+    checkConstructor(nparts, dim, psize)
 
     nparts <-  c(ceiling(dim[1]/psize[1]), ceiling(dim[2]/psize[2]))
     totalParts<-prod(nparts)
@@ -509,7 +504,7 @@ is.sparse_darray <- function(x) {
 #' Creates a distributed data.frame with the specified partitioning and data.
 #' @param nparts vector specifying number of partitions. If missing, 'psize' and 'dim' must be provided.
 #' @param dim the dim attribute for the data.frame to be created. A vector specifying number of rows and columns. 
-#' @param psize size of each partition as a vector specifying number of rows and columns. 
+#' @param psize vector of length 2 specifying the number of rows and columns in each partition
 #' This parameter is provided together with dim.
 #' @param data initial value of all elements in array. Default is 0.
 #' @return Returns a distributed data.frame with the specified dimensions. Data may reside as partitions in remote nodes.
@@ -557,12 +552,7 @@ is.sparse_darray <- function(x) {
 #' @export
 dframe <- function(nparts = NULL, dim=NULL, psize = NULL, data = 0) {
 
-  if(!is.null(dim) || !is.null(psize)) {
-    if(is.null(psize) || is.null(dim)) stop("Need to supply both psize and dim")
-    if(!is.null(nparts)) stop("Cannot supply nparts as well as psize and dimensions")
-
-    # Test for legality of dim and psize specifications
-    checkDimAndPsize(dim, psize)
+    checkConstructor(nparts, dim, psize)
 
     nparts <-  c(ceiling(dim[1]/psize[1]), ceiling(dim[2]/psize[2]))
     totalParts<-prod(nparts)
@@ -797,9 +787,17 @@ repartition.DObject <- function(dobj,skeleton) {
   }
 }
 
-#Helper function to check dimension and psizes when DObjects are initialized
-checkDimAndPsize<-function(dim, psize){
- 
+# Helper function to validate parameters when DObjects are initialized
+checkConstructor <- function(nparts, dim, psize){
+    if (!is.null(psize) && length(psize) != 2){
+        stop('psize should be NULL or a vector of length 2')
+    }
+
+  if(!is.null(dim) || !is.null(psize)) {
+    if(is.null(psize) || is.null(dim)) stop("Need to supply both psize and dim")
+    if(!is.null(nparts)) stop("Cannot supply nparts as well as psize and dimensions")
+
+
  if(class(dim)!="numeric" && class(dim)!="integer") stop("dim should be numeric")
  if(class(psize)!="numeric" && class(psize)!="integer") stop("psize should be numeric")
  if(length(dim)!=2||length(psize)!=2) stop("length(dim) and length(psize) should be two")
@@ -812,7 +810,7 @@ checkDimAndPsize<-function(dim, psize){
 
 #' Convert input matrix into a distributed array.
 #' @param input input matrix that will be converted to darray.
-#' @param psize size of each partition as a vector specifying number of rows and columns.
+#' @param psize vector of length 2 specifying the number of rows and columns in each partition
 #' @seealso \code{\link{darray}} \code{\link{psize}}
 #' @return Returns a distributed array with dimensions equal to that of the
 #' input matrix and partitioned according to argument 'psize'.  Data
@@ -860,12 +858,12 @@ checkDimAndPsize<-function(dim, psize){
 #' } 
 #' @export
 as.darray <- function(input, psize=NULL) {
-   convertToDobject(input, psize, type="array") 
+    convertToDobject(input, psize, type="array")
 }
 
 #' Convert input matrix or data.frame into a distributed data.frame.
 #' @param input input matrix or data.frame that will be converted to dframe.
-#' @param psize size of each partition as a vector specifying number of rows and columns.
+#' @param psize vector of length 2 specifying the number of rows and columns in each partition
 #' @seealso \code{\link{dframe}} \code{\link{psize}}
 #' @return Returns a distributed data.frame with dimensions equal to that of the
 #' input matrix and partitioned according to argument 'psize'.  Data
@@ -924,12 +922,13 @@ as.darray <- function(input, psize=NULL) {
 #' } 
 #' @export
 as.dframe <- function(input, psize=NULL) {
-   convertToDobject(input, psize, type="data.frame") 
+    convertToDobject(input, psize, type="data.frame")
 }
 
 convertToDobject<-function(input, psize, type){
+# The logic for as.dframe and as.array
 
-   mdim <- dim(input)
+    mdim <- dim(input)
     if(is.null(psize)){
 	#Create as many partitions as the no. of executors in the system
 	psize<-mdim
