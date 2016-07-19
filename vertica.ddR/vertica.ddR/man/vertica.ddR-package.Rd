@@ -1,0 +1,34 @@
+\name{vertica.ddR-package}
+\alias{vertica.ddR-package}
+\alias{vertica.ddR}
+\docType{package}
+\title{
+\packageTitle{vertica.ddR}
+}
+\description{
+\packageDescription{vertica.ddR}
+}
+\details{
+
+The DESCRIPTION file:
+\packageDESCRIPTION{vertica.ddR}
+\packageIndices{vertica.ddR}
+~~ An overview of how to use the package, including the most important ~~
+~~ functions ~~
+}
+\author{
+\packageAuthor{vertica.ddR}
+
+Maintainer: \packageMaintainer{vertica.ddR}
+}
+\references{
+~~ Literature or other references for background information ~~
+}
+\keyword{ package }
+\seealso{
+~~ Optional links to other man pages, e.g. ~~
+~~ \code{\link[<pkg>:<pkg>-package]{<pkg>}} ~~
+}
+\examples{
+~~ simple examples of the most important functions ~~
+}

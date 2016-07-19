@@ -1,0 +1,10 @@
+Package: vertica.ddR
+Type: Package
+Title: What the package does (short line)
+Version: 1.0
+Date: 2016-06-16
+Author: Who wrote it
+Maintainer: Who to complain to <yourfault@somewhere.net>
+Description: More about what it does (maybe more than one line)
+License: What license is it under?
+Depends: vertica.dplyr, ddR, pryr
