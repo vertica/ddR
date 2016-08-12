@@ -25,6 +25,12 @@ setClass("ParallelddR", contains="ddRDriver")
 #' @export 
 # Exported Driver
 parallel <- new("ParallelddR",DListClass = "ParallelObj",DFrameClass = "ParallelObj",DArrayClass = "ParallelObj",backendName = "parallel")
+
+# TODO: Can we write the initialization to be a bit more functional?
+# ie without modifying package level environment variables from within
+# functions
+windows <- .Platform$OS.type == "windows"
+
 # Driver for the parallel package. Parallel is also the default backend.
 ddR.env$driver <- parallel
 
@@ -35,7 +41,7 @@ parallel.ddR.env$cores <- parallel::detectCores(all.tests=TRUE, logical=FALSE)
 parallel.ddR.env$clusterType <- "FORK"
 parallel.ddR.env$snowCluster <- NULL
 if(is.na(parallel.ddR.env$cores)){ parallel.ddR.env$cores <- 1 }
-if((.Platform$OS.type == "windows")) {parallel.ddR.env$clusterType <- "PSOCK"}
+if(windows) {parallel.ddR.env$clusterType <- "PSOCK"}
 
 #Function to initialize SNOW on windows
 initializeSnowOnWindows<-function(){
@@ -50,21 +56,26 @@ initializeSnowOnWindows<-function(){
 #' @param type If "FORK", will use UNIX fork() method. If "PSOCK", will use SNOW method.
 #' @describeIn init Initialization for parallel
 setMethod("init","ParallelddR",
-  function(x, executors=NULL, type= "FORK", ...){
+function(x, executors=NULL, type= "FORK", ...){
     if(!is.null(executors)){
-    if(!((is.numeric(executors) || is.integer(executors)) && floor(executors)==executors && executors>=0)) stop("Argument 'executors' should be a non-negative integral value")
+        executors <- as.integer(executors)
+        if(executors < 1){
+            stop("executors should be a positive integer")
+        }
         parallel.ddR.env$cores <- executors
-  }
-
-  #On windows parallel can use only a single core. We need to use socket based SNOW for more number of cores.
-  if((.Platform$OS.type == "windows" &&  parallel.ddR.env$cores!=1 ) || type =="PSOCK") {
+    }
+    # On windows parallel can use only a single core. We need to use socket
+    # based SNOW for more number of cores.
+    if(windows && type == "FORK"){
+        stop("On windows, multi-process execution with FORK is not supported for more than one core. Use backend with type = 'PSOCK'")
+    }
+  if((windows && parallel.ddR.env$cores > 1) || type =="PSOCK") {
      message("Using socket based parallel (SNOW) backend.")
      initializeSnowOnWindows()
   } else{
-     if(.Platform$OS.type == "windows" && parallel.ddR.env$cores>1) { stop("On windows, multi-process execution with FORK is not supported for more than one core. Use backend with type = 'PSOCK'")}
      parallel.ddR.env$clusterType <- "FORK"
   }
-  return (parallel.ddR.env$cores)
+  return(parallel.ddR.env$cores)
 })
 
 #' @describeIn shutdown Shutdown for parallel
