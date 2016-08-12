@@ -22,9 +22,10 @@
 #' @importFrom utils head tail 
 NULL
 
-# Current driving backend package. Package global variable
+# Current backend is a package global variable
 ddR.env <- new.env(emptyenv())
 ddR.env$RminorVersion <- R.version$minor
+
 #Track no. of executors in the backend
 ddR.env$nexecutors <- 1
 
@@ -80,10 +81,15 @@ useBackend <- function(driver, ...) {
 #' @export
 setClass("ddRDriver", representation(DListClass = "character", DFrameClass = "character", DArrayClass = "character", backendName = "character"))
 
-#' Called when the backend driver is initialized.
+#’ @rdname package-deprecated
+#' Initialize backend driver
+#'
+#' Used internally by ddR to set up a new backend driver.
 #'
 #' @param x The driver object to initialize the backend for.
 #' @param ... Other parameters to pass to the initialization routine.
+#' @seealso \code{\link{useBackend}} for the user facing way to set or
+#'      change backends
 #' @export
 setGeneric("init", function(x,...) standardGeneric("init"))
 

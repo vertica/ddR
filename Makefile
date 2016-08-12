@@ -1,5 +1,8 @@
-test:
+ddR: $(shell find ddR/R -type f)
+	R CMD INSTALL ddR
 	cd ddR/tests; Rscript test-all.R; cd ../..
+
+algorithms:
 	cd algorithms/kmeans.ddR/tests; Rscript test-all.R; cd ../../..
 	cd algorithms/glm.ddR/tests; Rscript test-all.R; cd ../../..
 	cd algorithms/pagerank.ddR/tests; Rscript test-all.R; cd ../../..
