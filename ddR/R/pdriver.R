@@ -17,6 +17,8 @@
 
 setClass("ParallelddR", contains="ddRDriver")
 
+# TODO Clark: Too easily masked- change name
+
 #' The default parallel driver
 #' @examples
 #' \dontrun{
@@ -26,67 +28,67 @@ setClass("ParallelddR", contains="ddRDriver")
 # Exported Driver
 parallel <- new("ParallelddR",DListClass = "ParallelObj",DFrameClass = "ParallelObj",DArrayClass = "ParallelObj",backendName = "parallel")
 
-# TODO: Can we write the initialization to be a bit more functional?
-# ie without modifying package level environment variables from within
-# functions
 windows <- .Platform$OS.type == "windows"
 
 # Driver for the parallel package. Parallel is also the default backend.
 ddR.env$driver <- parallel
 
-#Set environment and default number of cores to total no. of cores (but one on windows)
-#Note that DetectCores() can return NA. If it's windows we use SNOW by default
+# TODO Clark: The init method modifies this environment variable.
+# It may be simpler to return this from init.
 parallel.ddR.env <- new.env(emptyenv())
-parallel.ddR.env$cores <- parallel::detectCores(all.tests=TRUE, logical=FALSE) 
-parallel.ddR.env$clusterType <- "FORK"
-parallel.ddR.env$snowCluster <- NULL
-if(is.na(parallel.ddR.env$cores)){ parallel.ddR.env$cores <- 1 }
-if(windows) {parallel.ddR.env$clusterType <- "PSOCK"}
 
-#Function to initialize SNOW on windows
-initializeSnowOnWindows<-function(){
-  cl <- parallel::makeCluster(getOption("cl.cores", parallel.ddR.env$cores))
-  parallel.ddR.env$snowCluster <- cl
-  parallel.ddR.env$clusterType <- "PSOCK"
-}
+# TODO Clark: Instead of switching logic for PSOCK and SNOW everywhere, why
+# not just use two different functions? Or does the "parallel" package
+# provide this?
 
 # Initialize the no. of cores in parallel backend
-# By default we use the FORK method of parallel which works only on UNIx environments. The "PSOCK" method requires SNOW but works on all OSes.
-#' @param executors Number of cores to run with.
+# The FORK method of parallel works only on UNIX environments. The "PSOCK"
+# method requires SNOW but works on all OSes.
+#
+#' @param executors Number of cores to run with, or "all" to use all
+#'      available cores
 #' @param type If "FORK", will use UNIX fork() method. If "PSOCK", will use SNOW method.
+#' @param ... Additional arguments to \link[parallel]{makeCluster}
 #' @describeIn init Initialization for parallel
-setMethod("init","ParallelddR",
-function(x, executors=NULL, type= "FORK", ...){
-    if(!is.null(executors)){
-        executors <- as.integer(executors)
-        if(executors < 1){
-            stop("executors should be a positive integer")
-        }
+setMethod("init", "ParallelddR",
+function(x, executors = "all",
+         type = ifelse(windows, "PSOCK", "FORK"), ...){
+
+    # Normalize executors to positive integer
+    if(executors == "all"){
+        executors <- parallel::detectCores(all.tests=TRUE, logical=FALSE)
+    }
+    if(is.null(executors) || is.na(executors) || executors < 1){
+        message("Executors should be a positive integer. Defaulting to 1.")
+        executors <- 1L
         parallel.ddR.env$cores <- executors
     }
-    # On windows parallel can use only a single core. We need to use socket
-    # based SNOW for more number of cores.
-    if(windows && type == "FORK"){
-        stop("On windows, multi-process execution with FORK is not supported for more than one core. Use backend with type = 'PSOCK'")
+    executors <- as.integer(executors)
+
+    # Handle cluster types
+    if(!(type %in% c("PSOCK", "FORK"))){
+        # May be better to stop, but this facilitates experimentation
+        warning("Only PSOCK and FORK are supported cluster types for the parallel driver. Proceed at your own risk.")
     }
-  if((windows && parallel.ddR.env$cores > 1) || type =="PSOCK") {
-     message("Using socket based parallel (SNOW) backend.")
-     initializeSnowOnWindows()
-  } else{
-     parallel.ddR.env$clusterType <- "FORK"
-  }
-  return(parallel.ddR.env$cores)
+    if(windows && type == "FORK"){
+        warning("type = 'FORK' is unsupported on Windows. Defaulting to type = 'PSOCK'")
+        type <- "PSOCK"
+    }
+
+    cluster <- makeCluster(executors, type, ...)
+
+    # Assign everything to package environment
+    parallel.ddR.env$executors <- executors
+    parallel.ddR.env$type <- type
+    parallel.ddR.env$cluster <- cluster
+
+    executors
 })
 
 #' @describeIn shutdown Shutdown for parallel
 setMethod("shutdown","ParallelddR",
-  function(x) {
-    if(!is.null(parallel.ddR.env$snowCluster) && parallel.ddR.env$clusterType == "PSOCK") {
-        message("Switching out of using 'parallel (SNOW)'. Shutting down SNOW cluster...")
-        parallel::stopCluster(parallel.ddR.env$snowCluster)
-        parallel.ddR.env$clusterType <- "FORK"
-	parallel.ddR.env$snowCluster <- NULL
-    }
+  function(driver) {
+    parallel::stopCluster(parallel.ddR.env$cluster)
 })
 
 #This function calls mclapply internally when using parallel with "FORK" or 
@@ -157,7 +159,6 @@ setMethod("do_dmapply",
    #Now iterate in parallel
    if(parallel.ddR.env$clusterType == "PSOCK"){
     # We are using the SNOW backend, i.e., clusterMap. Check code with print(clusterMap)
-    if(is.null(parallel.ddR.env$snowCluster)){initializeSnowOnWindows()}
 
     #Wrap the input arguments and use do.call()
     dots <- c(list(cl = parallel.ddR.env$snowCluster, fun = func, MoreArgs = MoreArgs, RECYCLE = FALSE, SIMPLIFY = FALSE), dots)
