@@ -61,7 +61,7 @@ useBackend <- function(driver, ...) {
   if(!is.null(ddR.env$driver)) shutdown(ddR.env$driver)
 
   if(!extends(class(driver)[[1]],"ddRDriver")) stop("Invalid driver object specified")
-# TODO Clark: These should be in the tests for that driver.
+# TODO Clark: These should be moved to the common tests for drivers.
   if(!extends(driver@DListClass,"DObject")) stop("The driver DList class does not extend ddR::Dobject")
   if(!extends(driver@DFrameClass,"DObject")) stop("The driver DFrame class does not extend ddR::Dobject")
   if(!extends(driver@DArrayClass,"DObject")) stop("The driver DArray class does not extend ddR::Dobject")
@@ -235,6 +235,7 @@ dmapply <- function(FUN ,..., MoreArgs=list(),
                     output.type=c("dlist", "dframe", "darray", "sparse_darray"),
                     nparts=NULL, combine=c("default","c","rbind", "cbind"))
 {
+
   if(!is.function(FUN)) stop("FUN needs to be a function")
 
   output.type <- match.arg(output.type)
@@ -255,6 +256,8 @@ dmapply <- function(FUN ,..., MoreArgs=list(),
   # Ensure that ... arguments are of equal length. length() works correctly for data.frame,
   # arrays, and lists
   lens <- vapply(dargs,function(x) {
+    # TODO Clark: Why even allow the possibility of this happening where
+    # two backends are competing?
      if(is(x,"DObject") && x@backend != ddR.env$driver@backendName)
        stop(paste0("An argument passed in was created with 
             backend '",x@backend,"'; the currently loaded backend is '",

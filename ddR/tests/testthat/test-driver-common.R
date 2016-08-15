@@ -7,6 +7,6 @@ test_that("init method", {
 
     initvalue <- ddR:::init(driver, executors = 2L)
     expect_identical(initvalue, 2L)
-    expect_identical(ddR.env$nexecutors, 2L)
+    expect_identical(ddR.env$executors, 2L)
 
 })

@@ -31,7 +31,7 @@ parallel <- new("ParallelddR",DListClass = "ParallelObj",DFrameClass = "Parallel
 windows <- .Platform$OS.type == "windows"
 
 # Driver for the parallel package. Parallel is also the default backend.
-ddR.env$driver <- parallel
+#ddR.env$driver <- parallel
 
 # TODO Clark: The init method modifies this environment variable.
 # It may be simpler to return this from init.
@@ -52,6 +52,8 @@ function(driver, executors = "all",
 
     # Normalize executors to positive integer
     if(executors == "all"){
+        # NIT- Figure out how to suppress this message:
+        # cat: /proc/cpuinfo: No such file or directory
         executors <- parallel::detectCores(all.tests=TRUE, logical=FALSE)
     }
     if(is.null(executors) || is.na(executors) || executors < 1){
@@ -71,7 +73,7 @@ function(driver, executors = "all",
         type <- "PSOCK"
     }
 
-    cluster <- makeCluster(executors, type, ...)
+    cluster <- parallel::makeCluster(executors, type, ...)
 
     # Assign everything to package environment
     parallel.ddR.env$executors <- executors
@@ -83,8 +85,9 @@ function(driver, executors = "all",
 
 #' @describeIn shutdown Shutdown for parallel
 setMethod("shutdown","ParallelddR",
-  function(driver) {
-    parallel::stopCluster(parallel.ddR.env$cluster)
+function(driver) {
+    # A bad call means stopCluster won't work, so use try()
+    try(parallel::stopCluster(parallel.ddR.env$cluster))
 })
 
 #This function calls mclapply internally when using parallel with "FORK" or 
@@ -159,7 +162,7 @@ setMethod("do_dmapply",
                       MoreArgs = MoreArgs,
                       RECYCLE = FALSE, SIMPLIFY = FALSE),
                  dots)
-    answer <- do.call(parallel::clusterMap, dots)
+    answer <- do.call(parallel::clusterMap, allargs)
 
    #Perform a cheap check on whether there was an error since man pages say that an error on one core will result in error messages on all. TODO: Sometimes the class of the error is "character"
    if(inherits(answer[[1]], "try-error")) {stop(answer[[1]])}

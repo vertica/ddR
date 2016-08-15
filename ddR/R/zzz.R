@@ -16,5 +16,12 @@
 ###################################################################
 
 .onAttach <- function(libname, pkgname) {
-  packageStartupMessage("\nWelcome to 'ddR' (Distributed Data-structures in R)!\nFor more information, visit: https://github.com/vertica/ddR")
+    packageStartupMessage("\nWelcome to 'ddR' (Distributed Data-structures in R)!\nFor more information, visit: https://github.com/vertica/ddR")
+
+    # This should run if the default of parallel is being used as the
+    # driver.
+    # Maybe there's a better place to put this?
+    if(is.null(ddR.env$driver)){
+        useBackend(parallel)
+    }
 }
