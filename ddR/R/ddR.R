@@ -27,7 +27,7 @@ ddR.env <- new.env(emptyenv())
 ddR.env$RminorVersion <- R.version$minor
 
 #Track no. of executors in the backend
-ddR.env$nexecutors <- 1
+ddR.env$executors <- 1
 
 #' Sets the active backend driver. Functions exported by the 'ddR' package 
 #' are dispatched to the backend driver.
@@ -61,14 +61,14 @@ useBackend <- function(driver, ...) {
   if(!is.null(ddR.env$driver)) shutdown(ddR.env$driver)
 
   if(!extends(class(driver)[[1]],"ddRDriver")) stop("Invalid driver object specified")
-
+# TODO Clark: These should be in the tests for that driver.
   if(!extends(driver@DListClass,"DObject")) stop("The driver DList class does not extend ddR::Dobject")
   if(!extends(driver@DFrameClass,"DObject")) stop("The driver DFrame class does not extend ddR::Dobject")
   if(!extends(driver@DArrayClass,"DObject")) stop("The driver DArray class does not extend ddR::Dobject")
 
-  nexecutors<-init(driver, ...)
-  if(!is.null(nexecutors) && is.numeric(nexecutors) && (nexecutors > 1)) {ddR.env$nexecutors <- nexecutors}
-      
+  executors <- init(driver, ...)
+
+  ddR.env$executors <- executors
   ddR.env$driver <- driver
 }
 
@@ -86,32 +86,35 @@ setClass("ddRDriver", representation(DListClass = "character", DFrameClass = "ch
 #'
 #' Used internally by ddR to set up a new backend driver.
 #'
-#' @param x The driver object to initialize the backend for.
+#' @param driver The driver object to initialize the backend for.
 #' @param ... Other parameters to pass to the initialization routine.
 #' @seealso \code{\link{useBackend}} for the user facing way to set or
 #'      change backends
 #' @export
-setGeneric("init", function(x,...) standardGeneric("init"))
+setGeneric("init", function(driver,...) standardGeneric("init"))
 
 #' Called when the backend driver is shutdown.
 #'
-#' @param x The driver object to shutdown.
+#' @param driver The driver object to shutdown.
 #' @export
-setGeneric("shutdown", function(x) standardGeneric("shutdown")) 
+# TODO Clark: ddR uses a global driver, so why is the public facing version
+# a method rather than a function with no args? something like:
+# shutdown <- function() .shutdown(ddR.env.driver)
+setGeneric("shutdown", function(driver) standardGeneric("shutdown")) 
 
 #' @describeIn init Default backend initialization message.
 #' @export
 setMethod("init","ddRDriver",
-  function(x,...) {
-    message(paste0("Activating the ",x@backendName," backend."))
+  function(driver,...) {
+    message(paste0("Activating the ",driver@backendName," backend."))
   }
 )
 
 #' @describeIn shutdown Default backend shutdown message.
 #' @export
 setMethod("shutdown","ddRDriver",
-  function(x) {
-    message(paste0("Deactivating the ",x@backendName," backend."))
+  function(driver) {
+    message(paste0("Deactivating the ",driver@backendName," backend."))
   }
 )
 

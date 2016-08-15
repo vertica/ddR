@@ -17,7 +17,7 @@
 
 setClass("ParallelddR", contains="ddRDriver")
 
-# TODO Clark: Too easily masked- change name
+# TODO Clark: Change to more informative name
 
 #' The default parallel driver
 #' @examples
@@ -37,10 +37,6 @@ ddR.env$driver <- parallel
 # It may be simpler to return this from init.
 parallel.ddR.env <- new.env(emptyenv())
 
-# TODO Clark: Instead of switching logic for PSOCK and SNOW everywhere, why
-# not just use two different functions? Or does the "parallel" package
-# provide this?
-
 # Initialize the no. of cores in parallel backend
 # The FORK method of parallel works only on UNIX environments. The "PSOCK"
 # method requires SNOW but works on all OSes.
@@ -51,7 +47,7 @@ parallel.ddR.env <- new.env(emptyenv())
 #' @param ... Additional arguments to \link[parallel]{makeCluster}
 #' @describeIn init Initialization for parallel
 setMethod("init", "ParallelddR",
-function(x, executors = "all",
+function(driver, executors = "all",
          type = ifelse(windows, "PSOCK", "FORK"), ...){
 
     # Normalize executors to positive integer
@@ -94,6 +90,7 @@ setMethod("shutdown","ParallelddR",
 #This function calls mclapply internally when using parallel with "FORK" or 
 #snow's staticClusterApply when used with "PSOCK" option. 
 #On windows only "PSOCK" provides true parallelism.
+
 
 #' @rdname do_dmapply
 setMethod("do_dmapply",
@@ -154,23 +151,15 @@ setMethod("do_dmapply",
       	   MoreArgs[[index]] <- collect(MoreArgs[[index]])
    }
 
-
-   answer <- NULL
-   #Now iterate in parallel
-   if(parallel.ddR.env$clusterType == "PSOCK"){
-    # We are using the SNOW backend, i.e., clusterMap. Check code with print(clusterMap)
-
-    #Wrap the input arguments and use do.call()
-    dots <- c(list(cl = parallel.ddR.env$snowCluster, fun = func, MoreArgs = MoreArgs, RECYCLE = FALSE, SIMPLIFY = FALSE), dots)
+    answer <- NULL
+    # Now iterate in parallel
+    # Wrap the input arguments and use do.call()
+    allargs <- c(list(cl = parallel.ddR.env$cluster,
+                      fun = func,
+                      MoreArgs = MoreArgs,
+                      RECYCLE = FALSE, SIMPLIFY = FALSE),
+                 dots)
     answer <- do.call(parallel::clusterMap, dots)
-
-   } else {
-   #Wrap inputs in a list to call mcmapply via do.call()
-
-   dots <- c(list(FUN = func, MoreArgs = MoreArgs, SIMPLIFY = FALSE, mc.cores = parallel.ddR.env$cores), dots)
-   answer <- do.call(parallel::mcmapply, dots)
-
-   }
 
    #Perform a cheap check on whether there was an error since man pages say that an error on one core will result in error messages on all. TODO: Sometimes the class of the error is "character"
    if(inherits(answer[[1]], "try-error")) {stop(answer[[1]])}
