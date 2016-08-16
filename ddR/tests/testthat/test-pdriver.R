@@ -1,6 +1,14 @@
 context("Tests specific to the parallel driver")
 
 
+test_that("Parallel is indeed the default driver", {
+
+    useBackend()
+    expect_s4_class(ddR.env$driver, "ParallelddR")
+
+})
+
+
 test_that("useBackend recovers from a bad call", {
 
     expect_error(useBackend(parallel, type="LASERWOLF_FAN_CLUB"))

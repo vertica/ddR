@@ -56,7 +56,7 @@ ddR.env$executors <- 1
 #' library(distributedR.ddR); useBackend(distributedR)
 #' } 
 #' @export
-useBackend <- function(driver, ...) {
+useBackend <- function(driver = parallel, ...) {
 
     # validate first or else shutdown can fail on subsequent calls
     if(!is(driver, "ddRDriver")){

@@ -22,6 +22,6 @@
     # driver.
     # Maybe there's a better place to put this?
     if(is.null(ddR.env$driver)){
-        useBackend(parallel)
+        useBackend()
     }
 }
