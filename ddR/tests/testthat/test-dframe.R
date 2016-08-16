@@ -195,7 +195,7 @@ mtx <- matrix(c(1:100),nrow=20)
   expect_equal(dim(df), c(20,5))
   expect_true(all(as.matrix(collect(df))==mtx))
   expect_error(as.dframe(mtx,psize=c(20,10)))
- 
+
   #checking base case without giving dframe dimensions
   df <- as.dframe(mtx)
   expect_equal(dim(df), c(20,5))
