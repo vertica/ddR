@@ -58,18 +58,17 @@ ddR.env$executors <- 1
 #' @export
 useBackend <- function(driver, ...) {
 
-  if(!is.null(ddR.env$driver)) shutdown(ddR.env$driver)
+    # validate first or else shutdown can fail on subsequent calls
+    if(!is(driver, "ddRDriver")){
+        stop("Invalid driver object specified")
+    }
 
-  if(!extends(class(driver)[[1]],"ddRDriver")) stop("Invalid driver object specified")
-# TODO Clark: These should be moved to the common tests for drivers.
-  if(!extends(driver@DListClass,"DObject")) stop("The driver DList class does not extend ddR::Dobject")
-  if(!extends(driver@DFrameClass,"DObject")) stop("The driver DFrame class does not extend ddR::Dobject")
-  if(!extends(driver@DArrayClass,"DObject")) stop("The driver DArray class does not extend ddR::Dobject")
+    if(!is.null(ddR.env$driver)) shutdown(ddR.env$driver)
 
-  executors <- init(driver, ...)
+    executors <- init(driver, ...)
 
-  ddR.env$executors <- executors
-  ddR.env$driver <- driver
+    ddR.env$executors <- executors
+    ddR.env$driver <- driver
 }
 
 #' The base S4 class for backend driver classes to extend.
