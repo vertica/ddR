@@ -198,10 +198,6 @@ mtx <- matrix(c(1:100),nrow=20)
  
   #checking base case without giving dframe dimensions
   df <- as.dframe(mtx)
-# Clark: The line above fails with message:
-# replacement has length zero
-# 1: as.dframe(mtx) at testthat/test-dframe.R:200
-# 2: convertToDobject(input, psize, type = "data.frame")
   expect_equal(dim(df), c(20,5))
   expect_true(all(as.matrix(collect(df))==mtx))
 

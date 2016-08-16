@@ -933,7 +933,7 @@ convertToDobject<-function(input, psize, type){
     if(is.null(psize)){
 	#Create as many partitions as the no. of executors in the system
 	psize<-mdim
-        psize[1]<-ceiling(psize[1]/ddR.env$nexecutors)
+        psize[1]<-ceiling(psize[1]/ddR.env$executors)
     }
     numparts<-c(ceiling(mdim[1]/psize[1]), ceiling(mdim[2]/psize[2]))
 

@@ -52,20 +52,17 @@ function(driver, executors = "all",
 
     # Normalize executors to positive integer
     if(executors == "all"){
-        # NIT- Figure out how to suppress this message:
-        # cat: /proc/cpuinfo: No such file or directory
-        executors <- parallel::detectCores(all.tests=TRUE, logical=FALSE)
+        executors <- parallel::detectCores(logical=FALSE)
     }
     if(is.null(executors) || is.na(executors) || executors < 1){
         message("Executors should be a positive integer. Defaulting to 1.")
         executors <- 1L
-        parallel.ddR.env$cores <- executors
     }
     executors <- as.integer(executors)
 
     # Handle cluster types
     if(!(type %in% c("PSOCK", "FORK"))){
-        # May be better to stop, but this facilitates experimentation
+        # Safer to stop, but this facilitates experimentation
         warning("Only PSOCK and FORK are supported cluster types for the parallel driver. Proceed at your own risk.")
     }
     if(windows && type == "FORK"){
