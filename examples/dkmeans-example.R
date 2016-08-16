@@ -58,5 +58,3 @@ allcenters = lapply(list(true = centers,
                     sortfirstcol)
 
 print(allcenters)
-
-# TODO: shutdown

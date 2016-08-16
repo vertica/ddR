@@ -15,9 +15,13 @@
 # Boston, MA 02111-1307 USA.
 ###################################################################
 
+windows <- .Platform$OS.type == "windows"
+
+
 setClass("ParallelddR", contains="ddRDriver")
 
-# TODO Clark: Change to more informative name
+# TODO Clark: Change from "parallel" to more descriptive name like
+# "parallel.driver"
 
 #' The default parallel driver
 #' @examples
@@ -27,11 +31,6 @@ setClass("ParallelddR", contains="ddRDriver")
 #' @export 
 # Exported Driver
 parallel <- new("ParallelddR",DListClass = "ParallelObj",DFrameClass = "ParallelObj",DArrayClass = "ParallelObj",backendName = "parallel")
-
-windows <- .Platform$OS.type == "windows"
-
-# Driver for the parallel package. Parallel is also the default backend.
-#ddR.env$driver <- parallel
 
 # TODO Clark: The init method modifies this environment variable.
 # It may be simpler to return this from init.
