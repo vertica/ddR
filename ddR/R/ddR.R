@@ -65,7 +65,7 @@ useBackend <- function(driver = parallel.ddR, ...) {
 
     if(!is.null(ddR.env$driver)) shutdown(ddR.env$driver)
 
-    executors <- init(driver, ...)
+    executors <- init_driver(driver, ...)
 
     ddR.env$executors <- executors
     ddR.env$driver <- driver
@@ -80,7 +80,6 @@ useBackend <- function(driver = parallel.ddR, ...) {
 #' @export
 setClass("ddRDriver", representation(DListClass = "character", DFrameClass = "character", DArrayClass = "character", backendName = "character"))
 
-#’ @rdname package-deprecated
 #' Initialize backend driver
 #'
 #' Used internally by ddR to set up a new backend driver.
@@ -89,8 +88,7 @@ setClass("ddRDriver", representation(DListClass = "character", DFrameClass = "ch
 #' @param ... Other parameters to pass to the initialization routine.
 #' @seealso \code{\link{useBackend}} for the user facing way to set or
 #'      change backends
-#' @export
-setGeneric("init", function(x,...) standardGeneric("init"))
+setGeneric("init_driver", function(x,...) standardGeneric("init_driver"))
 
 #' Called when the backend driver is shutdown.
 #'
@@ -101,21 +99,19 @@ setGeneric("init", function(x,...) standardGeneric("init"))
 # shutdown <- function() .shutdown(ddR.env.driver)
 setGeneric("shutdown", function(x) standardGeneric("shutdown"))
 
-#' @describeIn init Default backend initialization message.
-#' @export
-setMethod("init","ddRDriver",
-  function(x,...) {
-    message(paste0("Activating the ",x@backendName," backend."))
-  }
-)
-
-#' @describeIn shutdown Default backend shutdown message.
-#' @export
-setMethod("shutdown","ddRDriver",
-  function(x) {
-    message(paste0("Deactivating the ",x@backendName," backend."))
-  }
-)
+# TODO Clark: When are these two default methods actually called?
+# Are they necessary?
+#setMethod("init","ddRDriver",
+#  function(x,...) {
+#    message(paste0("Activating the ",x@backendName," backend."))
+#  }
+#)
+#
+#setMethod("shutdown","ddRDriver",
+#  function(x) {
+#    message(paste0("Deactivating the ",x@backendName," backend."))
+#  }
+#)
 
 #' Backend-specific dmapply logic. This is a required override for all
 #' backends to implement so dmapply works.

@@ -29,8 +29,8 @@ setClass("parallel.ddR", contains="ddRDriver")
 # Exported Driver
 parallel.ddR <- new("parallel.ddR",DListClass = "ParallelObj",DFrameClass = "ParallelObj",DArrayClass = "ParallelObj",backendName = "parallel")
 
-# TODO Clark: The init method modifies this environment variable.
-# It may be simpler to return this from init.
+# TODO Clark: The init_driver method modifies this environment variable.
+# It may be cleaner to return this from init_driver.
 parallel.ddR.env <- new.env(emptyenv())
 
 # Initialize the no. of cores in parallel backend
@@ -41,8 +41,8 @@ parallel.ddR.env <- new.env(emptyenv())
 #'      available cores
 #' @param type If "FORK", will use UNIX fork() method. If "PSOCK", will use SNOW method.
 #' @param ... Additional arguments to \link[parallel]{makeCluster}
-#' @describeIn init Initialization for parallel
-setMethod("init", "parallel.ddR",
+#' @describeIn init_driver Initialization for parallel
+setMethod("init_driver", "parallel.ddR",
 function(x, executors = "all",
          type = ifelse(windows, "PSOCK", "FORK"), ...){
 

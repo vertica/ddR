@@ -3,13 +3,10 @@
 \docType{methods}
 \name{shutdown}
 \alias{shutdown}
-\alias{shutdown,ddRDriver-method}
 \alias{shutdown,parallel.ddR-method}
 \title{Called when the backend driver is shutdown.}
 \usage{
 shutdown(x)
-
-\S4method{shutdown}{ddRDriver}(x)
 
 \S4method{shutdown}{parallel.ddR}(x)
 }
@@ -21,8 +18,6 @@ Called when the backend driver is shutdown.
 }
 \section{Methods (by class)}{
 \itemize{
-\item \code{ddRDriver}: Default backend shutdown message.
-
 \item \code{parallel.ddR}: Shutdown for parallel
 }}
 
