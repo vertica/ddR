@@ -3,5 +3,5 @@
 
 library(testthat)
 library(ddR)
-useBackend(parallel, executors=2)
+useBackend(parallel.ddR, executors=2)
 test_check("ddR")

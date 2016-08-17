@@ -18,19 +18,16 @@
 windows <- .Platform$OS.type == "windows"
 
 
-setClass("ParallelddR", contains="ddRDriver")
-
-# TODO Clark: Change from "parallel" to more descriptive name like
-# "parallel.driver"
+setClass("parallel.ddR", contains="ddRDriver")
 
 #' The default parallel driver
 #' @examples
 #' \dontrun{
-#' useBackend(parallel,executors=4)
+#' useBackend(parallel.ddR, executors=4)
 #' }
 #' @export 
 # Exported Driver
-parallel <- new("ParallelddR",DListClass = "ParallelObj",DFrameClass = "ParallelObj",DArrayClass = "ParallelObj",backendName = "parallel")
+parallel.ddR <- new("parallel.ddR",DListClass = "ParallelObj",DFrameClass = "ParallelObj",DArrayClass = "ParallelObj",backendName = "parallel")
 
 # TODO Clark: The init method modifies this environment variable.
 # It may be simpler to return this from init.
@@ -45,7 +42,7 @@ parallel.ddR.env <- new.env(emptyenv())
 #' @param type If "FORK", will use UNIX fork() method. If "PSOCK", will use SNOW method.
 #' @param ... Additional arguments to \link[parallel]{makeCluster}
 #' @describeIn init Initialization for parallel
-setMethod("init", "ParallelddR",
+setMethod("init", "parallel.ddR",
 function(x, executors = "all",
          type = ifelse(windows, "PSOCK", "FORK"), ...){
 
@@ -80,7 +77,7 @@ function(x, executors = "all",
 })
 
 #' @describeIn shutdown Shutdown for parallel
-setMethod("shutdown","ParallelddR",
+setMethod("shutdown","parallel.ddR",
 function(x) {
     # A bad call means stopCluster won't work, so use try()
     try(parallel::stopCluster(parallel.ddR.env$cluster))
@@ -93,7 +90,7 @@ function(x) {
 
 #' @rdname do_dmapply
 setMethod("do_dmapply",
-          signature(driver="ParallelddR", func="function"), 
+          signature(driver="parallel.ddR", func="function"),
           function(driver, func, ..., MoreArgs = list(),
                    output.type =
                        c("dlist", "dframe", "darray", "sparse_darray"),

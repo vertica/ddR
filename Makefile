@@ -7,8 +7,8 @@
 ALGOS = $(shell find algorithms -d 1)
 
 
-# I don't know why this will run even when none of these files are modified
 ddR: $(shell find ddR/R -type f)
+	R -q -e "roxygen2::roxygenize('ddR')"
 	R CMD INSTALL ddR
 	cd ddR/tests; Rscript test-all.R; cd ../..
 

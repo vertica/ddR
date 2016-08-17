@@ -52,11 +52,11 @@ ddR.env$executors <- 1
 #' Homepage: https://github.com/vertica/ddR
 #' @examples
 #' \dontrun{
-#' useBackend(parallel,executors=2)
-#' library(distributedR.ddR); useBackend(distributedR)
+#' useBackend(parallel.ddR, executors=2)
+#' library(distributedR.ddR); useBackend(distributedR.ddR)
 #' } 
 #' @export
-useBackend <- function(driver = parallel, ...) {
+useBackend <- function(driver = parallel.ddR, ...) {
 
     # validate first or else shutdown can fail on subsequent calls
     if(!is(driver, "ddRDriver")){

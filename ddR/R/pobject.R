@@ -44,7 +44,7 @@ setMethod("initialize", "ParallelObj", function(.Object, ...) {
 })
 
 #' @rdname combine
-setMethod("combine",signature(driver="ParallelddR",items="list"),
+setMethod("combine",signature(driver="parallel.ddR",items="list"),
   function(driver,items){
     split_indices <- lapply(items,function(x) {
       x@splits

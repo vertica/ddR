@@ -1,7 +1,7 @@
 context("Tests which should run with any driver")
 
 # Replace this with any driver
-driver <- parallel
+driver <- parallel.ddR
 
 
 test_that("init method", {
