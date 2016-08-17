@@ -85,35 +85,35 @@ setClass("ddRDriver", representation(DListClass = "character", DFrameClass = "ch
 #'
 #' Used internally by ddR to set up a new backend driver.
 #'
-#' @param driver The driver object to initialize the backend for.
+#' @param x The driver object to initialize the backend for.
 #' @param ... Other parameters to pass to the initialization routine.
 #' @seealso \code{\link{useBackend}} for the user facing way to set or
 #'      change backends
 #' @export
-setGeneric("init", function(driver,...) standardGeneric("init"))
+setGeneric("init", function(x,...) standardGeneric("init"))
 
 #' Called when the backend driver is shutdown.
 #'
-#' @param driver The driver object to shutdown.
+#' @param x The driver object to shutdown.
 #' @export
 # TODO Clark: ddR uses a global driver, so why is the public facing version
 # a method rather than a function with no args? something like:
 # shutdown <- function() .shutdown(ddR.env.driver)
-setGeneric("shutdown", function(driver) standardGeneric("shutdown")) 
+setGeneric("shutdown", function(x) standardGeneric("shutdown"))
 
 #' @describeIn init Default backend initialization message.
 #' @export
 setMethod("init","ddRDriver",
-  function(driver,...) {
-    message(paste0("Activating the ",driver@backendName," backend."))
+  function(x,...) {
+    message(paste0("Activating the ",x@backendName," backend."))
   }
 )
 
 #' @describeIn shutdown Default backend shutdown message.
 #' @export
 setMethod("shutdown","ddRDriver",
-  function(driver) {
-    message(paste0("Deactivating the ",driver@backendName," backend."))
+  function(x) {
+    message(paste0("Deactivating the ",x@backendName," backend."))
   }
 )
 
@@ -196,6 +196,33 @@ dlapply <- function(X,FUN,...,nparts=NULL) {
    dmapply(FUN,X,MoreArgs=list(...),output.type="dlist",nparts=nparts)
 }
 
+
+#' Validate the arguments for dmapply
+#'
+#' @param ... iterable arguments for dmapply
+#' @return list of validated arguments
+validate_dargs <- function(...){
+    dargs <- list(...)
+    if(length(dargs) == 0) stop("Need to supply at least one iterable item.")
+
+    check_backend_return_length <- function(x){
+        # TODO Clark: Not sure checking names is sufficient here.
+        if(is(x,"DObject") && x@backend != ddR.env$driver@backendName)
+            stop(paste0("An argument passed in was created with backend '",
+                        x@backend,"'; the currently loaded backend is '",
+                        ddR.env$driver@backendName,"'."))
+        # length() works correctly for data.frame, arrays, and lists
+        length(x)
+    }
+
+    lens <- vapply(dargs, check_backend_return_length, FUN.VALUE=numeric(1))
+
+    if(max(lens) != min(lens)) stop("The lengths of the iterable arguments need to be equal.")
+    if(min(lens) == 0) stop("Zero-length arguments are not permitted.")
+    dargs
+}
+
+
 #' Distributed version of mapply. Similar to R's 'mapply', it allows a multivariate function, FUN, to be applied to several inputs. Unlike standard mapply, it always returns a distributed object.
 #'
 #' Though dmapply is modeled after mapply, there are several important differences, as evident in the parameters described below.
@@ -248,26 +275,8 @@ dmapply <- function(FUN ,..., MoreArgs=list(),
   if(output.type == "dlist" && (combine == "rbind" || combine == "cbind"))
     stop("'combine' options 'rbind' and 'cbind' are invalid for dlist outputs.")
   
-  dargs <- list(...)
+  dargs <- validate_dargs(...)
 
-  if(length(dargs) == 0) stop("Need to supply at least one iterable item for the function.")
-
-  # Ensure that ... arguments are of equal length. length() works correctly for data.frame,
-  # arrays, and lists
-  lens <- vapply(dargs,function(x) {
-    # TODO Clark: Why even allow the possibility of this happening where
-    # two backends are competing?
-     if(is(x,"DObject") && x@backend != ddR.env$driver@backendName)
-       stop(paste0("An argument passed in was created with 
-            backend '",x@backend,"'; the currently loaded backend is '",
-            ddR.env$driver@backendName,"'."))
-        
-     length(x)
-   },FUN.VALUE=numeric(1))
-
-  if(max(lens) != min(lens)) stop("The lengths of your iterable arguments need to be equal.")
-  if(min(lens) == 0) stop("Zero-length arguments are not permitted.")
-    
   partitioning <- getBestOutputPartitioning(ddR.env$driver,...,nparts=nparts,type=output.type)
 
   # simplify2array does not work well on data.frames, default to column instead

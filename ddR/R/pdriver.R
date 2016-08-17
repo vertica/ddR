@@ -46,7 +46,7 @@ parallel.ddR.env <- new.env(emptyenv())
 #' @param ... Additional arguments to \link[parallel]{makeCluster}
 #' @describeIn init Initialization for parallel
 setMethod("init", "ParallelddR",
-function(driver, executors = "all",
+function(x, executors = "all",
          type = ifelse(windows, "PSOCK", "FORK"), ...){
 
     # Normalize executors to positive integer
@@ -81,7 +81,7 @@ function(driver, executors = "all",
 
 #' @describeIn shutdown Shutdown for parallel
 setMethod("shutdown","ParallelddR",
-function(driver) {
+function(x) {
     # A bad call means stopCluster won't work, so use try()
     try(parallel::stopCluster(parallel.ddR.env$cluster))
 })
