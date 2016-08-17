@@ -3,12 +3,21 @@ context("Tests which should run with any driver")
 # Replace this with any driver
 driver <- parallel.ddR
 
+useBackend(driver)
 
-test_that("init method", {
+test_that("init and shutdown methods", {
 
-    initvalue <- ddR:::init_driver(driver, executors = 2L)
-    expect_identical(initvalue, 2L)
-    expect_identical(ddR.env$executors, 2L)
+    # Explicit shutdown
+    shutdown(driver)
+
+    # Default shutdown argument 
+    useBackend(driver)
+    shutdown()
+ 
+    # Return a positive integer
+    initvalue <- ddR:::init_driver(driver)
+    expect_is(initvalue, "integer")
+    expect_gt(initvalue, 0)
 
 })
 

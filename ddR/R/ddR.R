@@ -22,12 +22,9 @@
 #' @importFrom utils head tail 
 NULL
 
-# Current backend is a package global variable
+# Package global variable like the driver live in this environment
 ddR.env <- new.env(emptyenv())
 ddR.env$RminorVersion <- R.version$minor
-
-#Track no. of executors in the backend
-ddR.env$executors <- 1
 
 #' Sets the active backend driver. Functions exported by the 'ddR' package 
 #' are dispatched to the backend driver.
@@ -71,6 +68,7 @@ useBackend <- function(driver = parallel.ddR, ...) {
     ddR.env$driver <- driver
 }
 
+
 #' The base S4 class for backend driver classes to extend.
 #' 
 #' @slot DListClass A character vector naming the class-name for dlists.
@@ -79,6 +77,7 @@ useBackend <- function(driver = parallel.ddR, ...) {
 #' @slot backendName A character vector naming the backend.
 #' @export
 setClass("ddRDriver", representation(DListClass = "character", DFrameClass = "character", DArrayClass = "character", backendName = "character"))
+
 
 #' Initialize backend driver
 #'
@@ -90,28 +89,15 @@ setClass("ddRDriver", representation(DListClass = "character", DFrameClass = "ch
 #'      change backends
 setGeneric("init_driver", function(x,...) standardGeneric("init_driver"))
 
+
 #' Called when the backend driver is shutdown.
 #'
-#' @param x The driver object to shutdown.
+#' @param x The driver object to shutdown, defaults to the current one.
 #' @export
-# TODO Clark: ddR uses a global driver, so why is the public facing version
-# a method rather than a function with no args? something like:
-# shutdown <- function() .shutdown(ddR.env.driver)
 setGeneric("shutdown", function(x) standardGeneric("shutdown"))
 
-# TODO Clark: When are these two default methods actually called?
-# Are they necessary?
-#setMethod("init","ddRDriver",
-#  function(x,...) {
-#    message(paste0("Activating the ",x@backendName," backend."))
-#  }
-#)
-#
-#setMethod("shutdown","ddRDriver",
-#  function(x) {
-#    message(paste0("Deactivating the ",x@backendName," backend."))
-#  }
-#)
+setMethod("shutdown", "missing", function() shutdown(ddR.env$driver))
+
 
 #' Backend-specific dmapply logic. This is a required override for all
 #' backends to implement so dmapply works.
