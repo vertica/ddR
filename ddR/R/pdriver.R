@@ -15,32 +15,44 @@
 # Boston, MA 02111-1307 USA.
 ###################################################################
 
-# Subclass of ddRDriver
-setClass("parallel.ddR", contains="ddRDriver")
+#' @include ddR.R
+NULL
+
+setOldClass("cluster")
+
+#' Class for parallel driver
+#' 
+#' @param executors Number of cores to run with
+#' @param type character "FORK" or "PSOCK"
+#' @slot cluster As returned from \link[parallel]{makeCluster}
+#' @export
+setClass("parallel.ddR", contains = "ddRDriver",
+        slots = c(executors = "integer", type = "character",
+                  cluster = "ANY"))
+
+#                  cluster = "cluster"))
+# TODO Clark: Understand this error message for the above line
+#   error: invalid class “parallel.ddR” object: 1: invalid object for slot
+# "cluster" in class "parallel.ddR": got class "SOCKcluster", should be or
+# extend class "cluster"
+# invalid class “parallel.ddR” object: 2: invalid object for slot "cluster"
+# in class "parallel.ddR": got class "cluster", should be or extend class
+# "cluster"
 
 windows <- .Platform$OS.type == "windows"
 
-#' The default parallel driver
-#' @examples
-#' \dontrun{
-#' useBackend(parallel.ddR, executors=4)
-#' }
-#' @export 
-# Exported Driver
-
-parallel.ddR <- new("parallel.ddR",DListClass = "ParallelObj",DFrameClass = "ParallelObj",DArrayClass = "ParallelObj",backendName = "parallel")
-
-
-# Initialize the no. of cores in parallel backend
-# The FORK method of parallel works only on UNIX environments. The "PSOCK"
-# method requires SNOW but works on all OSes.
-#
+#' Initialize the no. of cores in parallel backend
+#' 
+#' The FORK method of parallel works only on UNIX environments. The "PSOCK"
+#' method requires SNOW but works on all OSes.
+#'
 #' @param executors Number of cores to run with, or "all" to use all
 #'      available cores
 #' @param type If "FORK", will use UNIX fork() method. If "PSOCK", will use SNOW method.
 #' @param ... Additional arguments to \link[parallel]{makeCluster}
-#' @describeIn init_driver Initialization for parallel
-init.parallel <- function(x, executors = "all",
+#' @returns Object of type parallel.ddR representing a running parallel
+#'      cluster
+init.parallel <- function(executors = "all",
          type = ifelse(windows, "PSOCK", "FORK"), ...){
 
     # Normalize executors to positive integer
@@ -83,8 +95,7 @@ registerDriver(name = "parallel", initfunc = init.parallel)
 #' @describeIn shutdown Shutdown for parallel
 setMethod("shutdown","parallel.ddR",
 function(x) {
-    # A bad call means stopCluster won't work, so use try()
-    try(parallel::stopCluster(parallel.ddR.env$cluster))
+    parallel::stopCluster(x$cluster)
 })
 
 #This function calls mclapply internally when using parallel with "FORK" or 

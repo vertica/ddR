@@ -10,12 +10,12 @@ The base S4 class for backend driver classes to extend.
 \section{Slots}{
 
 \describe{
-\item{\code{DListClass}}{A character vector naming the class-name for dlists.}
+\item{\code{DListClass}}{class for dlists.}
 
-\item{\code{DArrayClass}}{A character vector naming the class-name for darrays.}
+\item{\code{DArrayClass}}{class for darrays.}
 
-\item{\code{DFrameClass}}{A character vector naming the class-name for dframes.}
+\item{\code{DFrameClass}}{class for dframes.}
 
-\item{\code{backendName}}{A character vector naming the backend.}
+\item{\code{backendName}}{character name of the backend.}
 }}
 

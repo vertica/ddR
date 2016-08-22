@@ -117,26 +117,25 @@ useBackend <- function(driver = "parallel", ...) {
 
 #' The base S4 class for backend driver classes to extend.
 #' 
-#' @slot driver list containing information specific to this driver instance
 #' @slot DListClass class for dlists.
 #' @slot DArrayClass class for darrays.
 #' @slot DFrameClass class for dframes.
 #' @slot backendName character name of the backend.
 #' @export
-setClass("ddRDriver", slots = c(driver = "list", DListClass = "character",
+setClass("ddRDriver", slots = c(DListClass = "character",
         DFrameClass = "character", DArrayClass = "character",
         backendName = "character"))
 
 
-#' Initialize backend driver
-#'
-#' Used internally by ddR to set up a new backend driver.
-#'
-#' @param x The driver object to initialize the backend for.
-#' @param ... Other parameters to pass to the initialization routine.
-#' @seealso \code{\link{useBackend}} for the user facing way to set or
-#'      change backends
-setGeneric("init_driver", function(x,...) standardGeneric("init_driver"))
+# Initialize backend driver
+#
+# Used internally by ddR to set up a new backend driver.
+#
+# @param x The driver object to initialize the backend for.
+# @param ... Other parameters to pass to the initialization routine.
+# @seealso \code{\link{useBackend}} for the user facing way to set or
+#      change backends
+# setGeneric("init_driver", function(x,...) standardGeneric("init_driver"))
 
 
 #' Called when the backend driver is shutdown.
