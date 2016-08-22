@@ -95,7 +95,7 @@ registerDriver(name = "parallel", initfunc = init.parallel)
 #' @describeIn shutdown Shutdown for parallel
 setMethod("shutdown","parallel.ddR",
 function(x) {
-    parallel::stopCluster(x$cluster)
+    parallel::stopCluster(x@cluster)
 })
 
 #This function calls mclapply internally when using parallel with "FORK" or 
@@ -165,7 +165,7 @@ setMethod("do_dmapply",
     answer <- NULL
     # Now iterate in parallel
     # Wrap the input arguments and use do.call()
-    allargs <- c(list(cl = parallel.ddR.env$cluster,
+    allargs <- c(list(cl = driver@cluster,
                       fun = func,
                       MoreArgs = MoreArgs,
                       RECYCLE = FALSE, SIMPLIFY = FALSE),

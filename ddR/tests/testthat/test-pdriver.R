@@ -6,7 +6,7 @@ l <- list(1:10, letters, rnorm(5))
 test_that("Parallel is indeed the default driver", {
 
     useBackend()
-    expect_s4_class(ddR.env$driver, "parallel.ddR")
+    expect_s4_class(ddR.env$currentDriver, "parallel.ddR")
 
 })
 
@@ -52,6 +52,6 @@ if(.Platform$OS.type != "windows"){
     expect_error({out <- collect(dmapply(c, dl2, dl3))}, "[Bb]ackend")
 
     # Necessary so that remaining tests run using correct cluster type
-    useBackend(parallel.ddR)
+    useBackend("parallel")
 
 }})

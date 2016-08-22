@@ -26,13 +26,12 @@
 #' @slot psize Stores, as a 2d-matrix (1d-for dlists) of the size of each
 #' partition.
 #' @slot dim The dimensions of the distributed object.
-#' @slot backend A character vector of the name of the backend that created
-#' the object.
+#' @slot driver Driver object connecting the backend
 #' @slot type The distributed object type for this object (e.g,. 'dlist').
 #' @export
 setClass("DObject",
   representation(nparts = "numeric", psize = "matrix",
-          dim = "numeric", backend = "character", type = "character"),
+          dim = "numeric", driver = "ddRDriver", type = "character"),
   prototype = prototype(nparts = c(1L, 1L),psize = matrix(1,1),
               dim = c(1L)))
 
@@ -139,7 +138,7 @@ parts <- function(dobj, index=NULL) {
 
   for(i in seq(1,length(partitions))){
     partitions[[i]]@nparts <- c(1L, 1L)
-    partitions[[i]]@backend <- ddR.env$driver@backendName
+    partitions[[i]]@driver <- ddR.env$currentDriver
     partitions[[i]]@type <- dobj@type 
     partitions[[i]]@psize <- matrix(psize[[i]],nrow=1,ncol=length(psize[[i]]))
     partitions[[i]]@dim <- as.integer(psize[[i]])
@@ -259,7 +258,8 @@ dlist <- function(...,nparts = NULL) {
   psize = matrix(0L,nparts[1])
   initialize <- list(...)
   if(length(initialize) == 0) {
-    new(ddR.env$driver@DListClass,backend=ddR.env$driver@backendName,type = "dlist", nparts = nparts, psize = psize, dim = 0L)
+    new(ddR.env$currentDriver@DListClass, driver = ddR.env$currentDriver,
+        type = "dlist", nparts = nparts, psize = psize, dim = 0L)
   } else{
     dmapply(function(x){ x }, initialize,nparts=nparts)
   }
@@ -304,9 +304,9 @@ as.dlist <- function(items,nparts=NULL) {
   # TODO: allow reconstituting of multiple dobject partitions into a new one.
 
   if(is.dobject(items[[1]])) {
-    newobj <- combine(ddR.env$driver,items)
+    newobj <- combine(ddR.env$currentDriver,items)
     newobj@nparts <- c(length(items), 1L)
-    newobj@backend <- ddR.env$driver@backendName
+    newobj@driver <- ddR.env$currentDriver
     newobj@type <- "dlist"
     return(newobj)
   }
@@ -451,7 +451,8 @@ darray <- function(nparts = NULL, dim=NULL, psize = NULL, data = 0, sparse=FALSE
   else type = "darray"
 
   if(all(dim==0)) {
-    new(ddR.env$driver@DArrayClass,backend=ddR.env$driver@backendName,type = type, nparts = nparts, psize = psize, dim=dim)
+    new(ddR.env$currentDriver@DArrayClass, driver = ddR.env$currentDriver,
+        type = type, nparts = nparts, psize = psize, dim = dim)
   } else{
 
     if(class(psize) == "numeric") psize<-matrix(psize, nrow=1)
@@ -600,7 +601,7 @@ dframe <- function(nparts = NULL, dim=NULL, psize = NULL, data = 0) {
   dim <- as.integer(dim)
 
  if(all(dim==0)) {
-    new(ddR.env$driver@DArrayClass,backend=ddR.env$driver@backendName,type = "dframe", nparts = nparts, psize = psize, dim=dim)
+    new(ddR.env$currentDriver@DArrayClass, driver = ddR.env$currentDriver, type = "dframe", nparts = nparts, psize = psize, dim=dim)
   } else{
     if(class(psize) == "numeric") psize<-matrix(psize, nrow=1)
     sizes<-unlist(apply(psize,1,function(y)list(y)), recursive=FALSE)
@@ -648,7 +649,11 @@ setMethod("show",signature("DObject"),function(object) {
   if(is.dlist(object)) dimStr <- "Length: "
   else dimStr <- "Dim: "
 
-  printStr <- paste0("\nddR Distributed Object","\nType: ", object@type,"\n# of partitions: ", totalParts(object), "\nPartitions per dimension: ", paste(object@nparts,collapse="x"),"\nPartition sizes: ", partsStr, "\n", dimStr, paste(dim(object),collapse=","), "\nBackend: ", object@backend,"\n")
+  printStr <- paste0("\nddR Distributed Object","\nType: ",
+object@type,"\n# of partitions: ", totalParts(object), "\nPartitions per
+dimension: ", paste(object@nparts,collapse="x"),"\nPartition sizes: ",
+partsStr, "\n", dimStr, paste(dim(object),collapse=","), "\nBackend: ",
+object@driver$backendName,"\n")
 
   cat(printStr) 
 })

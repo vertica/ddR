@@ -34,6 +34,8 @@ ddR.env$activeDrivers <- list()
 
 # useBackend updates this
 ddR.env$currentDriver <- NULL
+# TODO Clark: This is used in so many places maybe we could do something to
+# make it concise, or make it a package level global variable
 
 
 #' Register a driver with ddR.
@@ -95,7 +97,7 @@ useBackend <- function(driver = "parallel", ...) {
         stop("Driver should be one of: ", paste(supported))
     }
 
-    #if(!is.null(ddR.env$driver)) shutdown(ddR.env$driver)
+    #if(!is.null(ddR.env$currentDriver)) shutdown(ddR.env$currentDriver)
     # TODO Clark: What if you shut down a driver while there are still
     # objects in the R session that are using it for the backend?
     # This doesn't fit in with the current thought of being able to switch
@@ -144,7 +146,7 @@ setClass("ddRDriver", slots = c(DListClass = "character",
 #' @export
 setGeneric("shutdown", function(x) standardGeneric("shutdown"))
 
-setMethod("shutdown", "missing", function() shutdown(ddR.env$drivers[[1]]))
+setMethod("shutdown", "missing", function() shutdown(ddR.env$currentDriver))
 
 
 #' Backend-specific dmapply logic. This is a required override for all
@@ -237,10 +239,10 @@ validate_dargs <- function(...){
 
     check_backend_return_length <- function(x){
         # TODO Clark: Not sure checking names is sufficient here.
-        if(is(x,"DObject") && x@backend != ddR.env$driver@backendName)
+        if(is(x,"DObject") && x@driver != ddR.env$currentDriver)
             stop(paste0("An argument passed in was created with backend '",
-                        x@backend,"'; the currently loaded backend is '",
-                        ddR.env$driver@backendName,"'."))
+                        x@driver@backendName,"'; the currently loaded backend is '",
+                        ddR.env$currentDriver@backendName,"'."))
         # length() works correctly for data.frame, arrays, and lists
         length(x)
     }
@@ -307,19 +309,19 @@ dmapply <- function(FUN ,..., MoreArgs=list(),
   
   dargs <- validate_dargs(...)
 
-  partitioning <- getBestOutputPartitioning(ddR.env$driver,...,nparts=nparts,type=output.type)
+  partitioning <- getBestOutputPartitioning(ddR.env$currentDriver,...,nparts=nparts,type=output.type)
 
   # simplify2array does not work well on data.frames, default to column instead
   if(output.type == "dframe" && combine == "c") combine = "default"
   if(output.type == "sparse_darray" && combine != "cbind" && combine != "rbind") 
     stop("sparse_darray outputs must have either 'rbind' or 'cbind' for combine")
 
-  newobj <- do_dmapply(ddR.env$driver, func=match.fun(FUN), ..., MoreArgs=MoreArgs,
+  newobj <- do_dmapply(ddR.env$currentDriver, func=match.fun(FUN), ..., MoreArgs=MoreArgs,
                        output.type=output.type,nparts=partitioning,combine=combine)                       
 
   checkReturnObject(partitioning,newobj)
 
-  newobj@backend <- ddR.env$driver@backendName
+  newobj@driver <- ddR.env$currentDriver
   newobj@type <- output.type 
 
   newobj

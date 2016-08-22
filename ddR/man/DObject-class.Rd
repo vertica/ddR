@@ -21,8 +21,7 @@ partition.}
 
 \item{\code{dim}}{The dimensions of the distributed object.}
 
-\item{\code{backend}}{A character vector of the name of the backend that created
-the object.}
+\item{\code{driver}}{Driver object connecting the backend}
 
 \item{\code{type}}{The distributed object type for this object (e.g,. 'dlist').}
 }}

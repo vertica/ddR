@@ -3,5 +3,4 @@
 
 library(testthat)
 library(ddR)
-useBackend(parallel.ddR, executors=2)
 test_check("ddR")
