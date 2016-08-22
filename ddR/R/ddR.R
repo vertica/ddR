@@ -22,9 +22,23 @@
 #' @importFrom utils head tail 
 NULL
 
-# Package global variable like the driver live in this environment
+# Package global variables live in this environment
 ddR.env <- new.env(emptyenv())
 ddR.env$RminorVersion <- R.version$minor
+
+# All drivers which have been active in the current session
+ddR.env$allDrivers <- list()
+
+
+#' List all known supported backends
+#'
+#' @value character vector
+#' @export
+availableBackends <- function(){
+    # This is a function in case we want to do something more
+    # elaborate with it later.
+    c("parallel", "distributedR")
+}
 
 #' Sets the active backend driver. Functions exported by the 'ddR' package 
 #' are dispatched to the backend driver.
@@ -49,34 +63,43 @@ ddR.env$RminorVersion <- R.version$minor
 #' Homepage: https://github.com/vertica/ddR
 #' @examples
 #' \dontrun{
-#' useBackend(parallel.ddR, executors=2)
-#' library(distributedR.ddR); useBackend(distributedR.ddR)
+#' useBackend("parallel", executors=2)
+#' library(distributedR.ddR); useBackend("distributedR")
 #' } 
 #' @export
-useBackend <- function(driver = parallel.ddR, ...) {
+useBackend <- function(driver = "parallel", ...) {
 
-    # validate first or else shutdown can fail on subsequent calls
-    if(!is(driver, "ddRDriver")){
+    if(!(driver %in% availableBackends())){
         stop("Invalid driver object specified")
     }
 
-    if(!is.null(ddR.env$driver)) shutdown(ddR.env$driver)
+    #if(!is.null(ddR.env$driver)) shutdown(ddR.env$driver)
+    # TODO Clark: What if you shut down a driver while there are still
+    # objects in the R session that are using it for the backend?
+    # This doesn't fit in with the current thought of being able to switch
+    # backends mid session.
 
-    executors <- init_driver(driver, ...)
+    ddR.env$currentDriver <- init_driver(driver, ...)
+
+    # Append to the list of all active drivers in this session
+    ddR.env$allDrivers <- c(ddR.env$allDrivers, 
+                            list(ddR.env$currentDriver))
 
     ddR.env$executors <- executors
-    ddR.env$driver <- driver
 }
 
 
 #' The base S4 class for backend driver classes to extend.
 #' 
-#' @slot DListClass A character vector naming the class-name for dlists.
-#' @slot DArrayClass A character vector naming the class-name for darrays.
-#' @slot DFrameClass A character vector naming the class-name for dframes.
-#' @slot backendName A character vector naming the backend.
+#' @slot driver list containing information specific to this driver instance
+#' @slot DListClass class for dlists.
+#' @slot DArrayClass class for darrays.
+#' @slot DFrameClass class for dframes.
+#' @slot backendName character name of the backend.
 #' @export
-setClass("ddRDriver", representation(DListClass = "character", DFrameClass = "character", DArrayClass = "character", backendName = "character"))
+setClass("ddRDriver", slots = c(driver = "list", DListClass = "character",
+        DFrameClass = "character", DArrayClass = "character",
+        backendName = "character"))
 
 
 #' Initialize backend driver
@@ -96,7 +119,7 @@ setGeneric("init_driver", function(x,...) standardGeneric("init_driver"))
 #' @export
 setGeneric("shutdown", function(x) standardGeneric("shutdown"))
 
-setMethod("shutdown", "missing", function() shutdown(ddR.env$driver))
+setMethod("shutdown", "missing", function() shutdown(ddR.env$drivers[[1]]))
 
 
 #' Backend-specific dmapply logic. This is a required override for all

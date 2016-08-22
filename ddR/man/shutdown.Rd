@@ -11,7 +11,7 @@ shutdown(x)
 \S4method{shutdown}{parallel.ddR}(x)
 }
 \arguments{
-\item{x}{The driver object to shutdown.}
+\item{x}{The driver object to shutdown, defaults to the current one.}
 }
 \description{
 Called when the backend driver is shutdown.
