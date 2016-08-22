@@ -26,8 +26,26 @@ NULL
 ddR.env <- new.env(emptyenv())
 ddR.env$RminorVersion <- R.version$minor
 
+# A list of all registered Drivers together with initialization functions
+ddR.env$registeredDrivers <- list()
+
 # All drivers which have been active in the current session
-ddR.env$allDrivers <- list()
+ddR.env$activeDrivers <- list()
+
+# useBackend updates this
+ddR.env$currentDriver <- NULL
+
+
+#' Register a driver with ddR.
+#'
+#' This function is used internally to manage the drivers that ddR knows
+#' about and supports. It's purpose is to 
+#' a new driver for ddR.
+#'
+#' @export
+registerDriver <- function(name, initfunc){
+    ddR.env$registeredDrivers[[name]] <- initfunc
+}
 
 
 #' List all known supported backends
@@ -35,22 +53,24 @@ ddR.env$allDrivers <- list()
 #' @value character vector
 #' @export
 availableBackends <- function(){
-    # This is a function in case we want to do something more
-    # elaborate with it later.
-    c("parallel", "distributedR")
+    names(ddR.env$registeredDrivers)
 }
 
-#' Sets the active backend driver. Functions exported by the 'ddR' package 
-#' are dispatched to the backend driver.
-#' Backend-specific initialization parameters may be passed into the ellipsis (...) part of the 
-#' function arguments. 
+
+#' Sets the active backend driver, defaulting to "parallel". Functions
+#' exported by the 'ddR' package are dispatched to the backend driver.
 #'
-#' The default driver uses R's 'parallel' as the backend.
-#'
-#' @param driver driver object for the backend that will be used. This object should extend class 'ddRDriver', and the S4 methods for do_dmapply, do_collect, and get_parts should be defined in the class of the driver object. 
+#' @param backend character naming the backend to use which should be 
 #' @param ... additional parameters to pass to the initialization function of the driver.
 #' @details
-#' After successfully registering a new backend with useBackend(), all subsequent dmapply, collect, and parts operations will dispatch on that driver object's class. Note that distributed objects created with a different backend prior to switching will be incompatible with these backend-specific functions of the new driver.
+#'
+#' After successfully registering a new backend with useBackend(), all
+#' subsequent dmapply, collect, and parts operations will dispatch on that
+#' driver object's class. 
+#'
+#' Note that distributed objects created with a
+#' different backend prior to switching will be incompatible with these
+#' backend-specific functions of the new driver.
 #' @references 
 #' Prasad, S., Fard, A., Gupta, V., Martinez, J., LeFevre, J., Xu, V., Hsu, M., Roy, I. 
 #' Large scale predictive analytics in Vertica: Fast data transfer, distributed model creation 
@@ -61,6 +81,7 @@ availableBackends <- function(){
 #' Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
 #'
 #' Homepage: https://github.com/vertica/ddR
+#' @seealso availableBackends
 #' @examples
 #' \dontrun{
 #' useBackend("parallel", executors=2)
@@ -69,8 +90,9 @@ availableBackends <- function(){
 #' @export
 useBackend <- function(driver = "parallel", ...) {
 
-    if(!(driver %in% availableBackends())){
-        stop("Invalid driver object specified")
+    supported <- availableBackends() 
+    if(!(driver %in% supported)){
+        stop("Driver should be one of: ", paste(supported))
     }
 
     #if(!is.null(ddR.env$driver)) shutdown(ddR.env$driver)
@@ -79,13 +101,17 @@ useBackend <- function(driver = "parallel", ...) {
     # This doesn't fit in with the current thought of being able to switch
     # backends mid session.
 
-    ddR.env$currentDriver <- init_driver(driver, ...)
+    initfunc <- ddR.env$registeredDrivers[[driver]]
+
+    ddR.env$currentDriver <- initfunc(...)
 
     # Append to the list of all active drivers in this session
-    ddR.env$allDrivers <- c(ddR.env$allDrivers, 
+    ddR.env$activeDrivers <- c(ddR.env$activeDrivers, 
                             list(ddR.env$currentDriver))
 
-    ddR.env$executors <- executors
+    # TODO Clark: replace and fix
+    #ddR.env$executors <- executors
+    return(ddR.env$currentDriver)
 }
 
 

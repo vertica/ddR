@@ -15,10 +15,10 @@
 # Boston, MA 02111-1307 USA.
 ###################################################################
 
-windows <- .Platform$OS.type == "windows"
-
-
+# Subclass of ddRDriver
 setClass("parallel.ddR", contains="ddRDriver")
+
+windows <- .Platform$OS.type == "windows"
 
 #' The default parallel driver
 #' @examples
@@ -27,11 +27,9 @@ setClass("parallel.ddR", contains="ddRDriver")
 #' }
 #' @export 
 # Exported Driver
+
 parallel.ddR <- new("parallel.ddR",DListClass = "ParallelObj",DFrameClass = "ParallelObj",DArrayClass = "ParallelObj",backendName = "parallel")
 
-# TODO Clark: The init_driver method modifies this environment variable.
-# It may be cleaner to return this from init_driver.
-parallel.ddR.env <- new.env(emptyenv())
 
 # Initialize the no. of cores in parallel backend
 # The FORK method of parallel works only on UNIX environments. The "PSOCK"
@@ -42,8 +40,7 @@ parallel.ddR.env <- new.env(emptyenv())
 #' @param type If "FORK", will use UNIX fork() method. If "PSOCK", will use SNOW method.
 #' @param ... Additional arguments to \link[parallel]{makeCluster}
 #' @describeIn init_driver Initialization for parallel
-setMethod("init_driver", "parallel.ddR",
-function(x, executors = "all",
+init.parallel <- function(x, executors = "all",
          type = ifelse(windows, "PSOCK", "FORK"), ...){
 
     # Normalize executors to positive integer
@@ -68,13 +65,20 @@ function(x, executors = "all",
 
     cluster <- parallel::makeCluster(executors, type, ...)
 
-    # Assign everything to package environment
-    parallel.ddR.env$executors <- executors
-    parallel.ddR.env$type <- type
-    parallel.ddR.env$cluster <- cluster
+    new("parallel.ddR",
+        DListClass = "ParallelObj",
+        DFrameClass = "ParallelObj",
+        DArrayClass = "ParallelObj",
+        backendName = "parallel",
+        executors = executors,
+        type = type,
+        cluster = cluster
+        )
+}
 
-    executors
-})
+
+registerDriver(name = "parallel", initfunc = init.parallel)
+
 
 #' @describeIn shutdown Shutdown for parallel
 setMethod("shutdown","parallel.ddR",

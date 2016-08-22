@@ -14,14 +14,14 @@ test_that("Parallel is indeed the default driver", {
 test_that("useBackend recovers from a bad call", {
 
     expect_error(useBackend(parallel.ddR, type="LASERWOLF_FAN_CLUB"))
-    useBackend(parallel.ddR)
+    useBackend("parallel")
 
 })
 
 
 test_that("useBackend can switch and use PSOCK", {
 
-    useBackend(parallel.ddR, type="PSOCK")
+    useBackend("parallel", type="PSOCK")
 
     dl1 <- dlist(1:4)
     dl2 <- dlist(5)
@@ -31,26 +31,27 @@ test_that("useBackend can switch and use PSOCK", {
     expect_equal(out, list(1:5))
 
     # Necessary so that remaining tests run using correct cluster type
-    useBackend(parallel.ddR)
+    useBackend("parallel")
 
 })
 
 
 test_that("mapply with different parallel backends", {
+# Windows can't FORK
+if(.Platform$OS.type != "windows"){
 
-    useBackend(parallel.ddR, executors = 2)
+    useBackend("parallel", type = "FORK", executors = 2)
     dl2 <- do.call(dlist, l)
 
     # This sets up a different local cluster
-    useBackend(parallel.ddR, type = "PSOCK", executors = 3)
+    useBackend("parallel", type = "PSOCK", executors = 3)
     dl3 <- do.call(dlist, l)
 
     # TODO Clark: Currently this works, but maybe better to throw an
     # error if mixing clusters like this.
-    out <- collect(dmapply(c, dl2, dl3))
-    expect_equal(mapply(c, l, l), out)
+    expect_error({out <- collect(dmapply(c, dl2, dl3))}, "[Bb]ackend")
 
     # Necessary so that remaining tests run using correct cluster type
     useBackend(parallel.ddR)
 
-})
+}})
