@@ -32,11 +32,8 @@ ddR.env$registeredDrivers <- list()
 # All driver instances which have been active in the current session
 ddR.env$activeDrivers <- list()
 
-# Most operations will dispatch on the driver
+# This represents the current driver which everything dispatches on
 ddR.env$driver <- NULL
-# TODO Clark: The current driver is used in so many places we could
-# make it more concise, or make it a package level global
-# variable
 
 
 #' Register a driver

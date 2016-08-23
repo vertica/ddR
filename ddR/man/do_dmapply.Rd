@@ -29,7 +29,7 @@ do_dmapply(driver, func, ..., MoreArgs = list(), output.type = "dlist",
 
 \item{nparts}{A 2d-vector indicating how the output is partitioned.}
 
-\item{combine}{One of 'default', 'rbind', 'cbind', or 'c', which 
+\item{combine}{One of 'default', 'rbind', 'cbind', or 'c', which
 specifies how the results from each partition should be combined.}
 }
 \value{

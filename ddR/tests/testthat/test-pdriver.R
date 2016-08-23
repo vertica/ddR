@@ -6,7 +6,7 @@ l <- list(1:10, letters, rnorm(5))
 test_that("Parallel is indeed the default driver", {
 
     useBackend()
-    expect_s4_class(ddR.env$currentDriver, "parallel.ddR")
+    expect_s4_class(ddR.env$driver, "parallel.ddR")
 
 })
 
@@ -47,8 +47,6 @@ if(.Platform$OS.type != "windows"){
     useBackend("parallel", type = "PSOCK", executors = 3)
     dl3 <- do.call(dlist, l)
 
-    # TODO Clark: Currently this works, but maybe better to throw an
-    # error if mixing clusters like this.
     expect_error({out <- collect(dmapply(c, dl2, dl3))}, "[Bb]ackend")
 
     # Necessary so that remaining tests run using correct cluster type

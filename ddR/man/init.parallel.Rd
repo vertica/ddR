@@ -15,6 +15,10 @@ available cores}
 
 \item{...}{Additional arguments to \link[parallel]{makeCluster}}
 }
+\value{
+Object of type parallel.ddR representing a running parallel
+     cluster
+}
 \description{
 The FORK method of parallel works only on UNIX environments. The "PSOCK"
 method requires SNOW but works on all OSes.

@@ -4,8 +4,8 @@
 \name{combine}
 \alias{combine}
 \alias{combine,parallel.ddR,list-method}
-\title{Combines a list of partitions into a single distributed 
-object. (can be implemented by a frontend wrapper without actually 
+\title{Combines a list of partitions into a single distributed
+object. (can be implemented by a frontend wrapper without actually
 combining data in storage).}
 \usage{
 combine(driver, items)
@@ -21,8 +21,8 @@ combine(driver, items)
 A new distributed object made form the items list.
 }
 \description{
-Combines a list of partitions into a single distributed 
-object. (can be implemented by a frontend wrapper without actually 
+Combines a list of partitions into a single distributed
+object. (can be implemented by a frontend wrapper without actually
 combining data in storage).
 }
 

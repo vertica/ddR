@@ -8,11 +8,11 @@ registerDriver(name, initfunc)
 }
 \arguments{
 \item{name}{character, the common name for this backend. This will be
-returned from \code{\link{availableBackend}}}
+returned from \code{\link{availableBackends}}}
 
 \item{initfunc}{function capable of creating an instance of this driver
 connected to a running backend.
-Driver instances returned from this function should be a 
+Driver instances returned from this function should be a
 subclass of \code{\link{ddRDriver}}}
 }
 \description{

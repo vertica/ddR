@@ -33,7 +33,7 @@ For API standard-enforcement, overriding this is not recommended.
 }
 \section{Methods (by class)}{
 \itemize{
-\item \code{ddRDriver}: The default implementation for 
+\item \code{ddRDriver}: The default implementation for
 getBestOutputPartitioning.
 }}
 

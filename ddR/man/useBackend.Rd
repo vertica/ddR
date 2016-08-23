@@ -35,11 +35,11 @@ on, even if the backends are the same.
 useBackend("parallel", executors=2)
 shutdown()  # We're done using the parallel backend
 library(distributedR.ddR); useBackend("distributedR")
-} 
+}
 }
 \references{
-Prasad, S., Fard, A., Gupta, V., Martinez, J., LeFevre, J., Xu, V., Hsu, M., Roy, I. 
-Large scale predictive analytics in Vertica: Fast data transfer, distributed model creation 
+Prasad, S., Fard, A., Gupta, V., Martinez, J., LeFevre, J., Xu, V., Hsu, M., Roy, I.
+Large scale predictive analytics in Vertica: Fast data transfer, distributed model creation
 and in-database prediction. _Sigmod 2015_, 1657-1668.
 
 Venkataraman, S., Bodzsar, E., Roy, I., AuYoung, A., and
