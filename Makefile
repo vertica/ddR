@@ -16,6 +16,10 @@ ddR: $(shell find ddR/R -type f)
 	cd ddR/tests; Rscript test-all.R; cd ../..
 
 
+pdf: $(shell find ddR/man -type f)
+	R CMD Rd2pdf ddR
+
+
 # Run all the tests for the algorithms
 #
 test_algorithms: $(ALGOS)

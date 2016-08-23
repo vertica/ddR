@@ -2,8 +2,7 @@
 % Please edit documentation in R/ddR.R
 \name{useBackend}
 \alias{useBackend}
-\title{Sets the active backend driver, defaulting to "parallel". Functions
-exported by the 'ddR' package are dispatched to the backend driver.}
+\title{Set the current backend}
 \usage{
 useBackend(name = "parallel", ...)
 }
@@ -12,22 +11,29 @@ useBackend(name = "parallel", ...)
 
 \item{...}{additional parameters to pass to the initialization function of the driver.}
 }
+\value{
+driver the new current global ddR driver
+}
 \description{
-Sets the active backend driver, defaulting to "parallel". Functions
-exported by the 'ddR' package are dispatched to the backend driver.
+Set the current backend
 }
 \details{
-After successfully registering a new backend with useBackend(), all
-subsequent dmapply, collect, and parts operations will dispatch on that
-driver object's class. 
+After calling this function, all
+subsequent dmapply, collect, and parts operations will dispatch through
+the new driver instance to run on this new backend.
 
-Note that distributed objects created with a
-different backend prior to switching will be incompatible with these
-backend-specific functions of the new driver.
+Best practice is to \code{\link{shutdown}} the current backend before
+calling this function. This frees system resources and makes it clear
+that the previous backend will no longer be used.
+
+With the current implementation, distributed objects created with a
+different driver instance prior to switching can no longer be computed
+on, even if the backends are the same.
 }
 \examples{
 \dontrun{
 useBackend("parallel", executors=2)
+shutdown()  # We're done using the parallel backend
 library(distributedR.ddR); useBackend("distributedR")
 } 
 }
@@ -43,6 +49,6 @@ Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
 Homepage: https://github.com/vertica/ddR
 }
 \seealso{
-availableBackends
+availableBackends shutdown
 }
 

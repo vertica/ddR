@@ -26,29 +26,30 @@ NULL
 ddR.env <- new.env(emptyenv())
 ddR.env$RminorVersion <- R.version$minor
 
-# A list of all registered Drivers together with initialization functions
+# Updated as new classes of drivers are registered
 ddR.env$registeredDrivers <- list()
 
-# All drivers which have been active in the current session
+# All driver instances which have been active in the current session
 ddR.env$activeDrivers <- list()
 
-# useBackend updates this
+# Most operations will dispatch on the currentDriver
 ddR.env$currentDriver <- NULL
-# TODO Clark: This is used in so many places maybe we could do something to
-# make it concise, or make it a package level global variable
+# TODO Clark: The current driver is used in so many places we could
+# make it more concise, or make it a package level global
+# variable
 
 
-#' Register a driver with ddR.
+#' Register a driver
 #'
-#' This function is used internally to manage the drivers that ddR knows
-#' about and supports. 
+#' Used internally to manage the different driver classes that ddR knows
+#' about and supports. It should be used when creating new drivers for new backends.
 #'
 #' @param name character, the common name for this backend. This will be
 #'      returned from \code{\link{availableBackend}} 
-#' @param initfunc function capable of creating an instance of this new
-#'      driver. Objects returned from this function should be a 
+#' @param initfunc function capable of creating an instance of this driver
+#'      connected to a running backend.
+#'      Driver instances returned from this function should be a 
 #'      subclass of \code{\link{ddRDriver}}
-#' @export
 registerDriver <- function(name, initfunc){
     ddR.env$registeredDrivers[[name]] <- initfunc
 }
@@ -56,7 +57,7 @@ registerDriver <- function(name, initfunc){
 
 #' List all known supported backends
 #'
-#' @value character vector
+#' @return character vector
 #' @export
 #' @seealso useBackend
 availableBackends <- function(){
@@ -64,20 +65,26 @@ availableBackends <- function(){
 }
 
 
-#' Sets the active backend driver, defaulting to "parallel". Functions
-#' exported by the 'ddR' package are dispatched to the backend driver.
+#' Set the current backend
 #'
 #' @param name character naming the desired backend
 #' @param ... additional parameters to pass to the initialization function of the driver.
+#' @return driver the new current global ddR driver
+#'
 #' @details
 #'
-#' After successfully registering a new backend with useBackend(), all
-#' subsequent dmapply, collect, and parts operations will dispatch on that
-#' driver object's class. 
+#' After calling this function, all
+#' subsequent dmapply, collect, and parts operations will dispatch through
+#' the new driver instance to run on this new backend.
 #'
-#' Note that distributed objects created with a
-#' different backend prior to switching will be incompatible with these
-#' backend-specific functions of the new driver.
+#' Best practice is to \code{\link{shutdown}} the current backend before
+#' calling this function. This frees system resources and makes it clear
+#' that the previous backend will no longer be used.
+#'
+#' With the current implementation, distributed objects created with a
+#' different driver instance prior to switching can no longer be computed
+#' on, even if the backends are the same.
+#' 
 #' @references 
 #' Prasad, S., Fard, A., Gupta, V., Martinez, J., LeFevre, J., Xu, V., Hsu, M., Roy, I. 
 #' Large scale predictive analytics in Vertica: Fast data transfer, distributed model creation 
@@ -88,10 +95,11 @@ availableBackends <- function(){
 #' Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
 #'
 #' Homepage: https://github.com/vertica/ddR
-#' @seealso availableBackends
+#' @seealso availableBackends shutdown
 #' @examples
 #' \dontrun{
 #' useBackend("parallel", executors=2)
+#' shutdown()  # We're done using the parallel backend
 #' library(distributedR.ddR); useBackend("distributedR")
 #' } 
 #' @export
@@ -101,12 +109,6 @@ useBackend <- function(name = "parallel", ...) {
     if(!(name %in% supported)){
         stop("name should be one of: ", paste(supported))
     }
-
-    #if(!is.null(ddR.env$currentDriver)) shutdown(ddR.env$currentDriver)
-    # TODO Clark: What if you shut down a driver while there are still
-    # objects in the R session that are using it for the backend?
-    # This doesn't fit in with the current thought of being able to switch
-    # backends mid session.
 
     initfunc <- ddR.env$registeredDrivers[[name]]
 
@@ -127,7 +129,6 @@ useBackend <- function(name = "parallel", ...) {
 #' @slot DFrameClass class for dframes.
 #' @slot name character name of the backend.
 #' @slot executors integer number of workers in backend.
-#' @export
 setClass("ddRDriver", slots = c(DListClass = "character",
         DFrameClass = "character", DArrayClass = "character",
         name = "character", executors = "integer"))

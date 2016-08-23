@@ -18,26 +18,19 @@
 #' @include ddR.R
 NULL
 
+setOldClass("SOCKcluster")
 setOldClass("cluster")
+setClassUnion("parallelCluster", c("SOCKcluster", "cluster"))
 
 #' Class for parallel driver
 #' 
 #' @param type character "FORK" or "PSOCK"
 #' @slot cluster As returned from \link[parallel]{makeCluster}
-#' @export
 setClass("parallel.ddR", contains = "ddRDriver",
-        slots = c(type = "character", cluster = "ANY"))
+        slots = c(type = "character", cluster = "parallelCluster"))
 
-#                  cluster = "cluster"))
-# TODO Clark: Understand this error message for the above line
-#   error: invalid class “parallel.ddR” object: 1: invalid object for slot
-# "cluster" in class "parallel.ddR": got class "SOCKcluster", should be or
-# extend class "cluster"
-# invalid class “parallel.ddR” object: 2: invalid object for slot "cluster"
-# in class "parallel.ddR": got class "cluster", should be or extend class
-# "cluster"
 
-windows <- .Platform$OS.type == "windows"
+windows <- (.Platform$OS.type == "windows")
 
 #' Initialize the no. of cores in parallel backend
 #' 
@@ -95,10 +88,6 @@ setMethod("shutdown","parallel.ddR",
 function(x) {
     parallel::stopCluster(x@cluster)
 })
-
-#This function calls mclapply internally when using parallel with "FORK" or 
-#snow's staticClusterApply when used with "PSOCK" option. 
-#On windows only "PSOCK" provides true parallelism.
 
 
 #' @rdname do_dmapply
@@ -260,4 +249,3 @@ setMethod("do_dmapply",
 
    new("ParallelObj",pObj = outputObj, splits = 1:length(outputObj), psize = psizes, dim = as.integer(dims), nparts = nparts)
 })
-

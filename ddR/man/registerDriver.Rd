@@ -2,7 +2,7 @@
 % Please edit documentation in R/ddR.R
 \name{registerDriver}
 \alias{registerDriver}
-\title{Register a driver with ddR.}
+\title{Register a driver}
 \usage{
 registerDriver(name, initfunc)
 }
@@ -10,12 +10,13 @@ registerDriver(name, initfunc)
 \item{name}{character, the common name for this backend. This will be
 returned from \code{\link{availableBackend}}}
 
-\item{initfunc}{function capable of creating an instance of this new
-driver. Objects returned from this function should be a 
+\item{initfunc}{function capable of creating an instance of this driver
+connected to a running backend.
+Driver instances returned from this function should be a 
 subclass of \code{\link{ddRDriver}}}
 }
 \description{
-This function is used internally to manage the drivers that ddR knows
-about and supports.
+Used internally to manage the different driver classes that ddR knows
+about and supports. It should be used when creating new drivers for new backends.
 }
 

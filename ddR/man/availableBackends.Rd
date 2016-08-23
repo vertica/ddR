@@ -6,6 +6,9 @@
 \usage{
 availableBackends()
 }
+\value{
+character vector
+}
 \description{
 List all known supported backends
 }
