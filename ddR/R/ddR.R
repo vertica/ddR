@@ -42,12 +42,12 @@ ddR.env$driver <- NULL
 #' about and supports. It should be used when creating new drivers for new backends.
 #'
 #' @param name character, the common name for this backend. This will be
-#'      returned from \code{\link{availableBackends}}
+#'      returned from \code{\link{available_backends}}
 #' @param initfunc function capable of creating an instance of this driver
 #'      connected to a running backend.
 #'      Driver instances returned from this function should be a
 #'      subclass of \code{\linkS4class{ddRDriver}}
-registerDriver <- function(name, initfunc){
+register_driver <- function(name, initfunc){
     ddR.env$registeredDrivers[[name]] <- initfunc
 }
 
@@ -57,7 +57,7 @@ registerDriver <- function(name, initfunc){
 #' @return character vector
 #' @export
 #' @seealso \code{\link{useBackend}}
-availableBackends <- function(){
+available_backends <- function(){
     names(ddR.env$registeredDrivers)
 }
 
@@ -93,7 +93,7 @@ availableBackends <- function(){
 #' Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
 #'
 #' Homepage: https://github.com/vertica/ddR
-#' @seealso \code{\link{availableBackends}}, \code{\link{shutdown}}
+#' @seealso \code{\link{available_backends}}, \code{\link{shutdown}}
 #' @examples
 #' \dontrun{
 #' useBackend("parallel", executors=2)
@@ -103,7 +103,7 @@ availableBackends <- function(){
 #' @export
 useBackend <- function(name = "parallel", ...) {
 
-    supported <- availableBackends()
+    supported <- available_backends()
     if(!(name %in% supported)){
         stop("name should be one of: ", paste(supported))
     }

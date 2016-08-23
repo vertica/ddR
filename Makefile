@@ -9,11 +9,16 @@ DOCS = $(shell find ddR/man -type f)
 RFILES = $(shell find ddR/R -type f)
 
 
+# A little ugly to keep listing the same command, but it seems to work
+# fine for these simple tasks.
+
 ddR: $(RFILES) $(DOCS)
 	R -q -e "roxygen2::roxygenize('ddR')"
 	R CMD INSTALL ddR
 
 test: $(RFILES)
+	R -q -e "roxygen2::roxygenize('ddR')"
+	R CMD INSTALL ddR
 	cd ddR/tests; Rscript test-all.R; cd ../..
 
 docs: ddR.pdf

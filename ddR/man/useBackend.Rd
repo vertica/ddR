@@ -48,6 +48,6 @@ Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
 Homepage: https://github.com/vertica/ddR
 }
 \seealso{
-\code{\link{availableBackends}}, \code{\link{shutdown}}
+\code{\link{available_backends}}, \code{\link{shutdown}}
 }
 

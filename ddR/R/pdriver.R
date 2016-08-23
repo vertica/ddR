@@ -80,7 +80,7 @@ init_parallel <- function(executors = "all",
 }
 
 
-registerDriver(name = "parallel", initfunc = init_parallel)
+register_driver(name = "parallel", initfunc = init_parallel)
 
 
 #' @describeIn shutdown Shutdown for parallel
