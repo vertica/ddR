@@ -41,7 +41,7 @@ windows <- (.Platform$OS.type == "windows")
 #'      available cores
 #' @param type If "FORK", will use UNIX fork() method. If "PSOCK", will use SNOW method.
 #' @param ... Additional arguments to \link[parallel]{makeCluster}
-#' @returns Object of type parallel.ddR representing a running parallel
+#' @return Object of type parallel.ddR representing a running parallel
 #'      cluster
 init.parallel <- function(executors = "all",
          type = ifelse(windows, "PSOCK", "FORK"), ...){

@@ -32,8 +32,8 @@ ddR.env$registeredDrivers <- list()
 # All driver instances which have been active in the current session
 ddR.env$activeDrivers <- list()
 
-# Most operations will dispatch on the currentDriver
-ddR.env$currentDriver <- NULL
+# Most operations will dispatch on the driver
+ddR.env$driver <- NULL
 # TODO Clark: The current driver is used in so many places we could
 # make it more concise, or make it a package level global
 # variable
@@ -45,7 +45,7 @@ ddR.env$currentDriver <- NULL
 #' about and supports. It should be used when creating new drivers for new backends.
 #'
 #' @param name character, the common name for this backend. This will be
-#'      returned from \code{\link{availableBackend}}
+#'      returned from \code{\link{availableBackends}}
 #' @param initfunc function capable of creating an instance of this driver
 #'      connected to a running backend.
 #'      Driver instances returned from this function should be a
@@ -112,13 +112,13 @@ useBackend <- function(name = "parallel", ...) {
 
     initfunc <- ddR.env$registeredDrivers[[name]]
 
-    ddR.env$currentDriver <- initfunc(...)
+    ddR.env$driver <- initfunc(...)
 
     # Append to the list of all active drivers in this session
     ddR.env$activeDrivers <- c(ddR.env$activeDrivers,
-                            list(ddR.env$currentDriver))
+                            list(ddR.env$driver))
 
-    return(ddR.env$currentDriver)
+    return(ddR.env$driver)
 }
 
 
@@ -139,7 +139,7 @@ setClass("ddRDriver", slots = c(DListClass = "character",
 #' @param x The driver object to shutdown, defaults to the current one.
 #' @export
 setGeneric("shutdown", function(x) standardGeneric("shutdown"))
-setMethod("shutdown", "missing", function() shutdown(ddR.env$currentDriver))
+setMethod("shutdown", "missing", function() shutdown(ddR.env$driver))
 
 
 #' Backend-specific dmapply logic. This is a required override for all
@@ -231,10 +231,10 @@ validate_dargs <- function(...){
     if(length(dargs) == 0) stop("Need to supply at least one iterable item.")
 
     check_backend_return_length <- function(x){
-        if(is(x,"DObject") && !identical(x@driver, ddR.env$currentDriver))
+        if(is(x,"DObject") && !identical(x@driver, ddR.env$driver))
             stop(paste0("An argument passed in was created with backend '",
                         x@driver@name,"'; the currently loaded backend is '",
-                        ddR.env$currentDriver@name,"'."))
+                        ddR.env$driver@name,"'."))
         # length() works correctly for data.frame, arrays, and lists
         length(x)
     }
@@ -301,19 +301,19 @@ dmapply <- function(FUN ,..., MoreArgs=list(),
 
   dargs <- validate_dargs(...)
 
-  partitioning <- getBestOutputPartitioning(ddR.env$currentDriver,...,nparts=nparts,type=output.type)
+  partitioning <- getBestOutputPartitioning(ddR.env$driver,...,nparts=nparts,type=output.type)
 
   # simplify2array does not work well on data.frames, default to column instead
   if(output.type == "dframe" && combine == "c") combine = "default"
   if(output.type == "sparse_darray" && combine != "cbind" && combine != "rbind")
     stop("sparse_darray outputs must have either 'rbind' or 'cbind' for combine")
 
-  newobj <- do_dmapply(ddR.env$currentDriver, func=match.fun(FUN), ..., MoreArgs=MoreArgs,
+  newobj <- do_dmapply(ddR.env$driver, func=match.fun(FUN), ..., MoreArgs=MoreArgs,
                        output.type=output.type,nparts=partitioning,combine=combine)
 
   checkReturnObject(partitioning,newobj)
 
-  newobj@driver <- ddR.env$currentDriver
+  newobj@driver <- ddR.env$driver
   newobj@type <- output.type
 
   newobj

@@ -138,7 +138,7 @@ parts <- function(dobj, index=NULL) {
 
   for(i in seq(1,length(partitions))){
     partitions[[i]]@nparts <- c(1L, 1L)
-    partitions[[i]]@driver <- ddR.env$currentDriver
+    partitions[[i]]@driver <- ddR.env$driver
     partitions[[i]]@type <- dobj@type 
     partitions[[i]]@psize <- matrix(psize[[i]],nrow=1,ncol=length(psize[[i]]))
     partitions[[i]]@dim <- as.integer(psize[[i]])
@@ -258,7 +258,7 @@ dlist <- function(...,nparts = NULL) {
   psize = matrix(0L,nparts[1])
   initialize <- list(...)
   if(length(initialize) == 0) {
-    new(ddR.env$currentDriver@DListClass, driver = ddR.env$currentDriver,
+    new(ddR.env$driver@DListClass, driver = ddR.env$driver,
         type = "dlist", nparts = nparts, psize = psize, dim = 0L)
   } else{
     dmapply(function(x){ x }, initialize,nparts=nparts)
@@ -304,9 +304,9 @@ as.dlist <- function(items,nparts=NULL) {
   # TODO: allow reconstituting of multiple dobject partitions into a new one.
 
   if(is.dobject(items[[1]])) {
-    newobj <- combine(ddR.env$currentDriver,items)
+    newobj <- combine(ddR.env$driver,items)
     newobj@nparts <- c(length(items), 1L)
-    newobj@driver <- ddR.env$currentDriver
+    newobj@driver <- ddR.env$driver
     newobj@type <- "dlist"
     return(newobj)
   }
@@ -451,7 +451,7 @@ darray <- function(nparts = NULL, dim=NULL, psize = NULL, data = 0, sparse=FALSE
   else type = "darray"
 
   if(all(dim==0)) {
-    new(ddR.env$currentDriver@DArrayClass, driver = ddR.env$currentDriver,
+    new(ddR.env$driver@DArrayClass, driver = ddR.env$driver,
         type = type, nparts = nparts, psize = psize, dim = dim)
   } else{
 
@@ -601,7 +601,7 @@ dframe <- function(nparts = NULL, dim=NULL, psize = NULL, data = 0) {
   dim <- as.integer(dim)
 
  if(all(dim==0)) {
-    new(ddR.env$currentDriver@DArrayClass, driver = ddR.env$currentDriver, type = "dframe", nparts = nparts, psize = psize, dim=dim)
+    new(ddR.env$driver@DArrayClass, driver = ddR.env$driver, type = "dframe", nparts = nparts, psize = psize, dim=dim)
   } else{
     if(class(psize) == "numeric") psize<-matrix(psize, nrow=1)
     sizes<-unlist(apply(psize,1,function(y)list(y)), recursive=FALSE)
@@ -938,7 +938,7 @@ convertToDobject<-function(input, psize, type){
     if(is.null(psize)){
 	#Create as many partitions as the no. of executors in the system
 	psize<-mdim
-        psize[1]<-ceiling(psize[1]/ddR.env$currentDriver@executors)
+        psize[1]<-ceiling(psize[1]/ddR.env$driver@executors)
     }
     numparts<-c(ceiling(mdim[1]/psize[1]), ceiling(mdim[2]/psize[2]))
 
