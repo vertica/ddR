@@ -13,6 +13,6 @@ character vector
 List all known supported backends
 }
 \seealso{
-useBackend
+\code{\link{useBackend}}
 }
 

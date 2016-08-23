@@ -46,7 +46,7 @@ ddR.env$driver <- NULL
 #' @param initfunc function capable of creating an instance of this driver
 #'      connected to a running backend.
 #'      Driver instances returned from this function should be a
-#'      subclass of \code{\link{ddRDriver}}
+#'      subclass of \code{\linkS4class{ddRDriver}}
 registerDriver <- function(name, initfunc){
     ddR.env$registeredDrivers[[name]] <- initfunc
 }
@@ -56,7 +56,7 @@ registerDriver <- function(name, initfunc){
 #'
 #' @return character vector
 #' @export
-#' @seealso useBackend
+#' @seealso \code{\link{useBackend}}
 availableBackends <- function(){
     names(ddR.env$registeredDrivers)
 }
@@ -64,15 +64,16 @@ availableBackends <- function(){
 
 #' Set the current backend
 #'
-#' @param name character naming the desired backend
-#' @param ... additional parameters to pass to the initialization function of the driver.
-#' @return driver the new current global ddR driver
-#'
-#' @details
-#'
 #' After calling this function, all
 #' subsequent dmapply, collect, and parts operations will dispatch through
 #' the new driver instance to run on this new backend.
+#'
+#' @param name character naming the desired backend
+#' @param ... additional parameters to pass to the initialization function of the driver.
+#' @return driver of class \code{\linkS4class{ddRDriver}} which is the new
+#'      current global ddR driver
+#'
+#' @details
 #'
 #' Best practice is to \code{\link{shutdown}} the current backend before
 #' calling this function. This frees system resources and makes it clear
@@ -92,7 +93,7 @@ availableBackends <- function(){
 #' Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
 #'
 #' Homepage: https://github.com/vertica/ddR
-#' @seealso availableBackends shutdown
+#' @seealso \code{\link{availableBackends}}, \code{\link{shutdown}}
 #' @examples
 #' \dontrun{
 #' useBackend("parallel", executors=2)
@@ -120,6 +121,7 @@ useBackend <- function(name = "parallel", ...) {
 
 
 #' The base S4 class for backend driver classes to extend.
+#' See \code{\linkS4class{parallel.ddR}} for an example of an extension.
 #'
 #' @slot DListClass class for dlists.
 #' @slot DArrayClass class for darrays.

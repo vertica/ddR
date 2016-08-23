@@ -3,9 +3,11 @@
 \docType{class}
 \name{ddRDriver-class}
 \alias{ddRDriver-class}
-\title{The base S4 class for backend driver classes to extend.}
+\title{The base S4 class for backend driver classes to extend.
+See \code{\linkS4class{parallel.ddR}} for an example of an extension.}
 \description{
 The base S4 class for backend driver classes to extend.
+See \code{\linkS4class{parallel.ddR}} for an example of an extension.
 }
 \section{Slots}{
 

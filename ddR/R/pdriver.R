@@ -24,7 +24,7 @@ setClassUnion("parallelCluster", c("SOCKcluster", "cluster"))
 
 #' Class for parallel driver
 #'
-#' @param type character "FORK" or "PSOCK"
+#' @slot type character "FORK" or "PSOCK"
 #' @slot cluster As returned from \link[parallel]{makeCluster}
 setClass("parallel.ddR", contains = "ddRDriver",
         slots = c(type = "character", cluster = "parallelCluster"))
@@ -41,9 +41,9 @@ windows <- (.Platform$OS.type == "windows")
 #'      available cores
 #' @param type If "FORK", will use UNIX fork() method. If "PSOCK", will use SNOW method.
 #' @param ... Additional arguments to \link[parallel]{makeCluster}
-#' @return Object of type parallel.ddR representing a running parallel
+#' @return Object of class \code{\linkS4class{parallel.ddR}} representing a running parallel
 #'      cluster
-init.parallel <- function(executors = "all",
+init_parallel <- function(executors = "all",
          type = ifelse(windows, "PSOCK", "FORK"), ...){
 
     # Normalize executors to positive integer
@@ -80,7 +80,7 @@ init.parallel <- function(executors = "all",
 }
 
 
-registerDriver(name = "parallel", initfunc = init.parallel)
+registerDriver(name = "parallel", initfunc = init_parallel)
 
 
 #' @describeIn shutdown Shutdown for parallel

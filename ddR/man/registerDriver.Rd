@@ -13,7 +13,7 @@ returned from \code{\link{availableBackends}}}
 \item{initfunc}{function capable of creating an instance of this driver
 connected to a running backend.
 Driver instances returned from this function should be a
-subclass of \code{\link{ddRDriver}}}
+subclass of \code{\linkS4class{ddRDriver}}}
 }
 \description{
 Used internally to manage the different driver classes that ddR knows

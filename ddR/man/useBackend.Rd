@@ -12,16 +12,15 @@ useBackend(name = "parallel", ...)
 \item{...}{additional parameters to pass to the initialization function of the driver.}
 }
 \value{
-driver the new current global ddR driver
+driver of class \code{\linkS4class{ddRDriver}} which is the new
+     current global ddR driver
 }
 \description{
-Set the current backend
-}
-\details{
 After calling this function, all
 subsequent dmapply, collect, and parts operations will dispatch through
 the new driver instance to run on this new backend.
-
+}
+\details{
 Best practice is to \code{\link{shutdown}} the current backend before
 calling this function. This frees system resources and makes it clear
 that the previous backend will no longer be used.
@@ -49,6 +48,6 @@ Graph Processing with Sparse Matrices. _EuroSys 2013_, 197-210.
 Homepage: https://github.com/vertica/ddR
 }
 \seealso{
-availableBackends shutdown
+\code{\link{availableBackends}}, \code{\link{shutdown}}
 }
 

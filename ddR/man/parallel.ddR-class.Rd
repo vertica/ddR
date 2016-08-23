@@ -4,15 +4,14 @@
 \name{parallel.ddR-class}
 \alias{parallel.ddR-class}
 \title{Class for parallel driver}
-\arguments{
-\item{type}{character "FORK" or "PSOCK"}
-}
 \description{
 Class for parallel driver
 }
 \section{Slots}{
 
 \describe{
+\item{\code{type}}{character "FORK" or "PSOCK"}
+
 \item{\code{cluster}}{As returned from \link[parallel]{makeCluster}}
 }}
 
