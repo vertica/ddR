@@ -10,7 +10,7 @@ date: "2015-10-26"
 library(ddR)
 library(kmeans.ddR)
 nInst = 2
-useBackend(parallel,executors = nInst)
+useBackend("parallel",executors = nInst)
 ```
 
 

@@ -18,7 +18,7 @@ library(ddR)
 
 ## Uncomment the following two lines to use Distributed R
 #library(distributedR.ddR)
-#useBackend(distributedR)
+#useBackend("distributedR")
 
 MatrixMultiply <- function(a,b)
 {

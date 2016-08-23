@@ -10,7 +10,7 @@ date: "2015-11-11"
 library(ddR)
 library(pagerank.ddR)
 nInst = 2
-useBackend(parallel,executors = nInst)
+useBackend("parallel",executors = nInst)
 ```
 
 

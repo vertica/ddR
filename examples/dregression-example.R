@@ -2,10 +2,10 @@ library(HPdregression)
 library(ddR)
 
 nInst = 2 # Change level of parallelism
-useBackend(parallel,executors = nInst)
+useBackend("parallel",executors = nInst)
 # Uncomment the following lines to use Distributed R 
 #library(distributedR.ddR)
-#useBackend(distributedR)
+#useBackend("distributedR")
 
 # Set up data size
 ncol = 200

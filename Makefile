@@ -7,8 +7,7 @@
 ALGOS = $(shell find algorithms -d 1)
 
 
-# roxygen generates the docs first because it also may modify NAMESPACE.
-# Not sure if this order matters or can be switched
+# roxygen generates the docs first because it may modify NAMESPACE.
 #
 ddR: $(shell find ddR/R -type f)
 	R -q -e "roxygen2::roxygenize('ddR')"

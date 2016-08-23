@@ -3,14 +3,14 @@ library(ddR)
 library(randomForest.ddR)
 library(randomForest)
 nInst = 2
-useBackend(parallel,executors = nInst)
+useBackend("parallel",executors = nInst)
 
 
 
 
 ### Switch to distributedR backend
 #library(distributedR.ddR)
-#useBackend(distributedR, inst = nInst)
+#useBackend("distributedR", inst = nInst)
 
 
 
