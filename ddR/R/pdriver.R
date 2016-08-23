@@ -1,17 +1,17 @@
 ###################################################################
 # Copyright 2015 Hewlett-Packard Development Company, L.P.
-# This program is free software; you can redistribute it 
-# and/or modify it under the terms of the GNU General Public 
+# This program is free software; you can redistribute it
+# and/or modify it under the terms of the GNU General Public
 # License, version 2 as published by the Free Software Foundation.
 
-# This program is distributed in the hope that it will be useful, 
-# but WITHOUT ANY WARRANTY; without even the implied warranty of 
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 # General Public License for more details.
 
-# You should have received a copy of the GNU General Public License 
-# along with this program; if not, write to the Free Software 
-# Foundation, Inc., 59 Temple Place, Suite 330, 
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330,
 # Boston, MA 02111-1307 USA.
 ###################################################################
 
@@ -23,7 +23,7 @@ setOldClass("cluster")
 setClassUnion("parallelCluster", c("SOCKcluster", "cluster"))
 
 #' Class for parallel driver
-#' 
+#'
 #' @param type character "FORK" or "PSOCK"
 #' @slot cluster As returned from \link[parallel]{makeCluster}
 setClass("parallel.ddR", contains = "ddRDriver",
@@ -33,7 +33,7 @@ setClass("parallel.ddR", contains = "ddRDriver",
 windows <- (.Platform$OS.type == "windows")
 
 #' Initialize the no. of cores in parallel backend
-#' 
+#'
 #' The FORK method of parallel works only on UNIX environments. The "PSOCK"
 #' method requires SNOW but works on all OSes.
 #'
@@ -119,14 +119,14 @@ setMethod("do_dmapply",
     }else{
       #There are two cases for a list (1) parts(dobj) or (2) list of parts(dobj)
 
-      if(is(dots[[num]],"list") && any(rapply(dots[[num]], function(x) is(x,"ParallelObj"),how="unlist"))){    
+      if(is(dots[[num]],"list") && any(rapply(dots[[num]], function(x) is(x,"ParallelObj"),how="unlist"))){
         tmp <- rapply(dots[[num]],function(argument){
 	    	      if(is(argument,"DObject"))
             	         return(argument@pObj[argument@splits])
 	              else return(argument)}, how="replace")
 
-       #(iR): This is bit of a hack. rapply increases the depth of the list, but at the level that the replacement occured. 
-       #Simple ulist() does not work. If this was just parts(A,..), we can call unlist. If this is a list of parts, then 
+       #(iR): This is bit of a hack. rapply increases the depth of the list, but at the level that the replacement occured.
+       #Simple ulist() does not work. If this was just parts(A,..), we can call unlist. If this is a list of parts, then
        #we unwrap the second layer of the list. Unwrapping the second layer is incorrect if parts(A) was embedded deeper than that.
        if(is(dots[[num]][[1]], "DObject")){
        	  dots[[num]] <- unlist(tmp, recursive=FALSE)
@@ -183,7 +183,7 @@ setMethod("do_dmapply",
    combineFunc <- list
 
    if(output.type !="dlist"){
-       #Setup the partition types that we will use later to check if partitions conform to output.type.   
+       #Setup the partition types that we will use later to check if partitions conform to output.type.
        if(output.type == "darray") ptype<-"matrix"
        if(output.type == "dframe") ptype<-"data.frame"
        if(output.type == "sparse_darray") ptype<-c("dsCMatrix", "dgCMatrix")
@@ -225,13 +225,13 @@ setMethod("do_dmapply",
 
    dims<-NULL
 
-   #Check if partions conform and can be stitched together. 
+   #Check if partions conform and can be stitched together.
    #Check partitions in each logical row have the same number of rows/height. Similary for columns
    rowseq<-seq(1, totalParts, by=nparts[2])
    for (index in rowseq){
 	     if(any(psizes[index:(index+nparts[2]-1),1]!=psizes[index,1])) stop("Adjacent partitions have different number of rows, should be ", psizes[index,1])
    }
-	 
+
    for (index in 1:nparts[2]){
 	    if(any(psizes[(rowseq+(index-1)),2]!=psizes[index,2])) stop("Adjacent partitions have different number of columns, should be ", psizes[index,2])
    }
