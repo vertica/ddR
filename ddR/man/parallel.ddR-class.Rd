@@ -5,8 +5,6 @@
 \alias{parallel.ddR-class}
 \title{Class for parallel driver}
 \arguments{
-\item{executors}{Number of cores to run with}
-
 \item{type}{character "FORK" or "PSOCK"}
 }
 \description{

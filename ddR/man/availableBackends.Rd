@@ -9,4 +9,7 @@ availableBackends()
 \description{
 List all known supported backends
 }
+\seealso{
+useBackend
+}
 

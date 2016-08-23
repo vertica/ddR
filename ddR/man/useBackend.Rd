@@ -5,12 +5,12 @@
 \title{Sets the active backend driver, defaulting to "parallel". Functions
 exported by the 'ddR' package are dispatched to the backend driver.}
 \usage{
-useBackend(driver = "parallel", ...)
+useBackend(name = "parallel", ...)
 }
 \arguments{
-\item{...}{additional parameters to pass to the initialization function of the driver.}
+\item{name}{character naming the desired backend}
 
-\item{backend}{character naming the backend to use which should be}
+\item{...}{additional parameters to pass to the initialization function of the driver.}
 }
 \description{
 Sets the active backend driver, defaulting to "parallel". Functions

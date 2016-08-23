@@ -22,13 +22,11 @@ setOldClass("cluster")
 
 #' Class for parallel driver
 #' 
-#' @param executors Number of cores to run with
 #' @param type character "FORK" or "PSOCK"
 #' @slot cluster As returned from \link[parallel]{makeCluster}
 #' @export
 setClass("parallel.ddR", contains = "ddRDriver",
-        slots = c(executors = "integer", type = "character",
-                  cluster = "ANY"))
+        slots = c(type = "character", cluster = "ANY"))
 
 #                  cluster = "cluster"))
 # TODO Clark: Understand this error message for the above line
@@ -81,7 +79,7 @@ init.parallel <- function(executors = "all",
         DListClass = "ParallelObj",
         DFrameClass = "ParallelObj",
         DArrayClass = "ParallelObj",
-        backendName = "parallel",
+        name = "parallel",
         executors = executors,
         type = type,
         cluster = cluster

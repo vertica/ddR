@@ -188,6 +188,7 @@ test_that("Dframe: Fill a matrix partition-by-partition for later comparison wit
 context("Testing as.dframe")
 
 test_that("Dframe: Testing as.dframe",{
+
 mtx <- matrix(c(1:100),nrow=20)
 
   #checking base case with giving dframe dimensions

@@ -653,7 +653,7 @@ setMethod("show",signature("DObject"),function(object) {
 object@type,"\n# of partitions: ", totalParts(object), "\nPartitions per
 dimension: ", paste(object@nparts,collapse="x"),"\nPartition sizes: ",
 partsStr, "\n", dimStr, paste(dim(object),collapse=","), "\nBackend: ",
-object@driver$backendName,"\n")
+object@driver$name,"\n")
 
   cat(printStr) 
 })
@@ -938,7 +938,7 @@ convertToDobject<-function(input, psize, type){
     if(is.null(psize)){
 	#Create as many partitions as the no. of executors in the system
 	psize<-mdim
-        psize[1]<-ceiling(psize[1]/ddR.env$executors)
+        psize[1]<-ceiling(psize[1]/ddR.env$currentDriver@executors)
     }
     numparts<-c(ceiling(mdim[1]/psize[1]), ceiling(mdim[2]/psize[2]))
 

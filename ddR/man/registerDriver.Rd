@@ -6,9 +6,16 @@
 \usage{
 registerDriver(name, initfunc)
 }
+\arguments{
+\item{name}{character, the common name for this backend. This will be
+returned from \code{\link{availableBackend}}}
+
+\item{initfunc}{function capable of creating an instance of this new
+driver. Objects returned from this function should be a 
+subclass of \code{\link{ddRDriver}}}
+}
 \description{
 This function is used internally to manage the drivers that ddR knows
-about and supports. It's purpose is to 
-a new driver for ddR.
+about and supports.
 }
 

@@ -16,6 +16,8 @@ The base S4 class for backend driver classes to extend.
 
 \item{\code{DFrameClass}}{class for dframes.}
 
-\item{\code{backendName}}{character name of the backend.}
+\item{\code{name}}{character name of the backend.}
+
+\item{\code{executors}}{integer number of workers in backend.}
 }}
 

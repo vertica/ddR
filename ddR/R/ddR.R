@@ -41,9 +41,13 @@ ddR.env$currentDriver <- NULL
 #' Register a driver with ddR.
 #'
 #' This function is used internally to manage the drivers that ddR knows
-#' about and supports. It's purpose is to 
-#' a new driver for ddR.
+#' about and supports. 
 #'
+#' @param name character, the common name for this backend. This will be
+#'      returned from \code{\link{availableBackend}} 
+#' @param initfunc function capable of creating an instance of this new
+#'      driver. Objects returned from this function should be a 
+#'      subclass of \code{\link{ddRDriver}}
 #' @export
 registerDriver <- function(name, initfunc){
     ddR.env$registeredDrivers[[name]] <- initfunc
@@ -54,6 +58,7 @@ registerDriver <- function(name, initfunc){
 #'
 #' @value character vector
 #' @export
+#' @seealso useBackend
 availableBackends <- function(){
     names(ddR.env$registeredDrivers)
 }
@@ -62,7 +67,7 @@ availableBackends <- function(){
 #' Sets the active backend driver, defaulting to "parallel". Functions
 #' exported by the 'ddR' package are dispatched to the backend driver.
 #'
-#' @param backend character naming the backend to use which should be 
+#' @param name character naming the desired backend
 #' @param ... additional parameters to pass to the initialization function of the driver.
 #' @details
 #'
@@ -90,11 +95,11 @@ availableBackends <- function(){
 #' library(distributedR.ddR); useBackend("distributedR")
 #' } 
 #' @export
-useBackend <- function(driver = "parallel", ...) {
+useBackend <- function(name = "parallel", ...) {
 
     supported <- availableBackends() 
-    if(!(driver %in% supported)){
-        stop("Driver should be one of: ", paste(supported))
+    if(!(name %in% supported)){
+        stop("name should be one of: ", paste(supported))
     }
 
     #if(!is.null(ddR.env$currentDriver)) shutdown(ddR.env$currentDriver)
@@ -103,7 +108,7 @@ useBackend <- function(driver = "parallel", ...) {
     # This doesn't fit in with the current thought of being able to switch
     # backends mid session.
 
-    initfunc <- ddR.env$registeredDrivers[[driver]]
+    initfunc <- ddR.env$registeredDrivers[[name]]
 
     ddR.env$currentDriver <- initfunc(...)
 
@@ -111,8 +116,6 @@ useBackend <- function(driver = "parallel", ...) {
     ddR.env$activeDrivers <- c(ddR.env$activeDrivers, 
                             list(ddR.env$currentDriver))
 
-    # TODO Clark: replace and fix
-    #ddR.env$executors <- executors
     return(ddR.env$currentDriver)
 }
 
@@ -122,22 +125,12 @@ useBackend <- function(driver = "parallel", ...) {
 #' @slot DListClass class for dlists.
 #' @slot DArrayClass class for darrays.
 #' @slot DFrameClass class for dframes.
-#' @slot backendName character name of the backend.
+#' @slot name character name of the backend.
+#' @slot executors integer number of workers in backend.
 #' @export
 setClass("ddRDriver", slots = c(DListClass = "character",
         DFrameClass = "character", DArrayClass = "character",
-        backendName = "character"))
-
-
-# Initialize backend driver
-#
-# Used internally by ddR to set up a new backend driver.
-#
-# @param x The driver object to initialize the backend for.
-# @param ... Other parameters to pass to the initialization routine.
-# @seealso \code{\link{useBackend}} for the user facing way to set or
-#      change backends
-# setGeneric("init_driver", function(x,...) standardGeneric("init_driver"))
+        name = "character", executors = "integer"))
 
 
 #' Called when the backend driver is shutdown.
@@ -145,7 +138,6 @@ setClass("ddRDriver", slots = c(DListClass = "character",
 #' @param x The driver object to shutdown, defaults to the current one.
 #' @export
 setGeneric("shutdown", function(x) standardGeneric("shutdown"))
-
 setMethod("shutdown", "missing", function() shutdown(ddR.env$currentDriver))
 
 
@@ -238,11 +230,10 @@ validate_dargs <- function(...){
     if(length(dargs) == 0) stop("Need to supply at least one iterable item.")
 
     check_backend_return_length <- function(x){
-        # TODO Clark: Not sure checking names is sufficient here.
-        if(is(x,"DObject") && x@driver != ddR.env$currentDriver)
+        if(is(x,"DObject") && !identical(x@driver, ddR.env$currentDriver))
             stop(paste0("An argument passed in was created with backend '",
-                        x@driver@backendName,"'; the currently loaded backend is '",
-                        ddR.env$currentDriver@backendName,"'."))
+                        x@driver@name,"'; the currently loaded backend is '",
+                        ddR.env$currentDriver@name,"'."))
         # length() works correctly for data.frame, arrays, and lists
         length(x)
     }
