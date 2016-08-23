@@ -136,6 +136,8 @@ setClass("ddRDriver", slots = c(DListClass = "character",
 #' @param x The driver object to shutdown, defaults to the current one.
 #' @export
 setGeneric("shutdown", function(x) standardGeneric("shutdown"))
+
+#' @export
 setMethod("shutdown", "missing", function() shutdown(ddR.env$driver))
 
 
