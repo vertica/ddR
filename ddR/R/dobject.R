@@ -653,7 +653,7 @@ setMethod("show",signature("DObject"),function(object) {
 object@type,"\n# of partitions: ", totalParts(object), "\nPartitions per
 dimension: ", paste(object@nparts,collapse="x"),"\nPartition sizes: ",
 partsStr, "\n", dimStr, paste(dim(object),collapse=","), "\nBackend: ",
-object@driver$name,"\n")
+object@driver@name,"\n")
 
   cat(printStr) 
 })

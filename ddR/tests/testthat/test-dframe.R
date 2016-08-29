@@ -81,7 +81,7 @@ test_that("Correct printing", {
                     , output.type = "dframe" , nparts = c(4, 1)
                     ,  combine = "rbind")
 
-  expect_output(print(df_ab), "what should this be Clark?")
+  expect_output(print(df_ab), "[Dd]istributed")
 
 })
 
