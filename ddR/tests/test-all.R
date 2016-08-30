@@ -3,4 +3,7 @@
 
 library(testthat)
 library(ddR)
+
+driver_name <- "parallel"
+
 test_check("ddR")
