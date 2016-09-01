@@ -47,6 +47,7 @@ ddR.env$driver <- NULL
 #'      connected to a running backend.
 #'      Driver instances returned from this function should be a
 #'      subclass of \code{\linkS4class{ddRDriver}}
+#' @export
 register_driver <- function(name, initfunc){
     ddR.env$registeredDrivers[[name]] <- initfunc
 }

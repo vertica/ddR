@@ -39,8 +39,6 @@ init_DR <- function(warn=TRUE, ...) {
         )
 }
 
-register_driver(name = "DistributedR", initfunc = init_DR)
-
 #' @export
 setMethod("shutdown","DistributedR.ddR",
   function(x) {
@@ -401,4 +399,3 @@ setMethod("do_dmapply",
          psize = psizes, dim = dims, nparts=nparts)
   }
 )
-
