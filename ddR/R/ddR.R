@@ -39,7 +39,8 @@ ddR.env$driver <- NULL
 #' Register a driver
 #'
 #' Used internally to manage the different driver classes that ddR knows
-#' about and supports. It should be used when creating new drivers for new backends.
+#' about and supports. It should be used when creating new drivers for new
+#' backends. The current implementations call this in .onAttach()
 #'
 #' @param name character, the common name for this backend. This will be
 #'      returned from \code{\link{available_backends}}
@@ -106,7 +107,8 @@ useBackend <- function(name = "parallel", ...) {
 
     supported <- available_backends()
     if(!(name %in% supported)){
-        stop("name should be one of: ", paste(supported))
+        stop('name should be one of: "',
+              paste(supported, collapse = '", "'), '"')
     }
 
     initfunc <- ddR.env$registeredDrivers[[name]]

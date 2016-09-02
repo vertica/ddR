@@ -17,6 +17,7 @@ subclass of \code{\linkS4class{ddRDriver}}}
 }
 \description{
 Used internally to manage the different driver classes that ddR knows
-about and supports. It should be used when creating new drivers for new backends.
+about and supports. It should be used when creating new drivers for new
+backends. The current implementations call this in .onAttach()
 }
 
