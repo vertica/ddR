@@ -20,7 +20,9 @@ NULL
 
 setOldClass("SOCKcluster")
 setOldClass("cluster")
-setClassUnion("parallelCluster", c("SOCKcluster", "cluster"))
+setOldClass("spawnedMPIcluster")
+setClassUnion("parallelCluster", c("SOCKcluster", "cluster",
+                    "spawnedMPIcluster"))
 
 #' Class for parallel driver
 #'
@@ -57,9 +59,9 @@ init_parallel <- function(executors = "all",
     executors <- as.integer(executors)
 
     # Handle cluster types
-    if(!(type %in% c("PSOCK", "FORK"))){
+    if(!(type %in% c("PSOCK", "FORK", "SOCK", "MPI"))){
         # Safer to stop, but this facilitates experimentation
-        warning("Only PSOCK and FORK are supported cluster types for the parallel driver. Proceed at your own risk.")
+        warning("ddR hasn't been tested with this cluster type. Proceed at your own risk.")
     }
     if(windows && type == "FORK"){
         warning("type = 'FORK' is unsupported on Windows. Defaulting to type = 'PSOCK'")
