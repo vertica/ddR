@@ -39,21 +39,33 @@ windows <- (.Platform$OS.type == "windows")
 #' The FORK method of parallel works only on UNIX environments. The "PSOCK"
 #' method requires SNOW but works on all OSes.
 #'
-#' @param executors Number of cores to run with, or "all" to use all
-#'      available cores
-#' @param type If "FORK", will use UNIX fork() method. If "PSOCK", will use SNOW method.
+#' This function is merely a wrapper around \link[parallel]{makeCluster}
+#'
+#' @param spec Number of cores to run with, or character vector of
+#'      hostnames for SNOW cluster. If NULL defaults to the number of
+#'      physical cores on machine.
+#' @param type If "FORK", will use UNIX fork(). If "PSOCK", will use SNOW.
 #' @param ... Additional arguments to \link[parallel]{makeCluster}
 #' @return Object of class \code{\linkS4class{parallel.ddR}} representing a running parallel
 #'      cluster
-init_parallel <- function(executors = "all",
+init_parallel <- function(spec = NULL,
          type = ifelse(windows, "PSOCK", "FORK"), ...){
 
-    # Normalize executors to positive integer
-    if(executors == "all"){
+    # executors is a positive integer
+    if(is.null(spec)){
         executors <- parallel::detectCores(logical=FALSE)
+        spec <- executors
+    } 
+    if(is.numeric(spec)){
+        executors <- spec
     }
-    if(is.null(executors) || is.na(executors) || executors < 1){
-        message("Executors should be a positive integer. Defaulting to 1.")
+    if(is.character(spec)){
+        # Character vector of hostnames for PSOCK cluster
+        executors <- length(spec)
+    }
+    if(is.null(executors) || is.na(executors) || executors < 1 ||
+            length(executors) > 1){
+        message("Executors should be a single positive integer. Defaulting to 1.")
         executors <- 1L
     }
     executors <- as.integer(executors)
@@ -68,7 +80,7 @@ init_parallel <- function(executors = "all",
         type <- "PSOCK"
     }
 
-    cluster <- parallel::makeCluster(executors, type, ...)
+    cluster <- parallel::makeCluster(spec, type, ...)
 
     new("parallel.ddR",
         DListClass = "ParallelObj",

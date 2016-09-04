@@ -36,11 +36,28 @@ test_that("useBackend can switch and use PSOCK", {
 })
 
 
+test_that("Can pass vector of hostnames", {
+
+    useBackend("parallel", spec = c("localhost", "localhost"), type="PSOCK")
+
+    dl <- dlist(1:10, letters, rnorm(10))
+    l <- collect(dl)
+
+    out <- collect(dmapply(head, dl))
+
+    expect_equal(out, lapply(l, head))
+
+    # Necessary so that remaining tests run using correct cluster type
+    useBackend("parallel")
+
+})
+
+
 test_that("mapply with different parallel backends", {
 # Windows can't FORK
 if(.Platform$OS.type != "windows"){
 
-    useBackend("parallel", type = "FORK", executors = 2)
+    useBackend("parallel", 2, type = "FORK")
     dl2 <- do.call(dlist, l)
 
     # This sets up a different local cluster
