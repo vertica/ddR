@@ -39,7 +39,7 @@ windows <- (.Platform$OS.type == "windows")
 #' The FORK method of parallel works only on UNIX environments. The "PSOCK"
 #' method requires SNOW but works on all OSes.
 #'
-#' This function is merely a wrapper around \link[parallel]{makeCluster}
+#' This function is a wrapper around \link[parallel]{makeCluster}
 #'
 #' @param spec Number of cores to run with, or character vector of
 #'      hostnames for SNOW cluster. If NULL defaults to the number of
@@ -48,6 +48,19 @@ windows <- (.Platform$OS.type == "windows")
 #' @param ... Additional arguments to \link[parallel]{makeCluster}
 #' @return Object of class \code{\linkS4class{parallel.ddR}} representing a running parallel
 #'      cluster
+#'
+#' @examples
+#' \dontrun{
+#' # Cluster on 2 cores with default type:
+#' useBackend("parallel", 2)
+#'
+#' # PSOCK cluster on multiple machines (assuming you can ssh user@server1):
+#' servers <- c("server1", "server2")
+#' useBackend("parallel", servers, type = "PSOCK")
+#'
+#' # MPI cluster (assuming Rmpi is installed)
+#' useBackend("parallel", type = "MPI")
+#' }
 init_parallel <- function(spec = NULL,
          type = ifelse(windows, "PSOCK", "FORK"), ...){
 
