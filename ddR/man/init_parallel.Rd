@@ -24,6 +24,19 @@ The FORK method of parallel works only on UNIX environments. The "PSOCK"
 method requires SNOW but works on all OSes.
 }
 \details{
-This function is merely a wrapper around \link[parallel]{makeCluster}
+This function is a wrapper around \link[parallel]{makeCluster}
+}
+\examples{
+\dontrun{
+# Cluster on 2 cores with default type:
+useBackend("parallel", 2)
+
+# PSOCK cluster on multiple machines (assuming you can ssh user@server1):
+servers <- c("server1", "server2")
+useBackend("parallel", servers, type = "PSOCK")
+
+# MPI cluster (assuming Rmpi is installed)
+useBackend("parallel", type = "MPI")
+}
 }
 

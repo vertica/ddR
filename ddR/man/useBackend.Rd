@@ -31,7 +31,7 @@ on, even if the backends are the same.
 }
 \examples{
 \dontrun{
-useBackend("parallel", executors=2)
+useBackend("parallel")
 shutdown()  # We're done using the parallel backend
 library(distributedR.ddR); useBackend("distributedR")
 }
