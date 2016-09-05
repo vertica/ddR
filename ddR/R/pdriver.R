@@ -54,8 +54,8 @@ windows <- (.Platform$OS.type == "windows")
 #' # Cluster on 2 cores with default type:
 #' useBackend("parallel", 2)
 #'
-#' # PSOCK cluster on multiple machines (assuming you can ssh user@server1):
-#' servers <- c("server1", "server2")
+#' # PSOCK cluster with 3 slaves on 2 machines (assuming you can ssh user@server1):
+#' servers <- c("server1", "server1", "server2")
 #' useBackend("parallel", servers, type = "PSOCK")
 #'
 #' # MPI cluster (assuming Rmpi is installed)
