@@ -20,7 +20,10 @@
 
     # This should run to initialize the default driver.
     # Maybe there's a better place to put this?
-    if(is.null(ddR.env$driver)){
+
+    if(.Platform$OS.type == "windows"){
         useBackend()
+    } else {
+        useBackend('fork')
     }
 }

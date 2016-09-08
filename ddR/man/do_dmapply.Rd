@@ -3,6 +3,7 @@
 \docType{methods}
 \name{do_dmapply}
 \alias{do_dmapply}
+\alias{do_dmapply,fork.ddR,function-method}
 \alias{do_dmapply,parallel.ddR,function-method}
 \title{Backend-specific dmapply logic. This is a required override for all
 backends to implement so dmapply works.}
@@ -11,6 +12,11 @@ do_dmapply(driver, func, ..., MoreArgs = list(), output.type = "dlist",
   nparts = NULL, combine = "default")
 
 \S4method{do_dmapply}{parallel.ddR,`function`}(driver, func, ...,
+  MoreArgs = list(), output.type = c("dlist", "dframe", "darray",
+  "sparse_darray"), nparts = NULL, combine = c("default", "c", "rbind",
+  "cbind"))
+
+\S4method{do_dmapply}{fork.ddR,`function`}(driver, func, ...,
   MoreArgs = list(), output.type = c("dlist", "dframe", "darray",
   "sparse_darray"), nparts = NULL, combine = c("default", "c", "rbind",
   "cbind"))
