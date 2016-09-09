@@ -11,15 +11,9 @@ backends to implement so dmapply works.}
 do_dmapply(driver, func, ..., MoreArgs = list(), output.type = "dlist",
   nparts = NULL, combine = "default")
 
-\S4method{do_dmapply}{parallel.ddR,`function`}(driver, func, ...,
-  MoreArgs = list(), output.type = c("dlist", "dframe", "darray",
-  "sparse_darray"), nparts = NULL, combine = c("default", "c", "rbind",
-  "cbind"))
+\S4method{do_dmapply}{parallel.ddR,`function`}(driver, func, MoreArgs, dots)
 
-\S4method{do_dmapply}{fork.ddR,`function`}(driver, func, ...,
-  MoreArgs = list(), output.type = c("dlist", "dframe", "darray",
-  "sparse_darray"), nparts = NULL, combine = c("default", "c", "rbind",
-  "cbind"))
+\S4method{do_dmapply}{fork.ddR,`function`}(driver, func, MoreArgs, dots)
 }
 \arguments{
 \item{driver}{The driver that the logic dispatches on.}

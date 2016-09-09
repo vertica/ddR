@@ -312,8 +312,12 @@ dmapply <- function(FUN ,..., MoreArgs=list(),
   if(output.type == "sparse_darray" && combine != "cbind" && combine != "rbind")
     stop("sparse_darray outputs must have either 'rbind' or 'cbind' for combine")
 
-  newobj <- do_dmapply(ddR.env$driver, func=match.fun(FUN), ..., MoreArgs=MoreArgs,
+########################################
+
+  newobj <- dmapply_helper(ddR.env$driver, func=match.fun(FUN), ..., MoreArgs=MoreArgs,
                        output.type=output.type,nparts=partitioning,combine=combine)
+
+########################################
 
   checkReturnObject(partitioning,newobj)
 
