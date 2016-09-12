@@ -146,26 +146,30 @@ setGeneric("shutdown", function(x) standardGeneric("shutdown"))
 setMethod("shutdown", "missing", function() shutdown(ddR.env$driver))
 
 
-#' Backend-specific dmapply logic. This is a required override for all
-#' backends to implement so dmapply works.
-#' @param driver The driver that the logic dispatches on.
-#' @param func The function to execute
-#' @param ... Iterable arguments from dmapply.
-#' @param MoreArgs A list of more arguments to the funciton.
-#' @param output.type The type of output (can be 'dlist', 'darray',
-#' 'sparse_darray', or 'dframe').
-#' @param nparts A 2d-vector indicating how the output is partitioned.
-#' @param combine One of 'default', 'rbind', 'cbind', or 'c', which
-#' specifies how the results from each partition should be combined.
-#' @return An object specific to the backend, with the nparts and psize
-#' fields filled.
-#' @export
+# Backend-specific dmapply logic. This is a required override for all
+# backends to implement so dmapply works.
+# @param driver The driver that the logic dispatches on.
+# @param func The function to execute
+# @param ... Iterable arguments from dmapply.
+# @param MoreArgs A list of more arguments to the funciton.
+# @param output.type The type of output (can be 'dlist', 'darray',
+# 'sparse_darray', or 'dframe').
+# @param nparts A 2d-vector indicating how the output is partitioned.
+# @param combine One of 'default', 'rbind', 'cbind', or 'c', which
+# specifies how the results from each partition should be combined.
+# @return An object specific to the backend, with the nparts and psize
+# fields filled.
+# @export
 # dispatches on ddRDriver
-setGeneric("do_dmapply",
-           function(driver, func, ..., MoreArgs=list(), output.type="dlist",
-                    nparts=NULL, combine="default")
-               standardGeneric("do_dmapply"),
-           signature=c("driver", "func"))
+#setGeneric("do_dmapply",
+#           function(driver, func, ..., MoreArgs=list(), output.type="dlist",
+#                    nparts=NULL, combine="default")
+#               standardGeneric("do_dmapply"),
+#           signature=c("driver", "func"))
+
+setGeneric("do_dmapply", function(driver, func, MoreArgs, dots){
+    standardGeneric("do_dmapply")
+})
 
 
 #' Combines a list of partitions into a single distributed

@@ -312,7 +312,6 @@ answer <- do_dmapply(driver, func, MoreArgs, dots)
 }
 
 
-#' @rdname do_dmapply
 setMethod("do_dmapply",
           signature(driver="parallel.ddR", func="function"),
 function(driver, func, MoreArgs, dots)
@@ -327,9 +326,9 @@ function(driver, func, MoreArgs, dots)
 })
 
 
-#' @rdname do_dmapply
 setMethod("do_dmapply",
-          signature(driver="fork.ddR", func="function"),
+          signature(driver="fork.ddR", func="function", MoreArgs = "list",
+dots = "list"),
 function(driver, func, MoreArgs, dots)
 {
    allargs <- c(list(FUN = func, MoreArgs = MoreArgs, SIMPLIFY = FALSE,
@@ -339,7 +338,7 @@ function(driver, func, MoreArgs, dots)
 })
 
 
-##' @rdname do_dmapply
+## @rdname do_dmapply
 #setMethod("do_dmapply",
 #          signature(driver="fork.ddR", func="function"), 
 #          function(driver, func, ..., MoreArgs = list(),
