@@ -15,7 +15,7 @@
 # Boston, MA 02111-1307 USA.
 ###################################################################
 
-#' @include pdriver.R
+#' @include parallel_driver.R
 NULL
 
 # Create Class Union for Parallel backend

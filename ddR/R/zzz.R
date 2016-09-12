@@ -18,12 +18,12 @@
 .onAttach <- function(libname, pkgname) {
     packageStartupMessage("\nWelcome to 'ddR' (Distributed Data-structures in R)!\nFor more information, visit: https://github.com/vertica/ddR")
 
-    # This should run to initialize the default driver.
-    # Maybe there's a better place to put this?
+    register_driver(name = "parallel", initfunc = init_parallel)
 
     if(.Platform$OS.type == "windows"){
         useBackend()
     } else {
+        register_driver(name = "fork", initfunc = init_fork)
         useBackend('fork')
     }
 }
