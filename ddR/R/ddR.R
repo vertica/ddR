@@ -169,7 +169,7 @@ setMethod("shutdown", "missing", function() shutdown(ddR.env$driver))
 
 setGeneric("do_dmapply", function(driver, func, MoreArgs, dots){
     standardGeneric("do_dmapply")
-})
+}, signature = "driver")
 
 
 #' Combines a list of partitions into a single distributed

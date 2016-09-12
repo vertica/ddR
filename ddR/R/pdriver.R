@@ -312,8 +312,9 @@ answer <- do_dmapply(driver, func, MoreArgs, dots)
 }
 
 
-setMethod("do_dmapply",
-          signature(driver="parallel.ddR", func="function"),
+#setMethod("do_dmapply",
+setMethod("do_dmapply", signature = c(driver = "parallel.ddR"),
+#          signature(driver="parallel.ddR", func="function"),
 function(driver, func, MoreArgs, dots)
 {
     allargs <- c(list(cl = driver@cluster,
@@ -326,9 +327,9 @@ function(driver, func, MoreArgs, dots)
 })
 
 
-setMethod("do_dmapply",
-          signature(driver="fork.ddR", func="function", MoreArgs = "list",
-dots = "list"),
+setMethod("do_dmapply", signature = c(driver = "fork.ddR"),
+#          signature(driver="fork.ddR", func="function", MoreArgs = "list",
+#dots = "list"),
 function(driver, func, MoreArgs, dots)
 {
    allargs <- c(list(FUN = func, MoreArgs = MoreArgs, SIMPLIFY = FALSE,
