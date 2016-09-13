@@ -36,9 +36,7 @@ pcut <- function(x, breaks, labels = NULL, mc.cores = ncores) {
 }
 
 # About 1 second
-system.time(
 binned <- pcut(delta, breaks, break_names)
-)
 
 pdf('parallel_plot.pdf')
 plot(binned)

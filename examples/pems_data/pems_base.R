@@ -27,9 +27,7 @@ in50_90 <- 45 <= s1 & s1 <= 90 &
 delta <- s1[in50_90] - s2[in50_90]
 
 # About 2 seconds
-system.time(
 binned <- cut(delta, breaks, break_names)
-)
 
 pdf('base_plot.pdf')
 plot(binned)
