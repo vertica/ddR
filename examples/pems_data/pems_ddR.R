@@ -1,25 +1,11 @@
-# California PEMS data can be downloaded as the txt.gz files here:
-# http://www.stat.ucdavis.edu/~clarkf/ Duplicating the analysis from base R, but
-# this time using ddR for computation.
+# See pems_common.R for a description of the data and task
+#
+# Loads `read1`, `station_files`, and `breaks`
+source("pems_common.R")
 
 library(ddR)
 
-# Trying various options with ddR: useBackend(parallel, type = 'PSOCK')
-
-# There are 4 gzipped files here
-station_files = list.files("~/data/pems/", full.names = TRUE)
-
-read1 <- function(file) {
-    read.table(station_files[1], header = FALSE, sep = ",", 
-        col.names = c("timestamp", "station", "flow1", "occupancy1",
-                      "speed1", "flow2", "occupancy2", "speed2",
-                      rep("NULL", 18)),
-        colClasses = c("character", "factor", "integer", "numeric",
-                       "integer", "integer", "numeric", "integer",
-                       rep("NULL", 18))
-    , nrows = 5e6L # Vary this arg if you're running short on memory
-    )
-}
+# Can try various options with ddR: useBackend(parallel, type = 'PSOCK')
 
 
 system.time({
@@ -33,7 +19,7 @@ system.time({
     ds1 = collect(ds, 1)
 })
 
-# Why is this 2 GB? It should be around 400 MB Looks like row names are to blame.
+# Why is this 2 GB? It should be around 400 MB. Looks like row names are to blame.
 print(object.size(ds1), units = "GB")
 
 # Now translate the base R workflow into ddR
@@ -41,8 +27,9 @@ print(object.size(ds1), units = "GB")
 allrows <- seq.int(nrow(ds))
 speed1 <- ds[allrows, 5]
 speed2 <- ds[allrows, 8]
-in50_90 <- 50 <= speed1 & speed1 <= 90 & 50 <= speed2 & speed2 <= 90 & !is.na(speed1) &
-    !is.na(speed2)
+in50_90 <- 50 <= speed1 & speed1 <= 90 &
+           50 <= speed2 & speed2 <= 90 &
+           !is.na(speed1) & !is.na(speed2)
 
 # This has been converted to data.frame.  So convert it back.
 s <- ds[which(in50_90), seq.int(ncol(ds))]
@@ -71,7 +58,6 @@ cut.DObject <- function(x, breaks, labels = NULL) {
 }
 
 
-breaks <- c(-Inf, 3 * seq.int(-5, 5), Inf)
 dtable <- cut.DObject(delta, breaks)
 
 # Shows the distribution of speed differences

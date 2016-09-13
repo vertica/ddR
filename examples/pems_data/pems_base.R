@@ -1,15 +1,11 @@
-# Analysis on local machine California PEMS data can be downloaded as the txt.gz
-# files here: 
-# http://www.stat.ucdavis.edu/~clarkf/ 
-#
-# The goal here is to look at
-# the speed differences between the first and second lanes.
+# Analysis on local machine 
 
-# My machine has 4 physical cores and 16 GB memory. The full objects will be 1.3
-# GB each, which is a little too big for comfort. Better just read the first two
-# lanes in to cut this size in half.
+# Loads `read1` function and `station_files`
+source("pems_common.R")
 
-station_files <- list.files("~/data/pems/", full.names = TRUE)
+slist <- lapply(station_files, read1)
+
+station <- do.call(rbind, s
 
 # Takes 47 seconds to read a single gzipped file.
 system.time({
