@@ -18,8 +18,8 @@ speed1 <- station[allrows, 5]
 speed2 <- station[allrows, 8]
 
 # This operation is not happening in ddR
-in50_90 <- 50 <= speed1 & speed1 <= 90 &
-           50 <= speed2 & speed2 <= 90 &
+in50_90 <- 45 <= speed1 & speed1 <= 90 &
+           45 <= speed2 & speed2 <= 90 &
            !is.na(speed1) & !is.na(speed2)
 
 # This has been converted to data.frame.  So convert it back.
