@@ -11,7 +11,7 @@
 
 
 # There are 4 gzipped files here
-station_files = list.files("~/data/pems/", full.names = TRUE)
+pems_files = list.files("~/data/pems/", full.names = TRUE)
 
 # Read a single one of these
 # Vary nrows if you run short on memory
@@ -27,6 +27,6 @@ read1 <- function(file, nrows = -1) {
 }
 
 # After selecting a subset we'll use these to bin the speed differences
-breaks <- c(-Inf, seq(from = -19.5, to = 19.5, by = 3), Inf)
+breaks <- c(-Inf, seq(from = -16.5, to = 16.5, by = 3), Inf)
 break_names <- as.character(breaks[-c(1, 2, length(breaks))] - 1.5)
-break_names <- c("< -20", break_names, "> 20")
+break_names <- c("<-17", break_names, ">17")

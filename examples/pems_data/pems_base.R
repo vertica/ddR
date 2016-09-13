@@ -1,75 +1,36 @@
-# Analysis on local machine 
+# This is how I would do the task sequentially in base R
 
-# Loads `read1` function and `station_files`
+# Loads `read1` function and `pems_files`
 source("pems_common.R")
 
-slist <- lapply(station_files, read1)
 
-station <- do.call(rbind, s
+# Read files in sequentially
+slist <- lapply(pems_files, read1)
 
-# Takes 47 seconds to read a single gzipped file.
-system.time({
-    station <- read.table(station_files[1], header = FALSE, sep = ",", 
-        col.names = c("timestamp", "station", "flow1", "occupancy1",
-                      "speed1", "flow2", "occupancy2", "speed2",
-                      rep("NULL", 18)),
-        colClasses = c("character", "factor", "integer", "numeric",
-                       "integer", "integer", "numeric", "integer",
-                       rep("NULL", 18)))
-})
+station <- do.call(rbind, slist)
 
-# 400 MB
-print(object.size(station), units = "MB")
+# 1.6 GB
+#print(object.size(station), units = "GB")
 
-# 10 million rows x 8 columns
-dim(station)
+# 40 million rows x 8 columns
+#dim(station)
 
-sapply(station, class)
 
-# Simple questions: 1) Is one lane faster than the the other?  2) Does one lane
-# have more traffic than the other?  To answer: 1) Only look at rows that don't
-# contain NA's 2) Compare the means of the last 6 columns
+s1 <- station$speed1
+s2 <- station$speed2
 
-s2 <- station[complete.cases(station), -c(1, 2)]
+# Define the subset
+in50_90 <- 45 <= s1 & s1 <= 90 &
+           45 <= s2 & s2 <= 90 &
+           !is.na(s1) & !is.na(s2)
 
-# About 6.4 million
-dim(s2)
+delta <- s1[in50_90] - s2[in50_90]
 
-colMeans(s2)
+# About 2 seconds
+system.time(
+binned <- cut(delta, breaks, break_names)
+)
 
-# A little more formally:
-t.test(s2$speed2 - s2$speed1)
-
-# Suppose the traffic is between 50 and 90 mph. Then is one lane faster than the
-# other?
-in50_90 <- with(s2, 50 <= speed1 & speed1 <= 90 & 50 <= speed2 & speed2 <= 90)
-
-s <- s2[in50_90, ]
-
-# Down to 2.1 million
-dim(s)
-
-median(s$speed1)
-median(s$speed2)
-
-# So the average speed for fast traffic is about 4.1 mph faster in the 1st lane.
-delta <- s$speed1 - s$speed2
-
-t.test(delta)
-
-hist(delta)
-
-# Leave out the long tails
-d2 <- delta[abs(delta) < 17]
-length(d2)
-
-plot(density(d2, bw = 1))
-
-breaks = 2 * seq.int(-9, 8) + 1
-
-# This one is my favorite plot
-hist(d2, freq = FALSE, breaks = breaks)
-
-breaks <- c(-Inf, 3 * seq.int(-5, 5), Inf)
-# Too bad hist() doesn't do this...
-plot(cut(delta, breaks))
+pdf('base_plot.pdf')
+plot(binned)
+dev.off()
