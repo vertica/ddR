@@ -45,7 +45,7 @@ setMethod("initialize", "DistributedRObj", function(.Object, ...) {
      }
    }
    
-   if(!dR.env$DRWarn) build <- paste0("suppressWarnings(",build,")")
+   if(!driver@warn) build <- paste0("suppressWarnings(",build,")")
    .Object@DRObj <- eval(parse(text=build))
    .Object@splits <- seq(npartitions(.Object@DRObj))
 
@@ -86,7 +86,7 @@ setMethod("do_collect",signature("DistributedRObj","integer"),
    }
 })
 
-setMethod("combine",signature(driver="DistributedRddR",items="list"),
+setMethod("combine",signature(driver="DistributedR.ddR",items="list"),
   function(driver,items){
     split_indices <- sapply(items,function(x) {
       x@splits

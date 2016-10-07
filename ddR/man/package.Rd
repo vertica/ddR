@@ -64,7 +64,7 @@ more details use help function on each command.
 \examples{
 \dontrun{                  
   library(ddR)
-  useBackend(parallel)
+  useBackend(parallel.ddR)
   a <- dmapply(function(x,y) x+y, 1:5, 2:6, nparts=3) 
   collect(a)
 }}

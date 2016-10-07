@@ -3,5 +3,7 @@
 
 library(testthat)
 library(ddR)
-useBackend(parallel, executors=2)
+
+driver_name <- "parallel"
+
 test_check("ddR")

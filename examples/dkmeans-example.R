@@ -4,10 +4,10 @@ library(kmeans.ddR)
 set.seed(319804)
 
 N_EXEC = 2 # Change level of parallelism
-useBackend(parallel, executors = N_EXEC)
+useBackend("parallel", executors = N_EXEC)
 # Uncomment the following lines to use Distributed R 
 #library(distributedR.ddR)
-#useBackend(distributedR)
+#useBackend("distributedR")
 
 # Set up data size
 NCOL = 8 # Must be at least 2

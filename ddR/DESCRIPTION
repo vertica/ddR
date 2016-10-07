@@ -25,7 +25,9 @@ Collate:
     'RcppExports.R'
     'ddR.R'
     'dobject.R'
+    'fork_driver.R'
     'ops.R'
-    'pdriver.R'
+    'parallel_driver.R'
     'pobject.R'
     'zzz.R'
+RoxygenNote: 5.0.1

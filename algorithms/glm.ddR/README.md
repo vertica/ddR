@@ -9,7 +9,7 @@ date: "2015-11-03"
 library(ddR)
 library(glm.ddR)
 nInst = 2 # Change level of parallelism
-useBackend(parallel,executors = nInst)
+useBackend("parallel",executors = nInst)
 ```
 
 ### Generate some data:

@@ -21,28 +21,26 @@
 #' npartitions dimnames.dobject dimnames<-.dobject
 #' @importClassesFrom distributedR dobject 
 
-dR.env <- new.env()
 
-# Create distributedR ddRDriver
-setClass("DistributedRddR", contains="ddRDriver")
+setClass("DistributedR.ddR", contains = "ddRDriver",
+        slots = c(warn = "logical"))
 
-#' @export 
-# Exported Driver
-distributedR <- new("DistributedRddR",DListClass = "DistributedRObj",DFrameClass = "DistributedRObj",DArrayClass = "DistributedRObj",backendName = "Distributed R")
-
-#' @export
-setMethod("init","DistributedRddR",
-  function(x,warn=TRUE,...) {
-    if(!is.logical(warn)) stop("`warn` must be either TRUE or FALSE.")
+init_DR <- function(warn=TRUE, ...) {
     message("Backend switched to Distributed R. Starting it up...")
     distributedR_start(...)
-    dR.env$DRWarn <- warn
-    return (sum(distributedR_status()$Inst))
-  }
-)
+
+    new("DistributedR.ddR",
+        DListClass = "DistributedRObj",
+        DFrameClass = "DistributedRObj",
+        DArrayClass = "DistributedRObj",
+        name = "DistributedR",
+        executors = sum(distributedR_status()$Inst),
+        warn = warn
+        )
+}
 
 #' @export
-setMethod("shutdown","DistributedRddR",
+setMethod("shutdown","DistributedR.ddR",
   function(x) {
     message("Switching out of using Distributed R. Shutting it down...")
     distributedR_shutdown()
@@ -51,7 +49,7 @@ setMethod("shutdown","DistributedRddR",
 
 #' @export
 setMethod("do_dmapply",
-           signature(driver="DistributedRddR",func="function"), 
+           signature(driver="DistributedR.ddR",func="function"),
            function(driver,func,...,MoreArgs=list(),
                     output.type = 
                       c("dlist","dframe","darray","sparse_darray"),
@@ -66,7 +64,7 @@ setMethod("do_dmapply",
     # stores arguments that are expressed in a nested parts list
     nested_parts <- list()
 
-    warned <- !dR.env$DRWarn
+    warned <- !driver@warn
   
     output.type <- match.arg(output.type)
     combine <- match.arg(combine)
@@ -91,7 +89,7 @@ setMethod("do_dmapply",
       .outObj <- "distributedR::dlist(npartitions=nparts[[1]])"
     }
 
-    if(!dR.env$DRWarn) .outObj <- paste0("suppressWarnings(",.outObj,")")
+    if(!driver@warn) .outObj <- paste0("suppressWarnings(",.outObj,")")
     .outObj <- eval(parse(text=.outObj))
 
     nDobjs = 0
@@ -384,7 +382,7 @@ setMethod("do_dmapply",
 
     body(exec_func)[[nLines+1]] <- substitute(update(.newDObj))
 
-    if(dR.env$DRWarn)
+    if(driver@warn)
       foreach(index,seq(prod(nparts)),exec_func,progress=FALSE) 
     else
       suppressWarnings(foreach(index,seq(prod(nparts)),exec_func,progress=FALSE))  
@@ -401,4 +399,3 @@ setMethod("do_dmapply",
          psize = psizes, dim = dims, nparts=nparts)
   }
 )
-

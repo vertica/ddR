@@ -15,6 +15,9 @@
 # Boston, MA 02111-1307 USA.
 ###################################################################
 
+#' @include parallel_driver.R
+NULL
+
 # Create Class Union for Parallel backend
 setClassUnion("ParallelObjUnion", c("list","array","data.frame"))
 
@@ -44,7 +47,7 @@ setMethod("initialize", "ParallelObj", function(.Object, ...) {
 })
 
 #' @rdname combine
-setMethod("combine",signature(driver="ParallelddR",items="list"),
+setMethod("combine",signature(driver="parallel.ddR",items="list"),
   function(driver,items){
     split_indices <- lapply(items,function(x) {
       x@splits

@@ -75,6 +75,16 @@ test_that("Dframes: Valid argument creation",{
  expect_error(parts(df1,3))
 })
 
+test_that("Correct printing", {
+
+  df_ab <- dmapply(function(x) data.frame(a = 1, b = 2), 1:4
+                    , output.type = "dframe" , nparts = c(4, 1)
+                    ,  combine = "rbind")
+
+  expect_output(print(df_ab), "[Dd]istributed")
+
+})
+
 context("Testing row/column name and value setup")
 
 test_that("Dframes: Row/column name and value setup", {
@@ -188,6 +198,7 @@ test_that("Dframe: Fill a matrix partition-by-partition for later comparison wit
 context("Testing as.dframe")
 
 test_that("Dframe: Testing as.dframe",{
+
 mtx <- matrix(c(1:100),nrow=20)
 
   #checking base case with giving dframe dimensions
@@ -231,3 +242,5 @@ mtx <- matrix(c(1:100),nrow=20)
   gpdf <- collect(df)
   expect_true(all(as.matrix(gpdf)== large_mat))
 })
+
+
