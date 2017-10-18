@@ -44,3 +44,4 @@ h2ologs/*
 .project
 # project stuff
 spark.ddr.Rproj
+.DS_Store
