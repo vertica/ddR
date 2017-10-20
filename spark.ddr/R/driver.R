@@ -27,5 +27,8 @@ setMethod("shutdown", "spark.ddR", function(x) {
 
 
 
-
-
+# Implement
+# do_dmapply
+# do_collect
+# get_parts
+#
