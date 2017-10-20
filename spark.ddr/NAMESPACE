@@ -2,4 +2,3 @@
 
 import(ddR)
 import(methods)
-importFrom(sparklyr,spark_connect)
